@@ -907,3 +907,218 @@ Once imported, a basic structure will be available to begin application developm
 components of a Spring Boot application, such as support for Spring annotations and dependency management through 
 Maven, will already be configured. Spring Boot significantly simplifies the development process, reducing the time 
 needed for initial project setup and allowing the focus to be on developing the features that make the application unique.
+
+## Connecting to MongoDB in Java: Pom
+
+This section will outline the steps required to connect to MongoDB using Java and Maven. The process involves updating 
+the `pom.xml` file to include the necessary MongoDB driver dependencies and writing a Java class to establish and 
+manage the connection to a MongoDB Atlas cluster.
+
+### Updating the `pom.xml` File
+
+First, open the Java Maven project and locate the `pom.xml` file, that should look like this:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>quickstart</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+
+    <properties>
+        <maven.compiler.source>18</maven.compiler.source>
+        <maven.compiler.target>18</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>18</source>
+                    <target>18</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+To add the MongoDB driver to the project's dependencies, the `pom.xml` file should be updated as follows.
+Ensure the latest version is used, which can be found in the
+[MongoDB documentation](https://www.mongodb.com/docs/drivers/java/sync/current/quick-start/).
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>quickstart</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>18</maven.compiler.source>
+        <maven.compiler.target>18</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>18</source>
+                    <target>18</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+### Connecting to MongoDB Atlas Cluster
+
+After adding the MongoDB driver dependency, the next step is to instruct the application to connect to the Atlas 
+cluster using the Java Synchronous Driver from the Maven repository. It is necessary to have a valid connection 
+string or URI to connect to the Atlas cluster. This can be obtained from the Atlas interface by navigating to
+`"Databases" -> "Connect" -> "Drivers"` and selecting `"Java 4.3 or Later"` as the version.
+
+The connection string provided by Atlas should be used in the Java code. The following example demonstrates how 
+to create a new file named `Connection.java` in the `src` folder of the project and utilize the connection string 
+to establish a connection with the Atlas cluster. Create a new file named `Connection.java` in the `src` folder 
+and insert the following code:
+
+```java
+/**
+ * The Connection class provides functionality to connect to a MongoDB instance and list all available databases.
+ */
+package com.mongodb.quickstart;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import org.bson.Document;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Connection {
+
+    /**
+     * The main method establishes a connection to the MongoDB instance specified by the URI provided
+     * as a system property and lists all available databases.
+     *
+     * @param args the command-line arguments (not used)
+     */
+    public static void main(String[] args) {
+        // Retrieve the MongoDB URI from the system properties
+        String connectionString = System.getProperty("mongodb.uri");
+
+        // Establish a connection to the MongoDB instance
+        try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+            // Retrieve the list of databases
+            List<Document> databases = mongoClient.listDatabases().into(new ArrayList<>());
+
+            // Print information about each database
+            databases.forEach(db -> System.out.println(db.toJson()));
+        }
+    }
+}
+```
+
+### Compiling and Running the Project
+
+To compile the project, execute the following Maven command from the terminal in the project's root directory:
+
+```bash
+mvn --quiet compile
+```
+
+To run the application and connect to the Atlas cluster, use the following Maven command, making sure to replace
+`<username>` with the username, and `<password>` with the password. For demo purposes during the project, both
+username and password will be set to `admin`. This is just a toy example, and for security reasons the actual
+database password should be more complex to ensure safety
+
+```bash
+mvn compile exec:java -Dexec.mainClass="com.mongodb.quickstart.Connection" -Dmongodb.uri="mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB"
+```
+
+If the command executes successfully, it will return a list of databases contained within the Atlas cluster.
+
+### Best Practices for MongoClient Instances
+
+For optimal performance and cost efficiency, it is recommended to have only one `MongoClient` instance per Atlas 
+cluster in the application. Creating multiple `MongoClient` instances can lead to higher-than-normal database costs.
+
+The following example demonstrates the use of a Singleton pattern to ensure a single `MongoClient` 
+instance is used throughout the application, thereby preventing the creation of multiple instance:
+
+```java
+package com.mongodb.quickstart;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import org.bson.Document;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Connection {
+    private static Connection instance;
+    private final MongoClient mongoClient;
+
+    private Connection(String connectionString) {
+        this.mongoClient = MongoClients.create(connectionString);
+    }
+
+    public static synchronized Connection getInstance(String connectionString) {
+        if (instance == null) {
+            instance = new Connection(connectionString);
+        }
+        return instance;
+    }
+
+    public void listDatabases() {
+        // Retrieve the list of databases
+        List<Document> databases = mongoClient.listDatabases().into(new ArrayList<>());
+
+        // Print information about each database
+        databases.forEach(db -> System.out.println(db.toJson()));
+    }
+
+    public static void main(String[] args) {
+        // Retrieve the MongoDB URI from the system properties
+        String connectionString = System.getProperty("mongodb.uri");
+
+        // Establish a connection to the MongoDB instance
+        Connection connection = Connection.getInstance(connectionString);
+        connection.listDatabases();
+    }
+}
+```
+
+### Troubleshooting Connection Issues
+
+Common connection issues include Atlas IP access restrictions, invalid connection string format, 
+incorrect authentication, firewall misconfiguration, and flawed connection code. 
+Ensure these aspects are correctly configured to avoid connection problems.
