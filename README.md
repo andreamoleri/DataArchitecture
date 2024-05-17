@@ -838,3 +838,72 @@ and there are several other tabs for each collection:
 - **Explain Plan**: understand the performance of specific queries run in the database.
 - **Indexes**: view existing indexes on specific collections and understand the performance of specific queries.
 - **Validation**: create rules to enforce the data structure of documents on update and insert statements.
+
+## Connecting to a MongoDB Atlas Cluster from an Application
+
+It is time to introduce the concept of MongoDB Drivers. MongoDB Drivers connect our application to our database 
+using a Connection String and through the use of a programming language of our choice. In other words, MongoDB 
+drivers provide a way to connect our database with our application.
+
+To find a list of languages supported by MongoDB, it is possible to visit the
+[official MongoDB's drivers list website](http://mongodb.com/docs/drivers). 
+Numerous languages are supported, and there is also a section called Community Supported Libraries, 
+which contains drivers for languages not officially supported but maintained by the community. 
+On the aforementioned link, we can choose a language and click on it. The MongoDB Documentation contains 
+resources including a Quick Start section to quickly configure the Drivers. We also have a Quick Reference 
+section that contains the syntax of common commands, and sections for Usage Examples and Fundamentals.
+
+Since Java is the language we will be using in this report, is it possible to refer to the following documentation page: 
+[MongoDB Java Driver Quick Start](https://www.mongodb.com/docs/drivers/java/sync/current/quick-start/). 
+It is also worth noting the existence of the MongoDB Developer Center, which contains tutorials, videos,
+and examples of applications built in various programming languages.
+
+Always remember that if we encounter issues while following one of the connection procedures mentioned, 
+it is often because we have not granted permissions to the IP address of our local machine in Atlas. 
+If necessary, add these permissions by navigating to `Security > Network Access > Add IP Address`. 
+If this does not resolve the issue, the correct spelling of usernames and passwords needs to be checked.
+
+## Connecting to MongoDB in Java: Spring Boot & Maven
+
+### Introduction
+
+When building a Java application and connecting it with MongoDB, the application requires a series of libraries 
+to interact with the MongoDB deployment. Collectively, these libraries are referred to as "Drivers." 
+MongoDB maintains official Java Drivers for both synchronous and asynchronous applications. For this report, 
+the synchronous version will be used. The MongoDB drivers simplify the connection and interaction between 
+applications and the database, establish secure connections to MongoDB clusters, and execute database operations 
+on behalf of client applications. Additionally, the drivers allow specifying connection options such as security 
+settings, write durability, read isolation, and more. The official drivers adhere to language best practices 
+and enable the use of the full functionality of the MongoDB deployment.
+
+### Using Maven with Spring Boot
+
+To start with the practical part using Maven, a Java Maven project can be created with Spring Boot. 
+It is possible to use Spring Boot to create a Java Maven project even if there is no intention to use the s
+pecific functionalities of Spring. Spring Boot offers many conventions and tools for project configuration, 
+greatly simplifying development and dependency management. Even if the functionalities of Spring, 
+such as dependency injection or the MVC framework, are not needed, Spring Boot can still provide benefits 
+like integration with embedded servers, convention-based automatic configuration, and tools for dependency management. 
+The specific features of Spring can always be utilized or ignored based on the project's needs. 
+This is why this method of project creation is chosen for the report.
+
+### Creating a Java Maven Project with Spring Boot
+
+To create a Java Maven project using Spring Boot, one can use a tool called 
+[Spring Initializr](https://start.spring.io). This tool provides an intuitive web interface that allows 
+configuring and generating a customized Spring Boot project quickly.
+
+First, visit the [Spring Initializr](https://start.spring.io) website. Here, the project characteristics 
+can be specified. We will choose Java as the language, Maven as the project type, and version 3.2.5 of Spring Boot.
+The project will be named `quickstart`, belonging to the group `com.mongodb`. 
+The packaging will be executed in `Jar`, and the Java version will be set to 17.
+
+After configuring the project on Spring Initializr, click the generation button to download the project as a zip file. 
+Once downloaded, extract the zip file's contents into a directory on your computer. 
+This project can then be imported into the preferred integrated development environment (IDE), 
+such as IntelliJ IDEA or Eclipse, using the import function to bring in the newly created project.
+
+Once imported, a basic structure will be available to begin application development. Many of the fundamental 
+components of a Spring Boot application, such as support for Spring annotations and dependency management through 
+Maven, will already be configured. Spring Boot significantly simplifies the development process, reducing the time 
+needed for initial project setup and allowing the focus to be on developing the features that make the application unique.
