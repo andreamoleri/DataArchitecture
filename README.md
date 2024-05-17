@@ -813,6 +813,28 @@ loopArray(greetingArray);
 
 Executing the above will print each element of `greetingArray` to the console. The MongoDB Shell thus allows extensive use of JavaScript elements within its environment.
 
+## Connecting to a MongoDB Atlas Cluster with Compass
 
+In this section, we will explore how to use the Connection String with MongoDB Compass to connect to a Cluster. 
+MongoDB Compass is a GUI that allows us to query and analyze our data, as well as compose aggregation pipelines.
+Once logged into Atlas, navigate to Databases and then Connect, selecting the MongoDB Compass option. 
+This will open a familiar screen, providing the usual connection string to copy and paste. The difference, 
+however, is that we can download MongoDB Compass for our operating system. After downloading MongoDB Compass, 
+we can go to New Connection, enable the Edit Connection String switch, and then replace the text in the URI Box 
+with the Connection String from Atlas. We will notice that the password is not yet inserted in this Connection String: 
+we need to replace `<password>` with our password, and once done, we can click Save & Connect.
 
+We will be prompted to name the connection. Once connected, we will notice a list of databases and collections on the
+left menu. Additionally, we will find tabs for My Queries to save future aggregations and queries we write, 
+a Databases tab that provides metadata about the available databases in the Cluster, and a Performance tab, 
+which allows us to monitor the Cluster's performance metrics. In the left-hand sidebar, we can select one of the 
+databases, and the collections within the database will be displayed. We can also individually click on one of the 
+collections to view the documents within those collections. Similar to Atlas, we can also use the Filter tab,
+and there are several other tabs for each collection:
 
+- **Documents**: view the documents in the collection.
+- **Aggregations**: compose aggregation statements to execute on the collection.
+- **Schema**: analyze the structure of the documents, which can help in optimizing the schema.
+- **Explain Plan**: understand the performance of specific queries run in the database.
+- **Indexes**: view existing indexes on specific collections and understand the performance of specific queries.
+- **Validation**: create rules to enforce the data structure of documents on update and insert statements.
