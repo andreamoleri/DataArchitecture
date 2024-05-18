@@ -1252,3 +1252,43 @@ db.grades.insertMany([
   },
 ])
 ```
+
+## Finding Documents in a MongoDB Collection
+
+### Using the `find()` Method
+
+The `find()` method can be used to locate objects within a collection. Additionally, the `$in` operator can be 
+utilized alongside this method. To use the `find()` method, one can simply execute `db.<collection>.find()`. 
+For instance, assuming there is a collection named `zips`, the following command can be executed from a terminal 
+connected to an Atlas cluster: `db.zips.find()`. This command will return some of the documents contained within 
+the collection.
+
+To view more results, the `it` shell directive can be employed. This directive will (it)erate over the extensive 
+list of results. Therefore, by entering `it` and pressing enter, more results from the collection can be viewed.
+To retrieve a specific document from the collection, the syntax `{ field: <value> }` can be used. 
+For example, `db.zips.find({ state: "AZ" })` will return all documents with `state: AZ`. Another example command might be:
+
+```bash
+db.zips.find({ _id: ObjectId("5c8eccc1caa187d17ca6ed16") })
+```
+
+### Using the `$in` Operator
+
+The `$in` operator allows for the selection of all documents that have a field value matching one of the values 
+specified in an array. A query in the terminal might follow the syntax:
+
+```bash
+db.<collection>.find({
+    <field>: {$in:
+        [<value>, <value>, ...]
+    }
+})
+```
+
+Here, the keyword `in` is followed by an array of values to be matched. For example, in the following code, 
+the goal is to find every document containing a city value that is either PHOENIX or CHICAGO. 
+By executing this command, the database will respond with a list of documents that meet the query's criteria:
+
+```bash
+db.zips.find({ city: { $in: ["PHOENIX", "CHICAGO"] } })
+```
