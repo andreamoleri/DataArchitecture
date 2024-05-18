@@ -1396,3 +1396,110 @@ db.sales.find({
 After executing this query, the returned documents will contain laptops with quantities greater than or equal to 1
 and prices greater than $800. In other words, the `$elemMatch` operator can be used to find all documents that 
 contain the specified sub-document.
+
+## Finding Documents by Using Logical Operators
+
+### Logical Operators in MongoDB
+
+In MongoDB, the logical operators `$and` and `$or` can be used to perform queries. The `$and` operator executes a 
+logical AND on an array of one or more expressions, returning all documents that meet all the criteria specified in 
+the array. The syntax for this operator is as follows:
+
+```bash
+db.<collection>.find({
+  $and: [
+    {<expression>},
+    {<expression>},
+    ...
+  ]
+})
+```
+
+This `$and` operator has an implicit syntax often used to simplify a query expression. It is sufficient to add a comma 
+between expressions to specify an implicit AND, for example:
+
+```bash
+db.collection.find({ <expression>, <expression> })
+```
+
+### Understanding the `$and` Operator
+
+It is important to remember that this comma acts just like the AND operator. When used, if even one of the specified 
+criteria does not pass, the document will not be included in the results. Before proceeding to an example, consider 
+a sample document from a collection called `Routes`. Each element in the collection contains information about a 
+particular flight route:
+
+```json
+{
+  "_id": ObjectId ("56e9b39b732b6122f877fa80"),
+  "airline": {
+    "id": 8359,
+    "name": "Star Peru (2I)",
+    "alias": "21",
+    "iata": "\|N"
+  },
+  "src_airport": "ТРP",
+  "dst_airport": "LIM",
+  "codeshare": "",
+  "stops": 0,
+  "airplane": "142 146"
+}
+```
+
+Consider the following query, where all documents are being searched for those whose airline is "Southwest Airlines" 
+and whose number of stops is greater than or equal to 1. This query will return the relevant documents:
+
+```bash
+db.routes.find({
+  $and: [{ "airline": "Southwest Airlines" }, { "stops": { $gte: 1 } }],
+})
+```
+
+However, the implicit syntax can simplify the query:
+
+```bash
+db.routes.find({ "airline.name": "Southwest Airlines", stops: { $gte: 1 } })
+```
+
+This will return the same documents as before.
+
+### The `$or` Operator
+
+Next, consider the `$or` operator, which performs a logical OR on an array of two or more expressions, returning 
+documents that match at least one of the provided expressions.
+
+```bash
+db.<collection>.find({
+  $or: [
+    {<expression>},
+    {<expression>},
+    ...
+  ]
+})
+```
+
+An example query using this operator will return all flights either departing from or arriving at the SEA airport:
+
+```bash
+db.routes.find({
+  $or: [{ dst_airport: "SEA" }, { src_airport: "SEA" }],
+})
+```
+
+### Combining Logical Operators
+
+Logical operators can also be combined. Consider the following example, where an `$and` operator contains two `$or` 
+operators. This query searches for every flight that has SEA as either the departure or arrival airport, and also 
+all flights operated by American Airlines or using an Airbus 320 airplane:
+
+```bash
+db.routes.find({
+  $and: [
+    { $or: [{ dst_airport: "SEA" }, { src_airport: "SEA" }] },
+    { $or: [{ "airline.name": "American Airlines" }, { airplane: 320 }] },
+  ]
+})
+```
+
+In such cases, the implicit syntax of `$and` is not used. This is because the first OR expression would be overwritten
+by the following OR expression. This occurs because two fields with the same name cannot be stored in the same JSON object. Thus, as a general rule, when including the same operator more than once in a query, the explicit `$and` operator must be used.
