@@ -1122,3 +1122,133 @@ public class Connection {
 Common connection issues include Atlas IP access restrictions, invalid connection string format, 
 incorrect authentication, firewall misconfiguration, and flawed connection code. 
 Ensure these aspects are correctly configured to avoid connection problems.
+
+## Inserting Documents in a MongoDB Collection
+
+### Methods for Inserting Documents
+
+There are two methods available for inserting documents into a collection in MongoDB: `insertOne()` and `insertMany()`. 
+To use the `insertOne()` method, it is appended to the database as follows: `db.<collection>.insertOne()`. 
+For instance, when connected to a sample database, one can use the command `db.grades.insertOne()`.
+
+If the `grades` collection does not yet exist in the database, MongoDB will automatically create the collection.
+This is an important point to remember to avoid inadvertently creating new collections within the database. 
+Once the command is set, the document intended for insertion is passed as a parameter within the `insertOne` method. 
+The following example code can be executed in a bash terminal window connected to an Atlas cluster:
+
+```java
+db.grades.insertOne({
+  student_id: 654321,
+  products: [
+    {
+      type: "exam",
+      score: 90,
+    },
+    {
+      type: "homework",
+      score: 59,
+    },
+    {
+      type: "quiz",
+      score: 75,
+    },
+    {
+      type: "homework",
+      score: 88,
+    },
+  ],
+  class_id: 550,
+})
+```
+
+If the operation is successful, it will return `acknowledged: true` along with the `ObjectID`
+of the newly created document, which is generated automatically.
+
+### Inserting Multiple Documents
+
+To insert multiple documents at once, the `insertMany()` method is used with the following syntax:
+
+```java
+db.<collection>.insertMany([
+	<document 1>,
+	<document 2>,
+	<document 3>
+])
+```
+
+As the name suggests, this code inserts multiple documents. An array of documents intended for insertion is passed, 
+separated by commas. This method can be executed in the shell similarly to `insertOne()`. 
+Again, an acknowledgment confirming the insertion of multiple documents into the database, 
+along with their respective `ObjectID` values, will be returned. Below is an example of how to use `insertMany()`
+in a bash terminal window connected to an Atlas cluster:
+
+```java
+db.grades.insertMany([
+  {
+    student_id: 546789,
+    products: [
+      {
+        type: "quiz",
+        score: 50,
+      },
+      {
+        type: "homework",
+        score: 70,
+      },
+      {
+        type: "quiz",
+        score: 66,
+      },
+      {
+        type: "exam",
+        score: 70,
+      },
+    ],
+    class_id: 551,
+  },
+  {
+    student_id: 777777,
+    products: [
+      {
+        type: "exam",
+        score: 83,
+      },
+      {
+        type: "quiz",
+        score: 59,
+      },
+      {
+        type: "quiz",
+        score: 72,
+      },
+      {
+        type: "quiz",
+        score: 67,
+      },
+    ],
+    class_id: 550,
+  },
+  {
+    student_id: 223344,
+    products: [
+      {
+        type: "exam",
+        score: 45,
+      },
+      {
+        type: "homework",
+        score: 39,
+      },
+      {
+        type: "quiz",
+        score: 40,
+      },
+      {
+        type: "homework",
+        score: 88,
+      },
+    ],
+    class_id: 551,
+  },
+])
+```
