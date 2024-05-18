@@ -1302,7 +1302,8 @@ the syntax is `<field>: { <operator> : <value> }`.
 Consider the following examples, starting with `$gt`, which returns documents where the field contains a value 
 greater than the specified value. For instance, one might search for prices greater than 50 dollars. 
 In the following code, we specify the document field name, followed by the sub-document field name in quotes. 
-In this case, it is the field `items.price`. When this command is executed, all sub-documents with a price greater than $50 are returned.
+In this case, it is the field `items.price`. When this command is executed, all sub-documents with a price 
+greater than $50 are returned.
 
 The same logic applies for elements that are less than, greater than or equal to, or less than or equal to a 
 specified value. In the code provided below, `sales` is the collection, 
@@ -1317,3 +1318,81 @@ while the subdocument fields are `items.price` and `customer.age`.
 
 > db.sales.find({ "customer.age": { $lte: 50 } })
 ```
+
+## Querying on Array Elements in MongoDB
+
+### Querying Specific Values in an Array
+
+To understand how to query specific values, also known as elements, within an array in a MongoDB database, 
+consider a common scenario. This involves searching for all documents that have a field containing the specified value. 
+For example, consider a collection named `Accounts` defined as follows:
+
+```json
+{
+	"account_id": 470650,
+	"limit": 10000,
+	"products": [
+		"CurrencyService",
+		"Commodity",
+		"InvestmentStock"
+	]
+}
+```
+
+Each document in this collection has a field called `products`. A query can be defined to find all documents 
+containing the value `InvestmentStock`. The syntax for this query is as follows:
+
+```bash
+db.accounts.find({ products: "InvestmentStock" })
+```
+
+This syntax is familiar to those used for equality matches. Upon executing the query, all documents will be returned 
+that have a `products` field containing either an array or a scalar value that includes `InvestmentStock`. 
+Documents not containing this value will not be returned.
+
+### Using $elemMatch for Array Elements
+
+To perform a query for one or more values but only return a match if they are elements of an array, 
+the `$elemMatch` operator can be used. The syntax for this is shown below:
+
+```bash
+db.accounts.find({
+	products: {
+		$elemMatch: { $eq: "InvestmentStock" }
+	}
+})
+```
+
+This query ensures that the `products` field is an array containing `InvestmentStock`. Therefore, the returned 
+documents will have a `products` field that is an array containing an element equal to `InvestmentStock`.
+
+The `$elemMatch` operator can also be used to find documents where a single array element matches multiple query 
+criteria. Each query criterion is placed in `$elemMatch`, separated by a comma, as shown in the following syntax:
+
+```bash
+{ <field>: { $elemMatch: 
+	{
+		<query1>,
+		<query2>,
+		...
+	}
+}}
+```
+
+### Example with Multiple Criteria
+
+Consider a collection named `sales`, focusing on the `items` field. This field contains an array of sub-documents 
+with information about the items. The following query, executed in the terminal, will find all documents with at 
+least one element in the `sales` collection that is a laptop priced over $800 and with a quantity of at least 1.
+
+```bash
+db.sales.find({
+	items: {
+		$elemMatch: { name: "laptop", price: { $gt: 800 }, quantity: { $gte: 1 } }
+	}
+})
+```
+
+After executing this query, the returned documents will contain laptops with quantities greater than or equal to 1
+and prices greater than $800. In other words, the `$elemMatch` operator can be used to find all documents that 
+contain the specified sub-document.
