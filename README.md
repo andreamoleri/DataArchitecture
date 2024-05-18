@@ -1292,3 +1292,28 @@ By executing this command, the database will respond with a list of documents th
 ```bash
 db.zips.find({ city: { $in: ["PHOENIX", "CHICAGO"] } })
 ```
+
+## Finding Documents by Using Comparison Operators
+
+Comparison operators can be utilized to find documents. These include greater than or `$gt`, less than or `$lt`, 
+less than or equal to or `$lte`, and greater than or equal to or `$gte`. To use a comparison operator, 
+the syntax is `<field>: { <operator> : <value> }`.
+
+Consider the following examples, starting with `$gt`, which returns documents where the field contains a value 
+greater than the specified value. For instance, one might search for prices greater than 50 dollars. 
+In the following code, we specify the document field name, followed by the sub-document field name in quotes. 
+In this case, it is the field `items.price`. When this command is executed, all sub-documents with a price greater than $50 are returned.
+
+The same logic applies for elements that are less than, greater than or equal to, or less than or equal to a 
+specified value. In the code provided below, `sales` is the collection, 
+while the subdocument fields are `items.price` and `customer.age`.
+
+```bash
+> db.sales.find({ "items.price": { $gt: 50 } })
+
+> db.sales.find({ "items.price": { $lt: 50 } })
+
+> db.sales.find({ "customer.age": { $gte: 50 } })
+
+> db.sales.find({ "customer.age": { $lte: 50 } })
+```
