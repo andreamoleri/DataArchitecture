@@ -1502,4 +1502,141 @@ db.routes.find({
 ```
 
 In such cases, the implicit syntax of `$and` is not used. This is because the first OR expression would be overwritten
-by the following OR expression. This occurs because two fields with the same name cannot be stored in the same JSON object. Thus, as a general rule, when including the same operator more than once in a query, the explicit `$and` operator must be used.
+by the following OR expression. This occurs because two fields with the same name cannot be stored in the same JSON object. 
+Thus, as a general rule, when including the same operator more than once in a query, the explicit `$and` operator must be used.
+
+## Replacing a Document in MongoDB
+
+Occasionally, documents are erroneously inserted into a collection. Fortunately, replacing them is straightforward. 
+To replace a single document, the `replaceOne()` method is used, for example: `db.collection.replaceOne(filter, replacement, options)`. 
+This method accepts three arguments: filter, replacement, and options. The latter is optional. Here is an example: 
+incomplete or temporary documents can be replaced with complete ones while retaining the same `_id`. 
+Below is an example of a document created before the book was ready for publication, with both `ISBN` and `thumbnailUrl` set to default values.
+
+```json
+{
+	_id: "62c5671541e2c6bcb528308",
+	title: "Deep Dive into React Hooks",
+	ISBN: "000000000",
+	thumbnailUrl: "",
+	publicationDate: ISODate ("2019-01-01T00:00:00.000z"),
+	authors: ["Ada Lovelace"]
+}
+```
+
+To replace this document with an updated version, the `replaceOne` method is used on the Book Collection as follows. 
+The `_id` is provided as the filter criteria because it is guaranteed to be unique. The entire document is replaced by 
+passing the replacement document as the second parameter. The program output will return a `matchedCount` 
+(how many documents matched the filter) and a `modifiedCount` (how many of these documents were modified) to indicate 
+the number of updated documents. In this case, both values will be 1.
+
+```bash
+db.books.replaceOne(
+  {
+    _id: ObjectId("6282afeb441a74a98dbbec4e")
+  },
+  {
+    title: "Data Science Fundamentals for Python and MongoDB",
+    isbn: "1484235967",
+    publishedDate: new Date("2018-05-10"),
+    thumbnailUrl: "https://m.media-amazon.com/images/I/71opmUBc2wL._AC_UY218_.jpg",
+    authors: ["David Paper"],
+    categories: ["Data Science"]
+  }
+)
+```
+
+To confirm the modification, the `db.books.findOne({_id: ObjectId("6282afeb441a74a98dbbec4e")})` method can be invoked. 
+Running this command will allow confirmation that the document has been updated, as it will display the updated document.
+
+## Updating MongoDB Documents by Using `updateOne()`
+
+Next, update operators in the MongoDB Shell are discussed. The `updateOne()` method, used with the update operators 
+`$set` and `$push`, is introduced. This method updates a single document and accepts three arguments: filter, update, 
+and options. When updating documents, the `$set` operator can be used to add new fields and values to a document or 
+replace the value of a field with a specified value, while the `$push` operator appends a value to an array. 
+If the array field is absent, `$push` adds it with the value as its element. Consider managing a database called 
+`audio` that contains a collection named `Podcasts`. Below is an example using the `$set` operator to replace the 
+value of a field with a specified value. After running this, `matchedCount` and `modifiedCount` will again be returned.
+
+```bash
+db.podcasts.updateOne(
+  {
+    _id: ObjectId("5e8f8f8f8f8f8f8f8f8f8f8")
+  },
+  {
+    $set: {
+      subscribers: 98562
+    }
+  }
+)
+```
+
+An example of using the `upsert` option, which allows creating a new document if no documents match the filter criteria, 
+is provided below. Upsert stands for Update or Insert. In the following example, an attempt is made to update a 
+non-existent document, but since it does not exist and `upsert` is set to true, it will be created.
+
+```bash
+db.podcasts.updateOne(
+  { title: "The Developer Hub" },
+  { $set: { topics: ["databases", "MongoDB"] } },
+  { upsert: true }
+)
+```
+
+The final example demonstrates the `$push` operator, which in the following case adds a new value to the `hosts` array field.
+
+```bash
+db.podcasts.updateOne(
+  { _id: ObjectId("5e8f8f8f8f8f8f8f8f8f8f8") },
+  { $push: { hosts: "Nic Raboy" } }
+)
+```
+
+## Updating MongoDB Documents by Using `findAndModify()`
+
+The `findAndModify()` method is used to return the document that has just been updated. In other words, it performs in 
+a single operation what would otherwise require two operations with `updateOne()` and `findOne()`. This avoids two 
+roundtrips to the server and ensures that another user does not modify the document before it is viewed, thus 
+returning the correct version of the document. This powerful method ensures the correct version of the document 
+is returned before another thread can modify it. Below is an example that, in addition to modifying the document, 
+also returns the modified document. The `new: true` option is specified to return the modified document instead of the original.
+
+```bash
+db.podcasts.findAndModify({
+  query: { _id: ObjectId("6261a92dfee1ff300dc80bf1") },
+  update: { $inc: { subscribers: 1 } },
+  new: true
+})
+```
+
+## Updating MongoDB Documents by Using `updateMany()`
+
+To update multiple documents, the `updateMany()` method can be used, which also accepts a filter, an update document, 
+and an optional options object. The example below updates all books published before 2019 to the status `LEGACY`. 
+If `matchedCount` and `modifiedCount` are the same, the update was successful. This method is not an all-or-nothing 
+operation and will not roll back updates. If this occurs, `updateMany()` must be run again to update the remaining 
+documents. Additionally, `updateMany()` lacks isolation: updates will be visible as soon as they are performed, 
+which may not be appropriate for some business requirements.
+
+```bash
+db.books.updateMany(
+  { publishedDate: { $lt: new Date("2019-01-01") } },
+  { $set: { status: "LEGACY" } }
+)
+```
+
+## Deleting Documents in MongoDB
+
+To delete documents in MongoDB, the `deleteOne()` and `deleteMany()` methods can be used. Both methods accept a filter 
+document and an options object, as seen previously. Below are examples showing how to delete a single document and 
+multiple documents. Once executed, these methods return an `acknowledged` boolean value and an integer `deletedCount` 
+value to confirm the process was successful.
+
+```bash
+# Delete a Single Document
+db.podcasts.deleteOne({ _id: ObjectId("6282c9862acb966e76bbf20a") })
+
+# Delete Multiple Documents
+db.podcasts.deleteMany({ category: "crime" })
+```
