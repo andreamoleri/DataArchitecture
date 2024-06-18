@@ -1753,3 +1753,452 @@ db.trips.countDocuments({})
 # Count number of trips over 120 minutes by subscribers
 db.trips.countDocuments({ tripduration: { $gt: 120 }, usertype: "Subscriber" })
 ```
+
+# Working with MongoDB Documents in Java
+
+## BSON Format in MongoDB
+
+Binary JSON, or BSON, is the data format that MongoDB uses to organize and store data. BSON is optimized for storage, 
+retrieval, and transmission across the wire. Additionally, it is more secure than plain text JSON and supports more 
+data types. The MongoDB Java Driver provides several classes for representing BSON documents, with the `Document` 
+class being recommended due to its flexible and concise data representation. MongoDB provides a BSON interface for 
+types that can render themselves into a BSON Document, and the `Document` class implements this interface.
+
+Here is an example of a BSON document, which includes the usual `_id` field serving as the Primary Key and a subdocument 
+represented by the `address` field. The `date` field is represented as a String, though it is advisable to use a 
+specific BSON type for dates. Summarizing the aforementioned points, one way to represent BSON documents is by using 
+the `Document` class. The `Document` class offers a flexible representation of a BSON document.
+
+```json
+{
+	"_id": { "$oid": "56d61033a378eccde8a8354f" },
+	"business_id": "10021-2015-ENFO",
+	"certificate_number": 9278806,
+	"business_name": "ATLIXCO DELI GROCERY INC.",
+	"date": "Feb 20 2015",
+	"result": "No Violation Issued",
+	"sector": "Cigarette Retail Dealer - 127",
+	"address": {
+		"city": "RIDGEWOOD",
+		"zip": 11385,
+		"street": "MENAHAN ST",
+		"number": 1712
+	}
+}
+```
+
+To instantiate this document in Java, use the following syntax. This example demonstrates instantiating a new document 
+and setting its Primary Key, which in this case is `_id`. Subsequently, the corresponding fields and values are appended,
+such as `Date` for the date. The document is then ready to be sent to the MongoDB Server.
+
+```java
+Document inspection = new Document("_id", new ObjectId())
+	.append("business_id", "10021-2015-ENFO")
+	.append("certificate_number", 9278886)
+	.append("business_name", "ATLIXCQ DELI GROCERY INC.")
+	.append("date", Date.from(LocalDate.of(2015, 2, 20).atStartOfDay(ZoneId.systemDefault()).toInstant()))
+	.append("result", "No Violation Issued")
+	.append("sector", "Cigarette Retail Dealer - 127")
+	.append("address", new Document().append("city", "RIDGEWOOD").append("zip", 11385).append("street", "MENAHAN ST").append("number", 1712));
+```
+
+## Inserting a Document in Java Applications
+
+To insert a single document into a collection, use the `getCollection()` method to access the `MongoCollection` object, 
+which represents the specified collection. Then, append the `insertOne()` method to the collection object. Within the
+parentheses of `insertOne()`, include an object that contains the document data and print the inserted document’s ID,
+as shown in the following example, which also contains a subdocument in the `address` field.
+
+```java
+MongoDatabase database = mongoClient.getDatabase("sample_training");
+MongoCollection<Document> collection = database.getCollection("inspections");
+
+Document inspection = new Document("_id", new ObjectId())
+        .append("id", "10021-2015-ENFO")
+        .append("certificate_number", 9278806)
+        .append("business_name", "ATLIXCO DELI GROCERY INC.")
+        .append("date", Date.from(LocalDate.of(2015, 2, 20).atStartOfDay(ZoneId.systemDefault()).toInstant()))
+        .append("result", "No Violation Issued")
+        .append("sector", "Cigarette Retail Dealer - 127")
+        .append("address", new Document().append("city", "RIDGEWOOD").append("zip", 11385).append("street", "MENAHAN ST").append("number", 1712));
+
+InsertOneResult result = collection.insertOne(inspection);
+BsonValue id = result.getInsertedId();
+System.out.println(id);
+```
+
+Similarly, to insert multiple documents into a collection, append the `insertMany()` method to the collection object. 
+Within the parentheses of `insertMany()`, include an object that contains the document data and print out the IDs of
+the inserted documents. The following example clarifies this process.
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+
+Document doc1 = new Document().append("account_holder", "john doe").append("account_id", "MDB99115881").append("balance", 1785).append("account_type", "checking");
+Document doc2 = new Document().append("account_holder", "jane doe").append("account_id", "MDB79101843").append("balance", 1468).append("account_type", "checking");
+
+List<Document> accounts = Arrays.asList(doc1, doc2);
+InsertManyResult result = collection.insertMany(accounts);
+result.getInsertedIds().forEach((x, y) -> System.out.println(y.asObjectId()));
+```
+
+Custom methods can be created to simplify these functions, as demonstrated in the following examples:
+
+```java
+// Example Methods
+public void insertOneDocument(Document doc) {
+  System.out.println("Inserting one account document");
+  InsertOneResult result = collection.insertOne(doc);
+  BsonValue id = result.getInsertedId();
+  System.out.println("Inserted document Id: " + id);
+}
+
+public void insertManyDocuments(List<Document> documents) {
+  InsertManyResult result = collection.insertMany(documents);
+  System.out.println("\tTotal # of documents: " + result.getInsertedIds().size());
+}
+```
+
+## Querying a MongoDB Collection in Java Applications
+
+The `find()` method can be used to search for specific conditions. For example, in the following code, `find()` is used
+to locate all checking accounts with a balance of at least 1000. Each document returned by the `find()` method is 
+processed by iterating the `MongoCursor` using a try block and a while loop. The `find()` method accepts a query 
+filter and returns documents that match the filters in the collection.
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+try(MongoCursor<Document> cursor = collection.find(and(gte("balance", 1000), eq("account_type", "checking"))).iterator()) {
+    while(cursor.hasNext()) {
+        System.out.println(cursor.next().toJson());
+    }
+}
+```
+
+The `find()` and `first()` methods can be concatenated to find and return only the first document that matches the 
+query filter given to the `find()` method. For example, the following code returns a single document from the same 
+query. It is important to remember that all queries on MongoDB should use a Query Filter to optimize the use of database 
+resources. The Java `Filters` builder class helps define more efficient queries by using query predicates.
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Document doc = collection.find(Filters.and(gte("balance", 1000), Filters.eq("account_type", "checking"))).first();
+System.out.println(doc.toJson());
+```
+
+Again, useful custom methods can be built to perform the same functions but be invoked more easily:
+
+```java
+// Example Methods
+public void findOneDocument(Bson query) {
+  Document doc = collection.find(query).first();
+  System.out.println(doc != null ? doc.toJson() : null);
+}
+
+public void findDocuments(Bson query) {
+  try (MongoCursor<Document> cursor = collection.find(query).iterator()) {
+    while (cursor.hasNext()) {
+      System.out.println(cursor.next().toJson());
+    }
+  }
+}
+```
+
+## Updating Documents in Java Applications
+
+### Updating a Single Document
+
+To update a single document, use the `updateOne()` method on a `MongoCollection` object. This method accepts a filter 
+that matches the document to be updated and an update statement that instructs the driver on how to modify the matching 
+document. The `updateOne()` method updates only the first document that matches the filter.
+
+In the following example, one document is updated by increasing the balance of a specific account by 100 and setting 
+the account status to active:
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Bson query  = Filters.eq("account_id", "MDB12234728");
+Bson updates  = Updates.combine(Updates.set("account_status", "active"), Updates.inc("balance", 100));
+UpdateResult upResult = collection.updateOne(query, updates);
+```
+
+### Updating Multiple Documents
+
+To update multiple documents, use the `updateMany()` method on a `MongoCollection` object. This method also accepts a 
+filter to match the documents that need to be updated, along with an update statement. The `updateMany()` method 
+updates all documents that match the filter.
+
+In the following example, the minimum balance of all savings accounts is increased to 100:
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Bson query  = Filters.eq("account_type", "savings");
+Bson updates  = Updates.combine(Updates.set("minimum_balance", 100));
+UpdateResult upResult = collection.updateMany(query, updates);
+```
+
+### Creating Utility Methods
+
+Utility methods can be created and called as shown below:
+
+```java
+// Example of Methods and Usage #1
+public class Crud {
+    private final MongoCollection<Document> collection;
+
+    public Crud(MongoClient client) {
+        this.collection = client.getDatabase("bank").getCollection("accounts");
+    }
+
+    public void updateOneDocument(Bson query, Bson update) {
+        UpdateResult updateResult = collection.updateOne(query, update);
+        System.out.println("Updated a document:");
+        System.out.println("\t" + updateResult.getModifiedCount());
+    }
+}
+
+Bson query = Filters.eq("account_id", "MDB333829449");
+Bson update = Updates.combine(Updates.set("account_status", "active"), Updates.inc("balance", 100));
+crud.updateOneDocument(query, update);
+
+// Example of Methods and Usage #2
+public class Crud {
+    private final MongoCollection<Document> collection;
+
+    public Crud(MongoClient client) {
+        this.collection = client.getDatabase("bank").getCollection("accounts");
+    }
+
+    public void updateManyDocuments(Document query, Bson update) {
+        UpdateResult updateResult = collection.updateMany(query, update);
+        System.out.println("Updated this many documents:");
+        System.out.println("\t" + updateResult.getModifiedCount());
+    }
+}
+```
+
+## Deleting Documents in Java Applications
+
+### Deleting a Single Document
+
+To delete a single document from a collection, use the `deleteOne()` method on a `MongoCollection` object. This method 
+accepts a query filter that matches the document to be deleted. If no filter is specified, MongoDB matches the first 
+document in the collection. The `deleteOne()` method deletes only the first document that matches.
+
+In the following example, a single document related to John Doe's account is deleted. Assume that instances of 
+`MongoClient` and `MongoCollection` have already been instantiated:
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Bson query = Filters.eq("account_holder", "john doe");
+DeleteResult delResult = collection.deleteOne(query);
+System.out.println("Deleted a document:");
+System.out.println("\t" + delResult.getDeletedCount());
+```
+
+### Deleting Multiple Documents
+
+To delete multiple documents in a single operation, use the `deleteMany()` method on a `MongoCollection` object. 
+Specify the documents to be deleted with a query filter. If an empty document is provided, MongoDB matches all 
+documents in the collection and deletes them.
+
+In the following example, all dormant accounts are deleted using a query object, and the total number of deleted 
+documents is printed:
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Bson query = Filters.eq("account_status", "dormant");
+DeleteResult delResult = collection.deleteMany(query);
+System.out.println(delResult.getDeletedCount());
+```
+
+### Creating Utility Methods
+
+Utility methods for deletion can also be created and called as shown below:
+
+```java
+// Example of Methods and Usage #1
+public class Crud {
+    private final MongoCollection<Document> collection;
+
+    public Crud(MongoClient client) {
+        this.collection = client.getDatabase("bank").getCollection("accounts");
+    }
+
+    public void deleteOneDocument(Bson query) {
+        DeleteResult delResult = collection.deleteOne(query);
+        System.out.println("Deleted a document:");
+        System.out.println("\t" + delResult.getDeletedCount());
+    }    
+}
+
+// Example of Methods and Usage #2
+public class Crud {
+    private final MongoCollection<Document> collection;
+
+    public Crud(MongoClient client) {
+        this.collection = client.getDatabase("bank").getCollection("accounts");
+    }
+
+    public void deleteManyDocuments(Bson query) {
+        DeleteResult delResult = collection.deleteMany(query);
+        System.out.println("Deleted this many documents:");
+        System.out.println("\t" + delResult.getDeletedCount());
+    }
+}
+```
+
+## Creating MongoDB Transactions in Java Applications
+
+In this section, we demonstrate how to create a multi-document transaction in MongoDB using Java. A multi-document 
+transaction ensures the atomicity of reads and/or writes across multiple documents. Specifically, a transaction is 
+a sequence of operations executed on a database that represents a single unit of work. Once committed, all write 
+operations within the transaction are persisted. If a transaction is aborted or fails to complete successfully, 
+all associated write operations are rolled back. Therefore, all operations within a transaction either succeed or 
+fail together. This property is known as atomicity. Transactions also ensure the consistency, isolation, and 
+durability of operations. These qualities—Atomicity, Consistency, Isolation, and Durability—are collectively 
+referred to as ACID compliance.
+
+## Implementation Example
+
+To initiate a transaction in MongoDB using Java, we utilize the `WithTransaction()` method of a session object.
+Below are the steps involved in completing a multi-document transaction, followed by the corresponding code snippet:
+
+1. **Session Initialization and Transaction Start**: Begin by establishing a new session and starting a transaction 
+2. using the `WithTransaction()` method on the session object.
+
+2. **Transaction Operations**: Define the operations to be performed within the transaction. This typically includes 
+3. fetching necessary data, performing updates, and inserting documents.
+
+3. **Transaction Commit**: After executing all operations successfully, commit the transaction to persist the changes.
+
+4. **Handling Timeouts and Resource Closure**: MongoDB automatically cancels any multi-document transaction that 
+5. exceeds 60 seconds. Additionally, ensure proper closure of resources utilized by the transaction.
+
+### Example Code
+
+```java
+final MongoClient client = MongoClients.create(connectionString);
+final ClientSession clientSession = client.startSession();
+
+TransactionBody txnBody = new TransactionBody<String>() {
+    public String execute() {
+        MongoCollection<Document> bankingCollection = client.getDatabase("bank").getCollection("accounts");
+
+        Bson fromAccountFilter = eq("account_id", "MDB310054629");
+        Bson withdrawalUpdate = Updates.inc("balance", -200);
+
+        Bson toAccountFilter = eq("account_id", "MDB643731035");
+        Bson depositUpdate = Updates.inc("balance", 200);
+
+        System.out.println("Withdrawing from Account " + fromAccountFilter.toBsonDocument().toJson() + ": " + withdrawalUpdate.toBsonDocument().toJson());
+        System.out.println("Depositing to Account " + toAccountFilter.toBsonDocument().toJson() + ": " + depositUpdate.toBsonDocument().toJson());
+
+        bankingCollection.updateOne(clientSession, fromAccountFilter, withdrawalUpdate);
+        bankingCollection.updateOne(clientSession, toAccountFilter, depositUpdate);
+
+        return "Transferred funds from John Doe to Mary Doe";
+    }
+};
+
+try {
+    clientSession.withTransaction(txnBody);
+} catch (RuntimeException e) {
+    System.out.println("Transaction aborted: " + e.getMessage());
+} finally {
+    clientSession.close();
+}
+```
+
+This Java code snippet exemplifies the process described. It begins by initializing a MongoDB client and starting a 
+session. Within the `execute()` method of the `TransactionBody`, two updates are performed atomically on specified
+accounts. If all operations succeed, the transaction commits; otherwise, it rolls back automatically. Finally, the 
+session is closed to release associated resources.
+
+By following these steps and utilizing MongoDB's transaction capabilities in Java, developers can ensure reliable 
+and consistent data operations across multiple documents within a MongoDB database. What follows is another example of
+a real-world scenario in which we would use the method.
+
+```java
+// DemoApp.java
+public class DemoApp {
+    public static void main(final String[] args) {
+        Logger root = (Logger) LoggerFactory.getLogger("org.mongodb.driver");
+        // Available levels are: OFF, ERROR, WARN, INFO, DEBUG, TRACE, ALL
+        root.setLevel(Level.WARN);
+
+        String connectionString = System.getenv("MONGODB_URI");
+        try (MongoClient client = MongoClients.create(connectionString)) {
+            //Transaction
+            Transaction txn = new Transaction(client);
+            var senderAccountFilter = "MDB310054629";
+            var receiverAccountFilter = "MDB643731035";
+            double transferAmount = 200;
+            txn.transferMoney(senderAccountFilter, transferAmount, receiverAccountFilter);
+        }
+    }
+}
+
+// Transaction.java
+public class Transaction {
+    private final MongoClient client;
+
+    public Transaction(MongoClient client) {
+        this.client = client;
+    }
+
+    public void transferMoney(String accountIdOfSender, double transactionAmount, String accountIdOfReceiver) {
+    try (ClientSession session = client.startSession()) {
+        UUID transfer = UUID.randomUUID();
+        String transferId = transfer.toString();
+        try {
+            session.withTransaction(() -> {
+                MongoCollection<Document> accountsCollection = client.getDatabase("bank").getCollection("accounts");
+                MongoCollection<Document> transfersCollection = client.getDatabase("bank").getCollection("transfers");
+
+
+                Bson senderAccountFilter = eq("account_id", accountIdOfSender);
+                Bson debitUpdate = Updates.combine(inc("balance", -1 * transactionAmount),push("transfers_complete", transferId));
+
+                Bson receiverAccountId = eq("account_id", accountIdOfReceiver);
+                Bson credit = Updates.combine(inc("balance", transactionAmount), push("transfers_complete", transferId));
+
+                transfersCollection.insertOne(session, new Document("_id", new ObjectId()).append("transfer_id", transferId).append("to_account", accountIdOfReceiver).append("from_account", accountIdOfSender).append("amount", transactionAmount).append("last_updated", new Date()));
+                accountsCollection.updateOne(session, senderAccountFilter, debitUpdate);
+                accountsCollection.updateOne(session, receiverAccountId, credit);
+                return null;
+            });
+        } catch (RuntimeException e) {
+            throw e;
+        }
+    }
+}
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
