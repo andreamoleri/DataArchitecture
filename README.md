@@ -2444,22 +2444,3 @@ These examples demonstrate the structured use of MongoDB aggregation stages in J
 flexibility and power of the MongoDB Aggregation Framework for data analysis and manipulation. Each stage—`$match`, 
 `$group`, `$sort`, and `$project`—plays a crucial role in shaping and refining the results of queries executed against 
 MongoDB databases.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
