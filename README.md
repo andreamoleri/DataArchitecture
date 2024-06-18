@@ -2183,6 +2183,183 @@ public class Transaction {
 }
 ```
 
+## Introduction to MongoDB Aggregation
+
+In the realm of databases, aggregation involves the analysis and summary of data, where an aggregation stage represents 
+an operation performed on data without permanently altering the source data. MongoDB facilitates the creation of 
+aggregation pipelines, where developers specify aggregation operations sequentially. What distinguishes MongoDB 
+aggregations is the ability to chain these operations into a pipeline, consisting of stages where data can be filtered, 
+sorted, grouped, and transformed. Documents output from one stage become the input for the next. In MongoDB Atlas, 
+developers can access the Aggregation tab to add stages one by one and view results for each stage. Similarly, this 
+can be accomplished using MongoDB CLI or MongoDB Language Drivers. Below is an example of aggregation syntax using the 
+CLI, starting with `db.collection.aggregate` followed by stage names and their contained expressions. Each stage 
+represents a discrete data operation, commonly including `$match` for filtering data, `$group` for grouping documents, 
+and `$sort` for ordering documents based on specified criteria. The use of `$` prefix signifies a field path,
+referencing the value in that field, useful for operations like concatenation (`$concat: ["$first_name", "$last_name"]`).
+
+```bash
+db.collection.aggregate([
+    {
+        $stage1: {
+            { expression1 },
+            { expression2 }...
+        },
+        $stage2: {
+            { expression1 }...
+        }
+    }
+])
+```
+
+## Using $match and $group Stages in a MongoDB Aggregation Pipeline
+
+The `$match` stage filters documents that match specified conditions, as illustrated in the example below. The `$group`
+stage groups documents based on a specified group key. These stages are commonly used together in an aggregation 
+pipeline. In the example, the aggregation pipeline identifies documents with a "state" field matching "CA" and then 
+groups these documents by the "$city" group key to count the total number of zip codes in California. Placing `$match` 
+early in the pipeline optimizes performance by utilizing indexes to reduce the number of documents processed. 
+Conversely, the output of `$group` is a document for each unique value of the group key. Note that `$group` includes 
+`_id` as the group key and an accumulator field, specifying how to aggregate information for each group. For instance, 
+grouping by city and using `count` as an accumulator determines the count of ZIP Codes per city.
+
+```bash
+# Example of Match Stage
+{
+    $match: {
+        "field_name": "value"
+    }
+}
+
+# Example of Group Stage
+{
+    $group:
+    {
+        _id: <expression>, // Group key
+        <field>: { <accumulator> : <expression> }
+    }
+}
+ 
+# Example Using Both
+db.zips.aggregate([
+    { $match: { state: "CA" } },
+    {
+        $group: {
+            _id: "$city",
+            totalZips: { $count : { } }
+        }
+    }
+])
+```
+
+## Using $sort and $limit Stages in a MongoDB Aggregation Pipeline
+
+Next, the `$sort` and `$limit` stages in MongoDB aggregation pipelines are discussed. The `$sort` stage arranges all 
+input documents in a specified order, using `1` for ascending and `-1` for descending order. The `$limit` stage restricts 
+output to a specified number of documents. These stages can be combined, such as in the third example where documents 
+are sorted in descending order by population (`pop`), and only the top five documents are returned. `$sort` and `$limit`
+stages are essential for quickly identifying top or bottom values in a dataset. Order of stages is crucial; arranging 
+`$sort` before `$limit` yields different results compared to the reverse order.
+
+```bash
+# Example of Sort Stage
+{
+    $sort: {
+        "field_name": 1
+    }
+}
+
+# Example of Limit Stage
+{
+    $limit: 5
+}
+
+# Example Using Both
+db.zips.aggregate([
+    { $sort: { pop: -1 } },
+    { $limit: 5 }
+])
+```
+
+## Using $project, $count, and $set Stages in a MongoDB Aggregation Pipeline
+
+Moving on to `$project`, `$set`, and `$count` stages in MongoDB aggregation pipelines. The `$project` stage specifies 
+output document fields, including (`1` for inclusion, `0` for exclusion), and optionally assigns new values to fields.
+This stage is typically the final one to format output. The `$set` stage creates new fields or modifies existing ones 
+within documents, facilitating changes or additions for subsequent pipeline stages. The `$count` stage generates a 
+document indicating the count of documents at that stage in the pipeline. `$set` is useful for field modifications, 
+while `$project` controls output field visibility and value transformations. `$count` provides a count of documents 
+in the aggregation pipeline stage.
+
+```bash
+# Example of Project Stage
+{
+    $project: {
+        state: 1, 
+        zip: 1,
+        population: "$pop",
+        _id: 0
+    }
+}
+
+# Example of Set Stage
+{
+    $set: {
+        place: {
+            $concat: ["$city", ",", "$state"]
+        },
+        pop: 10000
+    }
+}
+
+# Example of Count Stage
+{
+    $count: "total_zips"
+}
+```
+
+## Using the $out Stage in a MongoDB Aggregation Pipeline
+
+The `$out` stage facilitates the creation of a new collection from the output of an aggregation pipeline. It writes 
+documents returned by the pipeline into a specified collection. This stage must be the last one in the pipeline. 
+Note that `$out` creates a new collection if one does not already exist. If the collection exists, `$out` overwrites 
+it with new data. Therefore, careful consideration of the collection name is advised to avoid unintentionally 
+overwriting existing data. The `$out` stage expects the database name in the `db` field and the collection name in 
+the `coll` field. Alternatively, providing just the collection name directly is also valid. Executing `$out` does not 
+produce command-line output; instead, results of the aggregation pipeline are written to a new collection, confirmed 
+by `show collections` command in the terminal.
+
+```bash
+# Mode 1
+$out: {
+    db: "<db>",
+    coll: "<newcollection>"
+}
+
+# Mode 2
+{ $out: "<newcollection>" }
+
+# Example
+db.sightings.aggregate([
+    {
+        $match: {
+            date: {
+                $gte: ISODate('2022-01-01T00:00:00.0Z'),
+                $lt: ISODate('2023-01-01T00:00:00.0Z')
+            }
+        }
+    },
+    {
+        $out: 'sightings_2022'
+    }
+])
+db.sightings_2022.findOne()
+```
+
+
+
+
+
+
 
 
 
