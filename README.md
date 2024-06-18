@@ -1640,3 +1640,116 @@ db.podcasts.deleteOne({ _id: ObjectId("6282c9862acb966e76bbf20a") })
 # Delete Multiple Documents
 db.podcasts.deleteMany({ category: "crime" })
 ```
+
+## Sorting and Limiting Query Results in MongoDB
+
+### Using Cursors in MongoDB
+
+In MongoDB, a Cursor is a pointer to the result set of a query. For instance, the `find()` method returns a cursor that 
+points to the documents matching the query. There are also Cursor Methods that can be chained to queries and used to 
+perform actions on the resulting set, such as sorting or limiting the search results, before returning the data to the client.
+
+To begin with, results can be returned in a specified order using the `cursor.sort()` method, which has the following syntax:
+
+```plaintext
+db.collection.find(<query>).sort(<sort>)
+```
+
+Within the parentheses of `sort()`, an object specifying the field(s) to sort by and the order of the sort must be 
+included. Use `1` for ascending order and `-1` for descending order. The following code example illustrates this by 
+returning companies with a `category_code` of "music" in alphabetical order. A projection is also shown to return only the names:
+
+```bash
+# Return data on all music companies, sorted alphabetically from A to Z.
+db.companies.find({ category_code: "music" }).sort({ name: 1 });
+
+# Projection to return only names
+db.companies.find({ category_code: "music" }, { name: 1 }).sort({ name: 1 });
+
+# Return data on all music companies, sorted alphabetically from A to Z. Ensure consistent sort order.
+db.companies.find({ category_code: "music" }).sort({ name: 1, _id: 1 });
+```
+
+To ensure that documents are returned in a consistent order, a field containing unique values can be included in the 
+sort. A simple way to achieve this is by including the `_id` field in the sort as demonstrated above. The `sort` 
+method can be applied to virtually any type of field.
+
+### Limiting the Number of Results
+
+Limiting the number of returned results can improve application performance by avoiding unnecessary data processing. 
+The `Limit Cursor Method` achieves this by using `cursor.limit()` to specify the maximum number of documents that 
+the cursor will return. The syntax is as follows:
+
+```plaintext
+db.collection.find(<query>).limit(<number>)
+```
+
+Here is an example where the three music companies with the highest number of employees are returned. A projection 
+can also be added to simplify the returned document:
+
+```bash
+# Return the three music companies with the highest number of employees. Ensure consistent sort order.
+db.companies.find({ category_code: "music" })
+  .sort({ number_of_employees: -1, _id: 1 })
+  .limit(3);
+
+# Projection on two fields
+db.companies.find({ category_code: "music" }, { name: 1, number_of_employees: 1 })
+  .sort({ number_of_employees: -1, _id: 1 })
+  .limit(3);
+```
+
+## Returning Specific Data From a Query in MongoDB
+
+By default, queries in MongoDB return all fields in the matching document. However, sometimes an application may need 
+to use data only from a subset of these fields. In this case, the amount of data returned by MongoDB can be limited 
+by selecting specific fields to return. This process, known as projection, can be used in most find queries. The syntax is:
+
+```plaintext
+db.collection.find(<query>, <projection>)
+```
+
+To include a field, set its value to `1` in the projection document, as shown in the example below. To exclude a field, 
+set its value to `0`. While the `_id` field is included by default, it can be suppressed by setting its value to `0` 
+in any projection, as illustrated in the third example. Note that inclusion and exclusion cannot be combined in most 
+projections, except for the `_id` field, which can be both included and excluded. Accessing a subdocument is also shown, 
+ensuring that the zip code is excluded:
+
+```bash
+# Return all restaurant inspections - business name, result, and _id fields only
+db.inspections.find(
+  { sector: "Restaurant - 818" },
+  { business_name: 1, result: 1 }  # This is the projection document
+)
+
+# Return all inspections with result of "Pass" or "Warning" - exclude date and zip code
+db.inspections.find(
+  { result: { $in: ["Pass", "Warning"] } },
+  { date: 0, "address.zip": 0 }  # This is the projection document
+)
+
+# Return all restaurant inspections - business name and result fields only
+db.inspections.find(
+  { sector: "Restaurant - 818" },
+  { business_name: 1, result: 1, _id: 0 }  # This is the projection document
+)
+```
+
+## Counting Documents in a MongoDB Collection
+
+The `db.collection.countDocuments()` method can be used to count the number of documents matching a query. This method
+takes two parameters: a query document and an options document. The syntax is:
+
+```plaintext
+db.collection.countDocuments(<query>, <options>)
+```
+
+Here are some code examples:
+
+```bash
+# Count number of documents in trip collection
+db.trips.countDocuments({})
+
+# Count number of trips over 120 minutes by subscribers
+db.trips.countDocuments({ tripduration: { $gt: 120 }, usertype: "Subscriber" })
+```
