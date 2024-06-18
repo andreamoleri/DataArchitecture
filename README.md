@@ -2355,11 +2355,95 @@ db.sightings.aggregate([
 db.sightings_2022.findOne()
 ```
 
+## Building a MongoDB Aggregation Pipeline in Java Applications
 
+When using the MongoDB Aggregation Framework to construct queries, one must conceptualize these queries as composed of 
+discrete stages, where each stage produces an output document that serves as input to the next stage. This aggregation 
+pipeline simplifies debugging and maintenance of individual stages, facilitating query rewriting and optimization. 
+The expression operators used within this framework function akin to functions, offering a broad spectrum including 
+arithmetic, trigonometric, date, and boolean operators. Once assembled, the aggregation pipeline can be validated using 
+tools such as MongoShell, Atlas Aggregation Builder, and Compass before integration into the chosen programming language.
 
+## Using MongoDB Aggregation Stages with Java: $match and $group
 
+In the following Java examples, the `Aggregates` builder class is employed to configure `$match` and `$group` stages 
+within MongoDB aggregation pipelines. Each example demonstrates how to utilize these stages effectively to manipulate 
+and aggregate data.
 
+### Example 1: Using $match
 
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchStage(accounts);
+    }
+}
+
+private static void matchStage(MongoCollection<Document> accounts){
+    Bson matchStage = Aggregates.match(Filters.eq("account_id", "MDB310054629"));
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+### Example 2: Using $match and $group
+
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchAndGroupStages(accounts);
+    }
+}
+
+private static void matchAndGroupStages(MongoCollection<Document> accounts){
+    Bson matchStage = Aggregates.match(Filters.eq("account_id", "MDB310054629"));
+    Bson groupStage = Aggregates.group("$account_type", sum("total_balance", "$balance"), avg("average_balance", "$balance"));
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage, groupStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+## Using MongoDB Aggregation Stages with Java: $sort and $project
+
+This example illustrates the use of `$sort` and `$project` stages within MongoDB aggregation pipelines, emphasizing 
+sorting and projecting fields from queried documents.
+
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchSortAndProjectStages(accounts);
+    }
+}
+
+private static void matchSortAndProjectStages(MongoCollection<Document> accounts){
+    Bson matchStage =
+            Aggregates.match(Filters.and(Filters.gt("balance", 1500), Filters.eq("account_type", "checking")));
+    Bson sortStage = Aggregates.sort(Sorts.orderBy(descending("balance")));
+    Bson projectStage = Aggregates.project(
+            Projections.fields(
+                    Projections.include("account_id", "account_type", "balance"),
+                    Projections.computed("euro_balance", new Document("$divide", Arrays.asList("$balance", 1.20F))),
+                    Projections.excludeId()
+            )
+    );
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage, sortStage, projectStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+These examples demonstrate the structured use of MongoDB aggregation stages in Java applications, showcasing the 
+flexibility and power of the MongoDB Aggregation Framework for data analysis and manipulation. Each stage—`$match`, 
+`$group`, `$sort`, and `$project`—plays a crucial role in shaping and refining the results of queries executed against 
+MongoDB databases.
 
 
 
