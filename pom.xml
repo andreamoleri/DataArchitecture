@@ -17,9 +17,24 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>5.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.32</version> <!-- Sostituisci con l'ultima versione disponibile -->
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.6</version> <!-- Sostituisci con l'ultima versione disponibile -->
+        </dependency>
+        <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongodb-driver-sync</artifactId>
-            <version>5.1.0</version>
+            <version>5.1.0</version> <!-- Replace with the latest version -->
         </dependency>
     </dependencies>
 
@@ -36,7 +51,5 @@
             </plugin>
         </plugins>
     </build>
-
-
 
 </project>

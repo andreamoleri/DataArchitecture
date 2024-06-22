@@ -7,10 +7,6 @@ import org.bson.Document;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * The Connection class establishes a connection to a MongoDB instance using the provided connection string.
- * It provides a singleton instance to ensure a single connection throughout the application.
- */
 public class Connection {
     private static Connection instance;
     private final MongoClient mongoClient;
@@ -54,8 +50,14 @@ public class Connection {
      * @param args command-line arguments (not used)
      */
     public static void main(String[] args) {
-        // Retrieve the MongoDB URI from the system properties
-        String connectionString = System.getProperty("mongodb.uri");
+        // Imposta la connection string direttamente qui
+        String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
+
+        // Verifica che la connection string non sia vuota
+        if (connectionString == null || connectionString.isEmpty()) {
+            System.err.println("MongoDB URI not specified. Use -Dmongodb.uri=<connection_string>");
+            return;
+        }
 
         // Establish a connection to the MongoDB instance
         Connection connection = Connection.getInstance(connectionString);
