@@ -32,11 +32,15 @@ public class CSVToMongoDB {
             String[] headers = null; // Array to hold the header names
 
             while ((line = reader.readLine()) != null) {
-                String[] fields = line.split(";");
+                String[] fields = line.split(";", -1);
 
                 if (isFirstLine) {
                     isFirstLine = false;
-                    headers = fields; // Save the headers
+                    // Save the headers and replace spaces with underscores
+                    headers = new String[fields.length];
+                    for (int i = 0; i < fields.length; i++) {
+                        headers[i] = fields[i].trim().replace(" ", "_");
+                    }
                     continue; // Skip the header line
                 }
 
@@ -44,10 +48,14 @@ public class CSVToMongoDB {
                 Document doc = new Document();
 
                 // Loop through fields array and add non-null fields to Document
-                for (int i = 0; i < fields.length; i++) {
-                    String fieldValue = fields[i].trim();
-                    if (!fieldValue.isEmpty() && headers != null && i < headers.length) {
-                        doc.append(headers[i], fieldValue);
+                for (int i = 0; i < fields.length && i < headers.length; i++) {
+                    String fieldName = headers[i].trim();
+                    String fieldValue = fields[i].trim().replaceAll("\"\"", "\"");
+                    if (!fieldName.isEmpty() && !fieldValue.isEmpty()) {
+                        // Exclude "Edit_in_OSM" and "other_tags" fields
+                        if (!fieldName.equals("Edit_in_OSM") && !fieldName.equals("other_tags")) {
+                            doc.append(fieldName, fieldValue);
+                        }
                     }
                 }
 
