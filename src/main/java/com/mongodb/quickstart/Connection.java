@@ -45,22 +45,11 @@ public class Connection {
     }
 
     /**
-     * Main method to establish a connection to MongoDB and list available databases.
+     * Getter method to return the MongoClient instance.
      *
-     * @param args command-line arguments (not used)
+     * @return MongoClient instance
      */
-    public static void main(String[] args) {
-        // Imposta la connection string direttamente qui
-        String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
-
-        // Verifica che la connection string non sia vuota
-        if (connectionString == null || connectionString.isEmpty()) {
-            System.err.println("MongoDB URI not specified. Use -Dmongodb.uri=<connection_string>");
-            return;
-        }
-
-        // Establish a connection to the MongoDB instance
-        Connection connection = Connection.getInstance(connectionString);
-        connection.listDatabases();
+    public MongoClient getMongoClient() {
+        return this.mongoClient;
     }
 }
