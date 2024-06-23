@@ -76,6 +76,7 @@ public class Transactions {
         StringBuilder sb = new StringBuilder();
         boolean firstSeat = true;
         int seatsCount = 0;
+        int vacantSeatsCount = 0;
         final int SEATS_PER_LINE = 6; // Number of seats per line
 
         // Query MongoDB for departure airport
@@ -89,9 +90,7 @@ public class Transactions {
                 if (destinationAirport != null && destinationAirport.getString("IATA_code").equals(arrivalAirportCode)) {
                     List<Document> seats = (List<Document>) flight.get("Seats");
                     for (Document seat : seats) {
-                        // Filter seats where Status = "Vacant"
-                        String status = seat.getString("Status");
-                        if (status != null && status.equals("Vacant")) {
+                        if (seat.getString("Status").equals("Vacant")) { // Only include vacant seats
                             // Append comma and line break only if it's not the first seat
                             if (!firstSeat) {
                                 sb.append(", ");
@@ -110,6 +109,8 @@ public class Transactions {
                                 sb.append(",\n");
                                 firstSeat = true; // Reset firstSeat flag for the next line
                             }
+
+                            vacantSeatsCount++; // Increment vacant seats count
                         }
                     }
                     break; // Stop after finding the correct flight
@@ -122,8 +123,13 @@ public class Transactions {
             sb.deleteCharAt(sb.length() - 1);
         }
 
-        return sb.toString();
+        // Construct the result string with the number of available seats
+        String result = sb.toString();
+        result += "\nNumber of Seats Available: " + vacantSeatsCount;
+
+        return result;
     }
+
 
     // Close MongoDB connection
     public void close() {
