@@ -8,8 +8,14 @@ import org.bson.types.ObjectId;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class CSVToMongoDB {
 
@@ -21,11 +27,8 @@ public class CSVToMongoDB {
         String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
 
         try {
-            // Get Connection instance
-            Connection connection = Connection.getInstance(connectionString);
-
             // Get MongoClient and MongoDB/MongoCollection
-            MongoClient mongoClient = connection.getMongoClient();
+            MongoClient mongoClient = Connection.getInstance(connectionString).getMongoClient();
             MongoDatabase database = mongoClient.getDatabase(dbName);
             MongoCollection<Document> collection = database.getCollection(collectionName);
 
@@ -70,12 +73,11 @@ public class CSVToMongoDB {
                     }
                 }
 
-                // Generate flights for this airport
-                List<Document> flights = generateFlights();
-                airportDoc.append("Flights", flights);
-
                 // Insert the Document into MongoDB collection
                 collection.insertOne(airportDoc);
+
+                // Generate flights for this airport and update the document
+                generateAndInsertFlights(airportDoc, collection);
             }
 
             System.out.println("Data imported successfully into MongoDB");
@@ -91,19 +93,82 @@ public class CSVToMongoDB {
         }
     }
 
-    private static List<Document> generateFlights() {
+    private static void generateAndInsertFlights(Document airportDoc, MongoCollection<Document> collection) {
+        int airportSize = airportDoc.getInteger("Size", 0); // Size of the airport
+        List<Document> flights = generateFlights(airportSize);
+
+        // Calculate maximum number of flights based on airport size
+        int maxFlights = airportSize / 100;
+        int totalSeats = 0;
+
+        // Calculate total number of seats from existing flights
+        for (Document flight : flights) {
+            totalSeats += flight.getInteger("Number_of_Seats", 0);
+        }
+
+        // Trim flights if total seats exceed airport capacity
+        if (totalSeats > airportSize) {
+            // Remove flights until the total seats are within airport capacity
+            while (totalSeats > airportSize && flights.size() > 0) {
+                Document lastFlight = flights.remove(flights.size() - 1);
+                totalSeats -= lastFlight.getInteger("Number_of_Seats", 0);
+            }
+        }
+
+        // Update the flights array in airportDoc
+        airportDoc.put("Flights", flights);
+
+        // Replace the document in MongoDB collection
+        collection.replaceOne(new Document("_id", airportDoc.getObjectId("_id")), airportDoc);
+    }
+
+    private static List<Document> generateFlights(int airportSize) {
         List<Document> flights = new ArrayList<>();
 
-        // Example: generate 5 flights per airport
-        for (int i = 0; i < 5; i++) {
+        Random random = new Random();
+
+        // Example: generate flights
+        for (int i = 0; i < 5; i++) { // Generate 5 flights per airport (adjust as needed)
+            // Generate random future date within 1 to 10 days from now
+            LocalDate currentDate = LocalDate.now();
+            int daysToAdd = random.nextInt(10) + 1;
+            LocalDate futureDate = currentDate.plusDays(daysToAdd);
+            String dayString = futureDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+            // Generate random hour
+            LocalTime randomTime = LocalTime.of(random.nextInt(24), random.nextInt(60));
+            String hourString = randomTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+
+            // Generate random duration between 1 to 14 hours
+            int durationHours = random.nextInt(14) + 1;
+            String durationString = durationHours + " hours";
+
+            // List of real airline operators
+            String[] operators = {"Ryanair", "Lufthansa", "EasyJet", "British Airways", "Air France"};
+
+            // Generate random operator
+            String operator = operators[random.nextInt(operators.length)];
+
+            // Generate random price per person between 39 to 499
+            int pricePerPerson = random.nextInt(461) + 39; // 39 to 499
+
             Document flight = new Document();
             flight.append("ID", new ObjectId().toString())
                     .append("Number_of_Seats", 100)
-                    .append("Day", "2024-06-30")
-                    .append("Hour", "12:00")
-                    .append("Operator", "Airline " + i)
-                    .append("Duration", "2 hours")
-                    .append("Price_per_Person", 100);
+                    .append("Day", dayString)
+                    .append("Hour", hourString)
+                    .append("Operator", operator)
+                    .append("Duration", durationString)
+                    .append("Price_per_Person", pricePerPerson);
+
+            // Add destination reference
+            Document destinationRef = new Document();
+            destinationRef.append("Geo_Point", "")
+                    .append("Name", "")
+                    .append("IATA_code", "")
+                    .append("Country_code", "")
+                    .append("Size", 0);
+            flight.append("Destination", destinationRef);
 
             // Generate seats for this flight
             List<Document> seats = generateSeats(100); // Assume 100 seats per flight
