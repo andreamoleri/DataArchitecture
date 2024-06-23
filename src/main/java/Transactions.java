@@ -3,7 +3,6 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.quickstart.Connection;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -147,7 +146,7 @@ public class Transactions {
 
         // Example usage with airport codes "BGY" (Bergamo) and "JFK" (New York)
         String departureAirportCode = "BGY";
-        String arrivalAirportCode = "JFK";
+        String arrivalAirportCode = "BLL";
 
         // Print flights from BGY (Bergamo)
         List<Document> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
