@@ -18,53 +18,53 @@ import java.util.Random;
 public class CSVToMongoDB {
 
     public static void main(String[] args) {
-        String csvFile = "Data/Airports.csv"; // Path to CSV file
-        String dbName = "Airports"; // MongoDB database name
-        String collectionName = "airportCollection"; // MongoDB collection name
+        String csvFile = "Data/Airports.csv"; // Percorso del file CSV
+        String dbName = "Airports"; // Nome del database MongoDB
+        String collectionName = "airportCollection"; // Nome della collezione MongoDB
 
         String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
 
         try {
-            // Get MongoClient and MongoDB/MongoCollection
+            // Ottieni MongoClient e MongoDB/MongoCollection
             MongoClient mongoClient = Connection.getInstance(connectionString).getMongoClient();
             MongoDatabase database = mongoClient.getDatabase(dbName);
             MongoCollection<Document> collection = database.getCollection(collectionName);
 
             BufferedReader reader = new BufferedReader(new FileReader(csvFile));
             String line;
-            boolean isFirstLine = true; // Flag to check if it's the first line
-            String[] headers = null; // Array to hold the header names
+            boolean isFirstLine = true; // Flag per controllare se è la prima riga
+            String[] headers = null; // Array per contenere i nomi delle colonne
 
-            List<Document> airports = new ArrayList<>(); // List to hold all airports for generating flights
+            List<Document> airports = new ArrayList<>(); // Lista per contenere tutti gli aeroporti per la generazione dei voli
 
             while ((line = reader.readLine()) != null) {
                 String[] fields = line.split(",", -1);
 
                 if (isFirstLine) {
                     isFirstLine = false;
-                    // Save the headers and replace spaces with underscores
+                    // Salva gli header e sostituisci gli spazi con underscore
                     headers = new String[fields.length];
                     for (int i = 0; i < fields.length; i++) {
                         headers[i] = fields[i].trim().replace(" ", "_");
                     }
-                    continue; // Skip the header line
+                    continue; // Salta la riga degli header
                 }
 
-                // Create a new Document to store in MongoDB
+                // Crea un nuovo Document da memorizzare in MongoDB
                 Document airportDoc = new Document();
 
-                // Loop through fields array and add non-null fields to Document
+                // Loop attraverso l'array di campi e aggiungi i campi non nulli al Document
                 for (int i = 0; i < fields.length && i < headers.length; i++) {
                     String fieldName = headers[i].trim();
                     String fieldValue = fields[i].trim().replaceAll("\"\"", "\"");
                     if (!fieldName.isEmpty() && !fieldValue.isEmpty()) {
-                        // Exclude "Edit_in_OSM" and "other_tags" fields
+                        // Escludi i campi "Edit_in_OSM" e "other_tags"
                         if (!fieldName.equals("Edit_in_OSM") && !fieldName.equals("other_tags")) {
                             if (fieldName.equals("Size")) {
                                 try {
                                     airportDoc.append(fieldName, Integer.parseInt(fieldValue));
                                 } catch (NumberFormatException e) {
-                                    System.err.println("Error parsing 'Size' field to integer: " + fieldValue);
+                                    System.err.println("Errore nel parsing del campo 'Size' a intero: " + fieldValue);
                                 }
                             } else {
                                 airportDoc.append(fieldName, fieldValue);
@@ -73,23 +73,23 @@ public class CSVToMongoDB {
                     }
                 }
 
-                // Insert the Document into MongoDB collection
+                // Inserisci il Document in MongoDB
                 collection.insertOne(airportDoc);
 
-                // Add airportDoc to list for generating flights later
+                // Aggiungi airportDoc alla lista per generare i voli successivamente
                 airports.add(airportDoc);
             }
 
-            // After all airports are inserted, generate flights for each airport
+            // Dopo l'inserimento di tutti gli aeroporti, genera i voli per ciascun aeroporto
             for (Document airportDoc : airports) {
                 generateAndInsertFlights(airportDoc, collection, airports);
             }
 
-            System.out.println("Data imported successfully into MongoDB");
+            System.out.println("Dati importati con successo in MongoDB");
 
-            // Close resources
+            // Chiudi le risorse
             reader.close();
-            mongoClient.close(); // Close MongoDB connection
+            mongoClient.close(); // Chiudi la connessione a MongoDB
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -99,31 +99,31 @@ public class CSVToMongoDB {
     }
 
     private static void generateAndInsertFlights(Document airportDoc, MongoCollection<Document> collection, List<Document> airports) {
-        int airportSize = airportDoc.getInteger("Size", 0); // Size of the airport
+        int airportSize = airportDoc.getInteger("Size", 0); // Dimensione dell'aeroporto
         List<Document> flights = generateFlights(airportSize, airports, airportDoc);
 
-        // Calculate maximum number of flights based on airport size
+        // Calcola il numero massimo di voli in base alla dimensione dell'aeroporto
         int maxFlights = airportSize / 100;
         int totalSeats = 0;
 
-        // Calculate total number of seats from existing flights
+        // Calcola il numero totale di posti dai voli esistenti
         for (Document flight : flights) {
             totalSeats += flight.getInteger("Number_of_Seats", 0);
         }
 
-        // Trim flights if total seats exceed airport capacity
+        // Riduci i voli se il numero totale di posti supera la capacità dell'aeroporto
         if (totalSeats > airportSize) {
-            // Remove flights until the total seats are within airport capacity
+            // Rimuovi i voli finché il numero totale di posti non rientra nella capacità dell'aeroporto
             while (totalSeats > airportSize && flights.size() > 0) {
                 Document lastFlight = flights.remove(flights.size() - 1);
                 totalSeats -= lastFlight.getInteger("Number_of_Seats", 0);
             }
         }
 
-        // Update the flights array in airportDoc
+        // Aggiorna l'array dei voli in airportDoc
         airportDoc.put("Flights", flights);
 
-        // Replace the document in MongoDB collection
+        // Sostituisci il documento nella collezione MongoDB
         collection.replaceOne(new Document("_id", airportDoc.getObjectId("_id")), airportDoc);
     }
 
@@ -131,32 +131,32 @@ public class CSVToMongoDB {
         List<Document> flights = new ArrayList<>();
         Random random = new Random();
 
-        // Example: generate flights
-        for (int i = 0; i < 5; i++) { // Generate 5 flights per airport (adjust as needed)
-            // Randomly select a destination airport (ensure it's not the same as current airport)
+        // Esempio: genera voli
+        for (int i = 0; i < 5; i++) { // Genera 5 voli per aeroporto (modificare secondo necessità)
+            // Seleziona casualmente un aeroporto di destinazione (assicurati che non sia lo stesso aeroporto corrente)
             Document destinationAirport = getRandomDestinationAirport(airports, currentAirport);
 
-            // Generate random future date within 1 to 10 days from now
+            // Genera data futura casuale tra 1 e 10 giorni da oggi
             LocalDate currentDate = LocalDate.now();
             int daysToAdd = random.nextInt(10) + 1;
             LocalDate futureDate = currentDate.plusDays(daysToAdd);
             String dayString = futureDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-            // Generate random hour
+            // Genera ora casuale
             LocalTime randomTime = LocalTime.of(random.nextInt(24), random.nextInt(60));
             String hourString = randomTime.format(DateTimeFormatter.ofPattern("HH:mm"));
 
-            // Generate random duration between 1 to 14 hours
+            // Genera durata casuale tra 1 e 14 ore
             int durationHours = random.nextInt(14) + 1;
             String durationString = durationHours + " hours";
 
-            // List of real airline operators
+            // Array di operatori reali
             String[] operators = {"Ryanair", "Lufthansa", "EasyJet", "British Airways", "Air France"};
 
-            // Generate random operator
+            // Genera operatore casuale
             String operator = operators[random.nextInt(operators.length)];
 
-            // Generate random price per person between 39 to 499
+            // Genera prezzo casuale per persona tra 39 e 499
             int pricePerPerson = random.nextInt(461) + 39; // 39 to 499
 
             Document flight = new Document();
@@ -168,11 +168,11 @@ public class CSVToMongoDB {
                     .append("Duration", durationString)
                     .append("Price_per_Person", pricePerPerson);
 
-            // Add destination reference as ObjectID
+            // Aggiungi riferimento della destinazione come ObjectID
             flight.append("Destination", destinationAirport.getObjectId("_id"));
 
-            // Generate seats for this flight
-            List<Document> seats = generateSeats(100); // Assume 100 seats per flight
+            // Genera posti per questo volo
+            List<Document> seats = generateSeats(100); // Assume 100 posti per volo
             flight.append("Seats", seats);
 
             flights.add(flight);
@@ -185,10 +185,10 @@ public class CSVToMongoDB {
         Random random = new Random();
         Document destinationAirport = null;
 
-        // Keep trying until we find a different airport than the current one
+        // Continua a provare finché non trovi un aeroporto diverso dall'aeroporto corrente
         while (true) {
             if (airports.isEmpty()) {
-                throw new IllegalStateException("Airport list is empty, cannot select destination.");
+                throw new IllegalStateException("La lista degli aeroporti è vuota, impossibile selezionare la destinazione.");
             }
             int index = random.nextInt(airports.size());
             destinationAirport = airports.get(index);
@@ -202,11 +202,14 @@ public class CSVToMongoDB {
 
     private static List<Document> generateSeats(int numberOfSeats) {
         List<Document> seats = new ArrayList<>();
+        String[] seatLetters = {"A", "B", "C", "D", "E", "F"};
+        int seatNumber = 1;
 
         for (int i = 0; i < numberOfSeats; i++) {
+            String seatID = seatNumber + seatLetters[i % 6]; // Cicla tra A e F
             Document seat = new Document();
             seat.append("Status", "Vacant")
-                    .append("ID", "")
+                    .append("ID", seatID)
                     .append("Name", "")
                     .append("Surname", "")
                     .append("Document_Info", "")
@@ -214,6 +217,9 @@ public class CSVToMongoDB {
                     .append("Balance", 0);
 
             seats.add(seat);
+            if ((i + 1) % 6 == 0) { // Passa alla riga successiva di numeri dei posti (1A, 2A, ...)
+                seatNumber++;
+            }
         }
 
         return seats;
