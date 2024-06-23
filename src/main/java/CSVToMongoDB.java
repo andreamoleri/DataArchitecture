@@ -32,7 +32,7 @@ public class CSVToMongoDB {
             String[] headers = null; // Array to hold the header names
 
             while ((line = reader.readLine()) != null) {
-                String[] fields = line.split(";", -1);
+                String[] fields = line.split(",", -1);
 
                 if (isFirstLine) {
                     isFirstLine = false;
