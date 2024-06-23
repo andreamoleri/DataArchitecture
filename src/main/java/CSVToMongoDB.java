@@ -35,8 +35,7 @@ public class CSVToMongoDB {
             boolean isFirstLine = true; // Flag to check if it's the first line
             String[] headers = null; // Array to hold the header names
 
-            // Retrieve all airports from collection
-            List<Document> airports = collection.find().into(new ArrayList<>());
+            List<Document> airports = new ArrayList<>(); // List to hold all airports for generating flights
 
             while ((line = reader.readLine()) != null) {
                 String[] fields = line.split(",", -1);
@@ -77,7 +76,12 @@ public class CSVToMongoDB {
                 // Insert the Document into MongoDB collection
                 collection.insertOne(airportDoc);
 
-                // Generate flights for this airport and update the document
+                // Add airportDoc to list for generating flights later
+                airports.add(airportDoc);
+            }
+
+            // After all airports are inserted, generate flights for each airport
+            for (Document airportDoc : airports) {
                 generateAndInsertFlights(airportDoc, collection, airports);
             }
 
