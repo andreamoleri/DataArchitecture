@@ -9,13 +9,11 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class CSVToMongoDB {
 
@@ -36,6 +34,9 @@ public class CSVToMongoDB {
             String line;
             boolean isFirstLine = true; // Flag to check if it's the first line
             String[] headers = null; // Array to hold the header names
+
+            // Retrieve all airports from collection
+            List<Document> airports = collection.find().into(new ArrayList<>());
 
             while ((line = reader.readLine()) != null) {
                 String[] fields = line.split(",", -1);
@@ -77,7 +78,7 @@ public class CSVToMongoDB {
                 collection.insertOne(airportDoc);
 
                 // Generate flights for this airport and update the document
-                generateAndInsertFlights(airportDoc, collection);
+                generateAndInsertFlights(airportDoc, collection, airports);
             }
 
             System.out.println("Data imported successfully into MongoDB");
@@ -93,9 +94,9 @@ public class CSVToMongoDB {
         }
     }
 
-    private static void generateAndInsertFlights(Document airportDoc, MongoCollection<Document> collection) {
+    private static void generateAndInsertFlights(Document airportDoc, MongoCollection<Document> collection, List<Document> airports) {
         int airportSize = airportDoc.getInteger("Size", 0); // Size of the airport
-        List<Document> flights = generateFlights(airportSize);
+        List<Document> flights = generateFlights(airportSize, airports, airportDoc);
 
         // Calculate maximum number of flights based on airport size
         int maxFlights = airportSize / 100;
@@ -122,13 +123,15 @@ public class CSVToMongoDB {
         collection.replaceOne(new Document("_id", airportDoc.getObjectId("_id")), airportDoc);
     }
 
-    private static List<Document> generateFlights(int airportSize) {
+    private static List<Document> generateFlights(int airportSize, List<Document> airports, Document currentAirport) {
         List<Document> flights = new ArrayList<>();
-
         Random random = new Random();
 
         // Example: generate flights
         for (int i = 0; i < 5; i++) { // Generate 5 flights per airport (adjust as needed)
+            // Randomly select a destination airport (ensure it's not the same as current airport)
+            Document destinationAirport = getRandomDestinationAirport(airports, currentAirport);
+
             // Generate random future date within 1 to 10 days from now
             LocalDate currentDate = LocalDate.now();
             int daysToAdd = random.nextInt(10) + 1;
@@ -161,14 +164,8 @@ public class CSVToMongoDB {
                     .append("Duration", durationString)
                     .append("Price_per_Person", pricePerPerson);
 
-            // Add destination reference
-            Document destinationRef = new Document();
-            destinationRef.append("Geo_Point", "")
-                    .append("Name", "")
-                    .append("IATA_code", "")
-                    .append("Country_code", "")
-                    .append("Size", 0);
-            flight.append("Destination", destinationRef);
+            // Add destination reference as ObjectID
+            flight.append("Destination", destinationAirport.getObjectId("_id"));
 
             // Generate seats for this flight
             List<Document> seats = generateSeats(100); // Assume 100 seats per flight
@@ -178,6 +175,25 @@ public class CSVToMongoDB {
         }
 
         return flights;
+    }
+
+    private static Document getRandomDestinationAirport(List<Document> airports, Document currentAirport) {
+        Random random = new Random();
+        Document destinationAirport = null;
+
+        // Keep trying until we find a different airport than the current one
+        while (true) {
+            if (airports.isEmpty()) {
+                throw new IllegalStateException("Airport list is empty, cannot select destination.");
+            }
+            int index = random.nextInt(airports.size());
+            destinationAirport = airports.get(index);
+            if (!destinationAirport.getObjectId("_id").equals(currentAirport.getObjectId("_id"))) {
+                break;
+            }
+        }
+
+        return destinationAirport;
     }
 
     private static List<Document> generateSeats(int numberOfSeats) {
