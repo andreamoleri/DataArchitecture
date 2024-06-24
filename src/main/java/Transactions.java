@@ -216,8 +216,8 @@ class Transactions {
         Transactions transactions = new Transactions(mongoClient, dbName, collectionName);
 
         // Example usage of Transactions methods
-        String departureAirportCode = "BGY";
-        String arrivalAirportCode = "BLL";
+        String departureAirportCode = "MXP";
+        String arrivalAirportCode = "CDG";
 
         Map<String, Map<String, String>> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
 
