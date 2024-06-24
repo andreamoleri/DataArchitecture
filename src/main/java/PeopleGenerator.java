@@ -1,3 +1,4 @@
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PeopleGenerator {
 
     private static final Random RANDOM = new Random();
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
 
     // Metodo per generare una lista di persone
     public List<Person> generatePeople(int count) {
@@ -27,6 +29,9 @@ public class PeopleGenerator {
             documentNumbers.add(documentInfo);
             String dateOfBirth = generateDateOfBirth();
             double balance = 100 + (100000 - 100) * RANDOM.nextDouble();
+
+            // Arrotonda il saldo a due decimali
+            balance = Double.parseDouble(DECIMAL_FORMAT.format(balance));
 
             people.add(new Person(name, surname, documentInfo, dateOfBirth, balance));
         }

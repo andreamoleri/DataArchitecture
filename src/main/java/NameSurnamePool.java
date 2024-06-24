@@ -17,7 +17,7 @@ public class NameSurnamePool {
 
     public static final List<String> SURNAMES = Arrays.asList(
             "Rossi", "Bianchi", "Esposito", "Romano", "Ferrari", "Ricci", "Marino", "Greco", "Bruno", "Gallo",
-            "Conti", "De Luca", "Costa", "Giordano", "Mancini", "Rizzo", "Lombardi", "Moretti", "Barbieri", "Fontana",
+            "Conti", "De Luca", "Costa", "Giordano", "Manenti", "Rizzo", "Lombardi", "Moretti", "Barbieri", "Fontana",
             "Santoro", "Mariani", "Rinaldi", "Caruso", "Ferraro", "Gatti", "Testa", "Martini", "Pellegrini", "Palumbo",
             "Sorrentino", "Longo", "Leone", "Gentile", "Lombardo", "Moleri", "Colombo", "D'Amico", "Martino", "Bianco",
             "Morelli", "Amato", "Silvestri", "Grasso", "Parisi", "Sanna", "Farina", "Ruggiero", "Monti", "Coppola",
