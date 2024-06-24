@@ -1,0 +1,34 @@
+├─ TESTING FLIGHT RETRIEVAL
+│---├─ Retrieving flights departing from the specified airport (MXP)
+│---├─ Flight to CDG: {IATA_code=CDG, Country=France, ID=6677f9907acf35542d8ef21b, Name=Aéroport de Paris-Charles-de-Gaulle}
+│---├─ Flight to PMV: {IATA_code=PMV, Country=Venezuela, ID=6677f9907acf35542d8ef21c, Name=Aeropuerto Internacional del Caribe Santiago Mariño}
+
+├─ TESTING SEATS RETRIEVAL
+│---├─ The user chose to depart from MXP to PMV
+│---├─ Retrieving available seats for the specified flight (MXP -> PMV)
+│---├─ Number of available seats: 23
+│---├─ Available seats are: [1D, 1F, 2A, 2C, 3A, 3F, 4F, 5A, 5B, 5D, 6C, 7A, 9A, 9C, 10A, 10B, 11C, 13B, 13D, 13F, 14C, 16D, 17C]
+
+├─ TESTING CONCURRENT TRANSACTIONS
+│---├─ Testing concurrent booking for the same seat (17C) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
+│---├─ Booking result for person 1: true
+│---├─ Booking result for person 2: false
+│---├─ Person 1 booked the seat first and successfully: Person{name='Ginevra', surname='Di Lorenzo', documentInfo='MGMNS4E', dateOfBirth='1937-05-22', balance=56761.62}
+│---├─ Person 2 consequently failed to book the same seat: Person{name='Ginevra', surname='Battaglia', documentInfo='W2OS8LU', dateOfBirth='1962-09-18', balance=58155.83}
+│---├─ The balance of Ginevra Di Lorenzo before booking the flight was 57123.62$
+│---├─ The cost of the flight was 362.00$
+│---├─ This means the new balance of Ginevra Di Lorenzo is 56761.62$
+
+├─ TESTING NON-CONCURRENT TRANSACTION
+│---├─ A new user chose to book the 1D seat, without any concurrency from other users
+│---├─ Booking result for new person: true
+│---├─ New person booked the seat successfully: Person{name='Valentina', surname='De Luca', documentInfo='530RI1J', dateOfBirth='1999-07-05', balance=38582.97}
+│---├─ The balance of Valentina De Luca before booking the flight was 38944.97$
+│---├─ The cost of the flight was 362.00$
+│---├─ This means the new balance of Valentina De Luca is 38582.97$
+
+├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR
+│---├─ Vincenzo Rizzo with balance 10.0$ is attempting to book seat 2A
+│---├─ Booking result for person with insufficient funds: false
+│---├─ The booking failed to to having insufficient balance to complete the transaction
+

@@ -1,0 +1,34 @@
+├─ TESTING FLIGHT RETRIEVAL
+│---├─ Retrieving flights departing from the specified airport (MXP)
+│---├─ Flight to CDG: {IATA_code=CDG, Country=France, ID=6677f9907acf35542d8ef21b, Name=Aéroport de Paris-Charles-de-Gaulle}
+│---├─ Flight to PMV: {IATA_code=PMV, Country=Venezuela, ID=6677f9907acf35542d8ef21c, Name=Aeropuerto Internacional del Caribe Santiago Mariño}
+
+├─ TESTING SEATS RETRIEVAL
+│---├─ The user chose to depart from MXP to PMV
+│---├─ Retrieving available seats for the specified flight (MXP -> PMV)
+│---├─ Number of available seats: 33
+│---├─ Available seats are: [1B, 1D, 1F, 2A, 2C, 2D, 3A, 3E, 3F, 4F, 5A, 5B, 5D, 5E, 6B, 6C, 6E, 7A, 8A, 9A, 9B, 9C, 10A, 10B, 11C, 11F, 13B, 13D, 13F, 14C, 16B, 16D, 17C]
+
+├─ TESTING CONCURRENT TRANSACTIONS
+│---├─ Testing concurrent booking for the same seat (1B) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
+│---├─ Booking result for person 1: true
+│---├─ Booking result for person 2: false
+│---├─ Person 1 booked the seat first and successfully: Person{name='Alberto', surname='Veneziani', documentInfo='GAYS4MR', dateOfBirth='1929-12-20', balance=78217.02}
+│---├─ Person 2 consequently failed to book the same seat: Person{name='Laura', surname='D'Amico', documentInfo='6M7IV8W', dateOfBirth='1933-02-20', balance=24934.3}
+│---├─ The balance of Alberto Veneziani before booking the flight was 78579.02$
+│---├─ The cost of the flight was 362.00$
+│---├─ This means the new balance of Alberto Veneziani is 78217.02$
+
+├─ TESTING NON-CONCURRENT TRANSACTION
+│---├─ A new user chose to book the 6E seat, without any concurrency from other users
+│---├─ Booking result for new person: true
+│---├─ New person booked the seat successfully: Person{name='Maurizio', surname='Pagano', documentInfo='KRLCU5L', dateOfBirth='1976-05-21', balance=16378.54}
+│---├─ The balance of Maurizio Pagano before booking the flight was 16740.54$
+│---├─ The cost of the flight was 362.00$
+│---├─ This means the new balance of Maurizio Pagano is 16378.54$
+
+├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR
+│---├─ Serena Rizzi with balance 10.0$ is attempting to book seat 1F
+│---├─ Booking result for person with insufficient funds: false
+│---├─ The booking failed to to having insufficient balance to complete the transaction
+

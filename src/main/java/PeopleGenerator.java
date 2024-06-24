@@ -58,13 +58,26 @@ public class PeopleGenerator {
         return new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date(randomMillis));
     }
 
+    // Metodo per generare una persona "povera" con saldo limitato
+    public Person generatePoorPerson() {
+        String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
+        String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
+        String documentInfo = generateDocumentInfo();
+        String dateOfBirth = generateDateOfBirth();
+        double balance = 10.0; // Saldo limitato a 10$
+
+        return new Person(name, surname, documentInfo, dateOfBirth, balance);
+    }
+
     // Classe interna per rappresentare una persona
-    public class Person {
+    public static class Person {
         private String name;
         private String surname;
         private String documentInfo;
         private String dateOfBirth;
         private double balance;
+        private double oldBalance; // Aggiunto per gestire il bilancio precedente
+        private double difference; // Aggiunto per gestire la differenza di saldo
 
         public Person(String name, String surname, String documentInfo, String dateOfBirth, double balance) {
             this.name = name;
@@ -72,23 +85,41 @@ public class PeopleGenerator {
             this.documentInfo = documentInfo;
             this.dateOfBirth = dateOfBirth;
             this.balance = balance;
+            this.oldBalance = balance; // Inizialmente il bilancio precedente è uguale al bilancio attuale
+            this.difference = 0.0; // Inizialmente non c'è differenza di saldo
         }
 
-        // Getters
+        // Getters e setters...
         public String getName() {
             return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
         }
 
         public String getSurname() {
             return surname;
         }
 
+        public void setSurname(String surname) {
+            this.surname = surname;
+        }
+
         public String getDocumentInfo() {
             return documentInfo;
         }
 
+        public void setDocumentInfo(String documentInfo) {
+            this.documentInfo = documentInfo;
+        }
+
         public String getDateOfBirth() {
             return dateOfBirth;
+        }
+
+        public void setDateOfBirth(String dateOfBirth) {
+            this.dateOfBirth = dateOfBirth;
         }
 
         public double getBalance() {
@@ -97,6 +128,22 @@ public class PeopleGenerator {
 
         public void setBalance(double balance) {
             this.balance = balance;
+        }
+
+        public double getOldBalance() {
+            return oldBalance;
+        }
+
+        public void setOldBalance(double oldBalance) {
+            this.oldBalance = oldBalance;
+        }
+
+        public double getDifference() {
+            return difference;
+        }
+
+        public void setDifference(double difference) {
+            this.difference = difference;
         }
 
         @Override
