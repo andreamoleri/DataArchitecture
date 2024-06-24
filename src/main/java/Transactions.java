@@ -7,11 +7,14 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.fusesource.jansi.AnsiConsole;
+import org.fusesource.jansi.AnsiRenderer;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -168,6 +171,9 @@ class Transactions {
     }
 
     public static void main(String[] args) {
+        // Abilita ANSI su console
+        AnsiConsole.systemInstall();
+
         try {
             // Setup file logging without timestamps
             FileHandler fh = new FileHandler("booking.log");
@@ -179,6 +185,22 @@ class Transactions {
             });
             logger.addHandler(fh);
             logger.setLevel(Level.INFO); // Set logging level to INFO
+
+            // Aggiungi un handler per la console che supporta ANSI
+            ConsoleHandler consoleHandler = new ConsoleHandler();
+            consoleHandler.setFormatter(new SimpleFormatter() {
+                @Override
+                public synchronized String format(java.util.logging.LogRecord record) {
+                    String message = super.formatMessage(record);
+                    if (record.getLevel() == Level.SEVERE) {
+                        return AnsiRenderer.render("@|red " + message + "|@");
+                    } else {
+                        return message;
+                    }
+                }
+            });
+            consoleHandler.setLevel(Level.ALL); // Puoi impostare il livello di log desiderato
+            logger.addHandler(consoleHandler);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -215,12 +237,13 @@ class Transactions {
             List<String> availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
             logger.info(String.format("│---├─ The user chose to depart from %s to %s", departureAirportCode, arrivalAirportCode));
             logger.info(String.format("│---├─ Retrieving available seats for the specified flight (%s -> %s)", departureAirportCode, arrivalAirportCode));
+            logger.info(String.format("│---├─ Number of available seats: %d", availableSeatsDetails.size()));
             logger.info(String.format("│---├─ Available seats are: %s", availableSeatsDetails));
             logger.info("");
 
             if (!availableSeatsDetails.isEmpty()) {
                 // Shuffle the list to randomize the seat selection
-                Collections.shuffle(availableSeatsDetails);
+                Collections.shuffle(                availableSeatsDetails);
                 String seatID = availableSeatsDetails.get(0);
 
                 PeopleGenerator generator = new PeopleGenerator();
@@ -229,7 +252,7 @@ class Transactions {
                 PeopleGenerator.Person person2 = people.get(1);
 
                 logger.info("├─ TESTING CONCURRENT TRANSACTIONS");
-                logger.info(String.format("│---├─ Testing concurrent booking for the same seat (%s) on flight %s", seatID, flightID));
+                logger.info(String.format("│---├─ Testing concurrent booking for the same seat (%s) on flight %s (%s -> %s)", seatID, flightID, departureAirportCode, arrivalAirportCode));
 
                 boolean bookingResult1 = transactions.bookFlight(flightID, seatID, person1);
                 boolean bookingResult2 = transactions.bookFlight(flightID, seatID, person2);
@@ -253,13 +276,16 @@ class Transactions {
 
                 // Aggiungi un caso di test per la prenotazione non concorrente
                 if (availableSeatsDetails.size() > 1) {
-                    String newSeatID = availableSeatsDetails.get(1); // Prendi un altro posto disponibile
+                    // Shuffle the remaining seats to choose one randomly
+                    Collections.shuffle(availableSeatsDetails);
+                    String newSeatID = availableSeatsDetails.get(0); // Prendi un posto disponibile casuale
 
                     PeopleGenerator.Person newPerson = generator.generatePeople(1).get(0); // Genera una nuova persona
 
                     boolean nonConcurrentBookingResult = transactions.bookFlight(flightID, newSeatID, newPerson);
 
                     logger.info("├─ TESTING NON-CONCURRENT TRANSACTION");
+                    logger.info(String.format("│---├─ A new user chose to book the %s seat, without any concurrency from other users", newSeatID));
                     logger.info(String.format("│---├─ Booking result for new person: %s", nonConcurrentBookingResult));
 
                     if (nonConcurrentBookingResult) {
@@ -282,7 +308,7 @@ class Transactions {
                     boolean bookingOccupiedSeatResult = transactions.bookFlight(flightID, occupiedSeatID, anotherPerson);
 
                     logger.info("├─ TESTING BOOKING FOR AN ALREADY OCCUPIED SEAT");
-                    logger.info(String.format("│---├─ Booking result for another person trying to book an occupied seat: %s", bookingOccupiedSeatResult));
+                    logger.info(String.format("│---├─ Booking result for another person trying to book an occupied seat (%s): %s", occupiedSeatID, bookingOccupiedSeatResult));
 
                     if (bookingOccupiedSeatResult) {
                         logger.severe(String.format("│---├─ Another person booked the already occupied seat (this should not happen): %s", anotherPerson));

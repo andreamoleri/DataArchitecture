@@ -36,6 +36,12 @@
             <artifactId>mongodb-driver-sync</artifactId>
             <version>5.1.0</version> <!-- Replace with the latest version -->
         </dependency>
+        <dependency>
+            <groupId>org.fusesource.jansi</groupId>
+            <artifactId>jansi</artifactId>
+            <version>1.18</version>
+        </dependency>
+
     </dependencies>
 
     <build>

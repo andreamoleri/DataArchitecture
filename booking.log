@@ -8,19 +8,21 @@
 ├─ TESTING SEATS RETRIEVAL
 │---├─ The user chose to depart from BGY to BLL
 │---├─ Retrieving available seats for the specified flight (BGY -> BLL)
-│---├─ Available seats are: [9D, 9E, 10B, 10C, 10E, 11A, 11B, 11C, 11D, 11F, 12A, 12B, 12E, 12F, 13A, 13B, 13C, 13D, 13E, 13F, 14A, 14C, 14D, 14E, 14F, 15B, 15D, 16A, 16C, 16E, 16F, 17A, 17B, 17C, 17D]
+│---├─ Number of available seats: 15
+│---├─ Available seats are: [11B, 12A, 12B, 12E, 12F, 13A, 13D, 13E, 14C, 14D, 14E, 15D, 16F, 17A, 17B]
 
 ├─ TESTING CONCURRENT TRANSACTIONS
-│---├─ Testing concurrent booking for the same seat (17C) on flight 6677f9a27acf35542d8ef4dc
+│---├─ Testing concurrent booking for the same seat (17A) on flight 6677f9a27acf35542d8ef4dc (BGY -> BLL)
 │---├─ Booking result for person 1: true
 │---├─ Booking result for person 2: false
-│---├─ Person 1 booked the seat first and successfully: Person{name='Manuela', surname='Bellini', documentInfo='AX75L18', dateOfBirth='1965-09-20', balance=27618.34}
-│---├─ Person 2 consequently failed to book the same seat: Person{name='Massimo', surname='Veneziani', documentInfo='BLT02Y4', dateOfBirth='1957-01-28', balance=2467.11}
+│---├─ Person 1 booked the seat first and successfully: Person{name='Angela', surname='Raimondi', documentInfo='80XWYBR', dateOfBirth='1995-01-07', balance=15596.9}
+│---├─ Person 2 consequently failed to book the same seat: Person{name='Patrizia', surname='D'Agostino', documentInfo='Z2TO3AM', dateOfBirth='2002-03-09', balance=4205.83}
 
 ├─ TESTING NON-CONCURRENT TRANSACTION
+│---├─ A new user chose to book the 13A seat, without any concurrency from other users
 │---├─ Booking result for new person: true
-│---├─ New person booked the seat successfully: Person{name='Angela', surname='De Santis', documentInfo='SBVC87W', dateOfBirth='1987-01-25', balance=53424.87}
+│---├─ New person booked the seat successfully: Person{name='Daniela', surname='Palumbo', documentInfo='8BEJVB0', dateOfBirth='1949-01-31', balance=84132.09}
 
 ├─ TESTING BOOKING FOR AN ALREADY OCCUPIED SEAT
-│---├─ Booking result for another person trying to book an occupied seat: false
-│---├─ Another person failed to book the already occupied seat (expected): Person{name='Ginevra', surname='De Santis', documentInfo='YXSGX2K', dateOfBirth='1953-07-09', balance=67202.05}
+│---├─ Booking result for another person trying to book an occupied seat (17A): false
+│---├─ Another person failed to book the already occupied seat (expected): Person{name='Elisabetta', surname='Caruso', documentInfo='0ASYARJ', dateOfBirth='1961-07-07', balance=31743.57}
