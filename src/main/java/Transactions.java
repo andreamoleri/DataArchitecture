@@ -3,6 +3,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -10,12 +11,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Transactions {
 
     private MongoClient mongoClient;
     private MongoDatabase database;
     private MongoCollection<Document> collection;
+    private Lock lock = new ReentrantLock();
 
     // Constructor to initialize MongoDB connection
     public Transactions(MongoClient mongoClient, String dbName, String collectionName) {
@@ -78,6 +82,92 @@ public class Transactions {
         return availableSeatsList;
     }
 
+    // Method to book a flight
+    public boolean bookFlight(String flightID, String seatID, PeopleGenerator.Person person) {
+        lock.lock();
+        try {
+            // Query the flight document
+            Document flightDocument = collection.find(Filters.eq("Flights.ID", flightID)).first();
+            if (flightDocument == null) {
+                return false;
+            }
+
+            List<Document> flights = (List<Document>) flightDocument.get("Flights");
+            Document targetFlight = null;
+            for (Document f : flights) {
+                if (f.getString("ID").equals(flightID)) {
+                    targetFlight = f;
+                    break;
+                }
+            }
+
+            if (targetFlight == null) {
+                return false;
+            }
+
+            // Retrieve the price from the flight document
+            Number seatPriceNumber = targetFlight.get("Price_per_Person", Number.class);
+            if (seatPriceNumber == null) {
+                return false;
+            }
+            Double seatPrice = seatPriceNumber.doubleValue();
+
+            // Find the seat document
+            List<Document> seats = (List<Document>) targetFlight.get("Seats");
+            Document seat = null;
+            for (Document s : seats) {
+                if (s.getString("ID").equals(seatID) && s.getString("Status").equals("Vacant")) {
+                    seat = s;
+                    break;
+                }
+            }
+
+            if (seat == null) {
+                return false;
+            }
+
+            // Check if the person has sufficient balance
+            if (person.getBalance() < seatPrice) {
+                return false;
+            }
+
+            // Update the seat status to "Booked"
+            seat.put("Status", "Booked");
+            seat.put("Name", person.getName());
+            seat.put("Surname", person.getSurname());
+            seat.put("Document_Info", person.getDocumentInfo());
+            seat.put("Date_of_Birth", person.getDateOfBirth());
+            seat.put("Balance", person.getBalance());
+
+            // Update the flight document in the database
+            collection.updateOne(
+                    Filters.and(
+                            Filters.eq("Flights.ID", flightID),
+                            Filters.eq("Flights.Seats.ID", seatID)),
+                    Updates.combine(
+                            Updates.set("Flights.$[flight].Seats.$[seat].Status", "Booked"),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Name", person.getName()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Surname", person.getSurname()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Document_Info", person.getDocumentInfo()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Date_of_Birth", person.getDateOfBirth()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Balance", person.getBalance())
+                    ),
+                    new com.mongodb.client.model.UpdateOptions().arrayFilters(
+                            java.util.Arrays.asList(
+                                    Filters.eq("flight.ID", flightID),
+                                    Filters.eq("seat.ID", seatID)
+                            )
+                    )
+            );
+
+            // Deduct the seat price from the person's balance
+            person.setBalance(person.getBalance() - seatPrice);
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     // Close MongoDB connection
     public void close() {
         mongoClient.close();
@@ -100,9 +190,43 @@ public class Transactions {
         Map<String, String> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
         System.out.println("Flights from " + departureAirportCode + ": " + flightsFromBGY);
 
-        // Get available seats details from BGY to BLL
-        List<String> availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
-        System.out.println("Available seats from " + departureAirportCode + " to " + arrivalAirportCode + ": " + availableSeatsDetails);
+        if (flightsFromBGY.containsKey(arrivalAirportCode)) {
+            String flightID = flightsFromBGY.get(arrivalAirportCode);
+
+            // Get available seats details from BGY to BLL
+            List<String> availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
+            System.out.println("Available seats from " + departureAirportCode + " to " + arrivalAirportCode + ": " + availableSeatsDetails);
+
+            if (!availableSeatsDetails.isEmpty()) {
+                String seatID = availableSeatsDetails.get(0);
+
+                // Generate some people
+                PeopleGenerator generator = new PeopleGenerator();
+                List<PeopleGenerator.Person> people = generator.generatePeople(2);
+
+                PeopleGenerator.Person person1 = people.get(0);
+                PeopleGenerator.Person person2 = people.get(1);
+
+                // Try to book the same seat for both people
+                boolean bookingResult1 = transactions.bookFlight(flightID, seatID, person1);
+                boolean bookingResult2 = transactions.bookFlight(flightID, seatID, person2);
+
+                System.out.println("Booking result for person 1: " + bookingResult1);
+                System.out.println("Booking result for person 2: " + bookingResult2);
+
+                if (bookingResult1) {
+                    System.out.println("Person 1 booked the seat successfully: " + person1);
+                } else {
+                    System.out.println("Person 1 failed to book the seat: " + person1);
+                }
+
+                if (bookingResult2) {
+                    System.out.println("Person 2 booked the seat successfully: " + person2);
+                } else {
+                    System.out.println("Person 2 failed to book the seat: " + person2);
+                }
+            }
+        }
 
         // Close MongoDB connection
         transactions.close();

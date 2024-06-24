@@ -69,6 +69,31 @@ public class PeopleGenerator {
             this.balance = balance;
         }
 
+        // Getters
+        public String getName() {
+            return name;
+        }
+
+        public String getSurname() {
+            return surname;
+        }
+
+        public String getDocumentInfo() {
+            return documentInfo;
+        }
+
+        public String getDateOfBirth() {
+            return dateOfBirth;
+        }
+
+        public double getBalance() {
+            return balance;
+        }
+
+        public void setBalance(double balance) {
+            this.balance = balance;
+        }
+
         @Override
         public String toString() {
             return "Person{" +
@@ -87,7 +112,7 @@ public class PeopleGenerator {
         List<Person> people = generator.generatePeople(10000);
 
         // Stampa le prime 10 persone per verificare l'output
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             System.out.println(people.get(i));
         }
     }
