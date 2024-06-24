@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class CSVToMongoDB {
+public class Modeling {
 
     /**
      * Main method that orchestrates the import of airport data from a CSV file into MongoDB.
