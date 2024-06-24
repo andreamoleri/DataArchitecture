@@ -1,5 +1,6 @@
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -8,10 +9,7 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.FileHandler;
@@ -19,7 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-public class Transactions {
+class Transactions {
 
     private MongoClient mongoClient;
     private MongoDatabase database;
@@ -33,8 +31,8 @@ public class Transactions {
         this.collection = database.getCollection(collectionName);
     }
 
-    public Map<String, String> getFlightsFromAirport(String airportCode) {
-        Map<String, String> flightsMap = new HashMap<>();
+    public Map<String, Map<String, String>> getFlightsFromAirport(String airportCode) {
+        Map<String, Map<String, String>> flightsMap = new HashMap<>();
 
         FindIterable<Document> iterable = collection.find(Filters.eq("IATA_code", airportCode));
 
@@ -44,7 +42,12 @@ public class Transactions {
                 ObjectId destinationId = flight.getObjectId("Destination");
                 Document destinationAirport = getAirportById(destinationId);
                 if (destinationAirport != null) {
-                    flightsMap.put(destinationAirport.getString("IATA_code"), flight.getString("ID"));
+                    Map<String, String> flightDetails = new HashMap<>();
+                    flightDetails.put("ID", flight.getString("ID"));
+                    flightDetails.put("Name", destinationAirport.getString("Name"));
+                    flightDetails.put("IATA_code", destinationAirport.getString("IATA_code"));
+                    flightDetails.put("Country", destinationAirport.getString("Country"));
+                    flightsMap.put(destinationAirport.getString("IATA_code"), flightDetails);
                 }
             }
         }
@@ -109,7 +112,6 @@ public class Transactions {
             }
             Double seatPrice = seatPriceNumber.doubleValue();
 
-
             List<Document> seats = targetFlight.getList("Seats", Document.class);
             Document seat = null;
             for (Document s : seats) {
@@ -147,7 +149,7 @@ public class Transactions {
                             Updates.set("Flights.$[flight].Seats.$[seat].Balance", person.getBalance())
                     ),
                     new com.mongodb.client.model.UpdateOptions().arrayFilters(
-                            java.util.Arrays.asList(
+                            Arrays.asList(
                                     Filters.eq("flight.ID", flightID),
                                     Filters.eq("seat.ID", seatID)
                             )
@@ -188,56 +190,63 @@ public class Transactions {
         String collectionName = "airportCollection";
 
         // Initialize MongoDB client and Transactions instance
-        MongoClient mongoClient = Connection.getInstance(connectionString).getMongoClient();
+        MongoClient mongoClient = MongoClients.create(connectionString);
         Transactions transactions = new Transactions(mongoClient, dbName, collectionName);
 
         // Example usage of Transactions methods
         String departureAirportCode = "BGY";
         String arrivalAirportCode = "BLL";
 
-        Map<String, String> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
+        Map<String, Map<String, String>> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
 
         logger.info("├─ TESTING FLIGHT RETRIEVAL");
-        logger.info(String.format("│---├─ Retrieving flights departing from the specified airport (" +departureAirportCode + ")"));
-        logger.info(String.format("│---├─ Flights from %s: %s", departureAirportCode, flightsFromBGY));
-        logger.info(String.format("│---├─ The user chose to depart from " + departureAirportCode + " to " + arrivalAirportCode));
+        logger.info(String.format("│---├─ Retrieving flights departing from the specified airport (%s)", departureAirportCode));
+        for (Map.Entry<String, Map<String, String>> entry : flightsFromBGY.entrySet()) {
+            String iataCode = entry.getKey();
+            Map<String, String> flightDetails = entry.getValue();
+            logger.info(String.format("│---├─ Flight to %s: %s", iataCode, flightDetails));
+        }
         logger.info("");
 
         if (flightsFromBGY.containsKey(arrivalAirportCode)) {
-            String flightID = flightsFromBGY.get(arrivalAirportCode);
+            String flightID = flightsFromBGY.get(arrivalAirportCode).get("ID");
 
             logger.info("├─ TESTING SEATS RETRIEVAL");
             List<String> availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
-            logger.info(String.format("│---├─ Retrieving available seats for the specified flight (" + departureAirportCode + " -> " + arrivalAirportCode + ")"));
-            logger.info(String.format("│---├─ Available seats are: " + availableSeatsDetails));
+            logger.info(String.format("│---├─ The user chose to depart from %s to %s", departureAirportCode, arrivalAirportCode));
+            logger.info(String.format("│---├─ Retrieving available seats for the specified flight (%s -> %s)", departureAirportCode, arrivalAirportCode));
+            logger.info(String.format("│---├─ Available seats are: %s", availableSeatsDetails));
             logger.info("");
 
             if (!availableSeatsDetails.isEmpty()) {
+                // Shuffle the list to randomize the seat selection
+                Collections.shuffle(availableSeatsDetails);
                 String seatID = availableSeatsDetails.get(0);
 
                 PeopleGenerator generator = new PeopleGenerator();
                 List<PeopleGenerator.Person> people = generator.generatePeople(2);
-
                 PeopleGenerator.Person person1 = people.get(0);
                 PeopleGenerator.Person person2 = people.get(1);
+
+                logger.info("├─ TESTING CONCURRENT TRANSACTIONS");
+                logger.info(String.format("│---├─ Testing concurrent booking for the same seat (%s) on flight %s", seatID, flightID));
 
                 boolean bookingResult1 = transactions.bookFlight(flightID, seatID, person1);
                 boolean bookingResult2 = transactions.bookFlight(flightID, seatID, person2);
 
-                logger.info("├─ TESTING CONCURRENT TRANSACTIONS");
                 logger.info(String.format("│---├─ Booking result for person 1: %s", bookingResult1));
                 logger.info(String.format("│---├─ Booking result for person 2: %s", bookingResult2));
 
                 if (bookingResult1) {
-                    logger.info(String.format("│---├─ Person 1 booked the seat successfully: %s", person1));
+                    logger.info(String.format("│---├─ Person 1 booked the seat first and successfully: %s", person1));
                 } else {
-                    logger.info(String.format("│---├─ Person 1 failed to book the same seat: %s", person1));
+                    logger.info(String.format("│---├─ Person 1 consequently failed to book the same seat: %s", person1));
                 }
 
                 if (bookingResult2) {
-                    logger.info(String.format("│---├─ Person 2 booked the seat successfully: %s", person2));
+                    logger.info(String.format("│---├─ Person 2 booked the seat first and successfully: %s", person2));
                 } else {
-                    logger.info(String.format("│---├─ Person 2 failed to book the same seat: %s", person2));
+                    logger.info(String.format("│---├─ Person 2 consequently failed to book the same seat: %s", person2));
                 }
 
                 logger.info("");
@@ -259,7 +268,7 @@ public class Transactions {
                         logger.info(String.format("│---├─ New person failed to book the seat: %s", newPerson));
                     }
                 } else {
-                    logger.warning(String.format("No additional available seats from %s to %s", departureAirportCode, arrivalAirportCode));
+                    logger.warning(String.format("│---├─ No additional available seats from %s to %s", departureAirportCode, arrivalAirportCode));
                 }
 
                 logger.info("");
@@ -281,14 +290,14 @@ public class Transactions {
                         logger.info(String.format("│---├─ Another person failed to book the already occupied seat (expected): %s", anotherPerson));
                     }
                 } else {
-                    logger.warning("Skipping occupied seat booking test because initial booking was unsuccessful.");
+                    logger.warning("│---├─ Skipping occupied seat booking test because initial booking was unsuccessful.");
                 }
 
             } else {
-                logger.warning(String.format("No available seats from %s to %s", departureAirportCode, arrivalAirportCode));
+                logger.warning(String.format("│---├─ No available seats from %s to %s", departureAirportCode, arrivalAirportCode));
             }
         } else {
-            logger.warning(String.format("No flights found from %s to %s", departureAirportCode, arrivalAirportCode));
+            logger.warning(String.format("│---├─ No flights found from %s to %s", departureAirportCode, arrivalAirportCode));
         }
 
         transactions.close();

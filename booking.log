@@ -1,22 +1,26 @@
 ├─ TESTING FLIGHT RETRIEVAL
 │---├─ Retrieving flights departing from the specified airport (BGY)
-│---├─ Flights from BGY: {SLZ=6677f9a27acf35542d8ef4dd, BLL=6677f9a27acf35542d8ef4dc, MGQ=6677f9a27acf35542d8ef4de, AAL=6677f9a27acf35542d8ef4df}
-│---├─ The user chose to depart from BGY to BLL
+│---├─ Flight to SLZ: {IATA_code=SLZ, Country=Brazil, ID=6677f9a27acf35542d8ef4dd, Name=Aeroporto Internacional Marechal Cunha Machado}
+│---├─ Flight to BLL: {IATA_code=BLL, Country=Denmark, ID=6677f9a27acf35542d8ef4dc, Name=Billund Airport}
+│---├─ Flight to MGQ: {IATA_code=MGQ, Country=Somalia, ID=6677f9a27acf35542d8ef4de, Name=Garoonka Caalamiga Ee Aadan Cadde مطار آدم عدي الدولي}
+│---├─ Flight to AAL: {IATA_code=AAL, Country=Denmark, ID=6677f9a27acf35542d8ef4df, Name=Aalborg Lufthavn}
 
 ├─ TESTING SEATS RETRIEVAL
+│---├─ The user chose to depart from BGY to BLL
 │---├─ Retrieving available seats for the specified flight (BGY -> BLL)
-│---├─ Available seats are: [9B, 9C, 9D, 9E, 9F, 10A, 10B, 10C, 10D, 10E, 10F, 11A, 11B, 11C, 11D, 11E, 11F, 12A, 12B, 12C, 12D, 12E, 12F, 13A, 13B, 13C, 13D, 13E, 13F, 14A, 14B, 14C, 14D, 14E, 14F, 15A, 15B, 15C, 15D, 15E, 15F, 16A, 16B, 16C, 16D, 16E, 16F, 17A, 17B, 17C, 17D]
+│---├─ Available seats are: [9D, 9E, 10B, 10C, 10E, 11A, 11B, 11C, 11D, 11F, 12A, 12B, 12E, 12F, 13A, 13B, 13C, 13D, 13E, 13F, 14A, 14C, 14D, 14E, 14F, 15B, 15D, 16A, 16C, 16E, 16F, 17A, 17B, 17C, 17D]
 
 ├─ TESTING CONCURRENT TRANSACTIONS
+│---├─ Testing concurrent booking for the same seat (17C) on flight 6677f9a27acf35542d8ef4dc
 │---├─ Booking result for person 1: true
 │---├─ Booking result for person 2: false
-│---├─ Person 1 booked the seat successfully: Person{name='Arianna', surname='Brunetti', documentInfo='3S9D6F7', dateOfBirth='1940-10-10', balance=92796.23}
-│---├─ Person 2 failed to book the same seat: Person{name='Luca', surname='Mariani', documentInfo='NLJ5XNV', dateOfBirth='1953-02-12', balance=80745.74}
+│---├─ Person 1 booked the seat first and successfully: Person{name='Manuela', surname='Bellini', documentInfo='AX75L18', dateOfBirth='1965-09-20', balance=27618.34}
+│---├─ Person 2 consequently failed to book the same seat: Person{name='Massimo', surname='Veneziani', documentInfo='BLT02Y4', dateOfBirth='1957-01-28', balance=2467.11}
 
 ├─ TESTING NON-CONCURRENT TRANSACTION
 │---├─ Booking result for new person: true
-│---├─ New person booked the seat successfully: Person{name='Nicola', surname='Morelli', documentInfo='3ONTHIJ', dateOfBirth='1954-09-24', balance=5731.35}
+│---├─ New person booked the seat successfully: Person{name='Angela', surname='De Santis', documentInfo='SBVC87W', dateOfBirth='1987-01-25', balance=53424.87}
 
 ├─ TESTING BOOKING FOR AN ALREADY OCCUPIED SEAT
 │---├─ Booking result for another person trying to book an occupied seat: false
-│---├─ Another person failed to book the already occupied seat (expected): Person{name='Eleonora', surname='Costa', documentInfo='IBG8YQS', dateOfBirth='1952-12-16', balance=75074.11}
+│---├─ Another person failed to book the already occupied seat (expected): Person{name='Ginevra', surname='De Santis', documentInfo='YXSGX2K', dateOfBirth='1953-07-09', balance=67202.05}
