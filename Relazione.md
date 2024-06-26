@@ -4,8 +4,17 @@
 - 902011, Moleri Andrea, a.moleri@campus.unimib.it
 - 865939, Armani Filippo, f.armani1@campus.unimib.it
 
-## Introduction
+## Abstract
 
+This report presents a comparison between MongoDB and Cassandra, two of the most popular non-relational databases currently in use. The primary objective is to analyze the distinctive features of each system and highlight what sets them apart.
+
+The discussion will begin with an analysis of the architecture, examining how each database is structured and organized internally. Next, the language used by each system to interact with the data will be explored, highlighting the main peculiarities and differences.
+
+We will then consider the data model and design choices, comparing how MongoDB and Cassandra handle data modeling and the approaches they follow to optimize performance and scalability. Particular attention will be given to the management of queries and transactions, illustrating how each database addresses the complexity of read and write operations and how it ensures data integrity and consistency.
+
+Finally, the topic of handling large volumes of data will be addressed, analyzing the capabilities of each system to scale horizontally and maintain efficient performance even with large datasets.
+
+To concretely illustrate the practical differences and implications of design choices, query and transaction management, and the ability to handle large volumes of data, a specific data model designed by us will be used. This practical example will serve to highlight the strengths and potential limitations of MongoDB and Cassandra in real-world scenarios.
 
 ## Architecture
 
