@@ -1,85 +1,90 @@
-# Titolo Bello
-## Introduzione
-Spieghiamo di cosa tratteremo durante la relazione e principali differenze tra db relazionale e non relazionale.
-"in questa relazione analizzeremo MongoDB e Cassandra, due db non relazionali, evidenziandone caratteristiche e differenze aiutandoci con un esempio da noi ideato"
+# Data Architecture
 
-## Architettura
-### Architettura di MongoDB
-Non mi ricordo se nel file README c'è già qualcosa
+## Team Members
+- 902011, Moleri Andrea, a.moleri@campus.unimib.it
+- 865939, Armani Filippo, f.armani1@campus.unimib.it
 
-Questo è quello che è uscito chiedendo a ChatGPT dell'architettura di Mongo, ovviamente da espandere e dettagliare:
+## Introduction
+
+
+## Architecture
+
+### MongoDB Architecture
+I'm not sure if there's already something in the README file.
+
+This is what came out asking ChatGPT about MongoDB architecture, obviously to be expanded and detailed:
 
 ```
-MongoDB è un database NoSQL che utilizza un'architettura distribuita e scalabile, progettata per gestire grandi volumi di dati. Ecco i principali componenti dell'architettura di un database MongoDB:
+MongoDB is a NoSQL database that utilizes a distributed and scalable architecture, designed to handle large volumes of data. Here are the main components of a MongoDB database architecture:
 
-1. **Database**: MongoDB organizza i dati in database, che possono contenere più collezioni di documenti. Un database è un'unità di archiviazione logica con i suoi set di dati.
+1. **Database**: MongoDB organizes data into databases, which can contain multiple collections of documents. A database is a logical storage unit with its own data sets.
 
-2. **Collection**: Una collezione in MongoDB è un gruppo di documenti. È equivalente concettualmente a una tabella in un database relazionale, ma non richiede uno schema rigido. Le collezioni possono contenere documenti con strutture diverse.
+2. **Collection**: A collection in MongoDB is a group of documents. Conceptually, it is equivalent to a table in a relational database but does not require a rigid schema. Collections can contain documents with different structures.
 
-3. **Documento**: Un documento è l'unità di base dei dati in MongoDB, simile a un record o una riga in un database relazionale. I documenti sono rappresentati in BSON (Binary JSON), che è un formato binario esteso del JSON.
+3. **Document**: A document is the basic unit of data in MongoDB, similar to a record or row in a relational database. Documents are represented in BSON (Binary JSON), which is an extended binary format of JSON.
 
-4. **Cluster**: MongoDB può essere configurato come un cluster, che è un insieme di nodi che lavorano insieme per gestire i dati e garantire la disponibilità e l'affidabilità del sistema. I cluster MongoDB possono includere diversi tipi di nodi:
+4. **Cluster**: MongoDB can be configured as a cluster, which is a set of nodes working together to manage data and ensure the system's availability and reliability. MongoDB clusters can include different types of nodes:
 
-    - **Nodi di dati (Data Nodes)**: Nodi che archiviano i dati effettivi.
-    - **Nodi di query (Query Nodes)**: Nodi che accettano le query dagli utenti e le inoltrano ai nodi di dati.
-    - **Nodi di configurazione (Config Nodes)**: Nodi che mantengono la configurazione e il metadata del cluster.
-    - **Nodi di routing (Router Nodes)**: Nodi che dirigono le richieste dei client agli altri nodi del cluster.
+    - **Data Nodes**: Nodes that store the actual data.
+    - **Query Nodes**: Nodes that accept queries from users and forward them to data nodes.
+    - **Config Nodes**: Nodes that maintain the cluster's configuration and metadata.
+    - **Router Nodes**: Nodes that direct client requests to other nodes in the cluster.
 
-5. **Sharding**: MongoDB supporta lo sharding, una tecnica per distribuire i dati su più macchine. Consiste nel partizionare i dati e distribuirli tra più nodi di un cluster (chiamati shard). Lo sharding consente di scalare orizzontalmente il database MongoDB per gestire volumi di dati molto grandi e carichi di lavoro intensi.
+5. **Sharding**: MongoDB supports sharding, a technique for distributing data across multiple machines. It involves partitioning data and distributing it among multiple nodes in a cluster (called shards). Sharding allows MongoDB to scale horizontally to handle very large data volumes and intense workloads.
 
-6. **Replica set**: Un replica set è un gruppo di nodi MongoDB che contengono lo stesso set di dati. Fornisce ridondanza e alta disponibilità, consentendo al database di sopravvivere a guasti di nodi o interruzioni del servizio.
+6. **Replica set**: A replica set is a group of MongoDB nodes that contain the same set of data. It provides redundancy and high availability, allowing the database to survive node failures or service interruptions.
 
-In sintesi, l'architettura di MongoDB è progettata per essere flessibile, scalabile e affidabile, permettendo di gestire una vasta gamma di applicazioni e carichi di lavoro dai più semplici ai più complessi.
+In summary, MongoDB's architecture is designed to be flexible, scalable, and reliable, enabling it to handle a wide range of applications and workloads, from simple to complex.
 ```
 
-### Architettura Cassandra
-Me ne occupo io
+### Cassandra Architecture
+I'll take care of it.
 
-## Sintassi Linguaggi
-### Sintassi di MongoDB
+## Language
+### MongoDB Syntax
 
-Principali comandi tipo Inserimento documenti, query, delete (solo linguaggio di Mongo, niente parti di Java)
+Main commands like Insert documents, query, delete (only Mongo's language, no Java parts).
 
-### Sintassi di Cassandra
+### Cassandra Query Language (CQL)
 
-Me ne occupo io
+I'll take care of it.
 
-## Modello dati
+## Data Model
 
-Presentazione del nostro caso di studio (aereoporto), citiamo la fonte dei dati, come li abbiamo strutturati e il processo di generazione di quelli mancanti
-Anche le assunzioni varie (tipo no login)
+Presentation of our case study (airport), citing the data source, how we structured it, and the process of generating the missing data.
+Also, various assumptions (like no login).
 
-### Modello dati MongoDB
+### MongoDB Data Model
 
-Come a partire dal caso di studio e dei dati a tua disposizione hai creato il modello dati
+How you created the data model from the case study and the available data.
 
-### Modello dati Cassandra
+### Cassandra Data Model
 
-Me ne occupo io
+I'll take care of it.
 
-## Transazioni
-Spiegazione su cosa è una transazione e perchè è importante per il nostro caso di studio (semplicemnte non posso avere due persone sullo stesso posto)
+## Queries and Transactions
+Explanation of what a transaction is and why it is important for our case study (simply, I can't have two people in the same seat).
 
-### Transazioni in Mongo
-spieghi come hai modellato le transazioni e come lato backend vengono gestite (quindi come le gestisce il db)
+### Queries and Transactions in Mongo
+Explain how you modeled the transactions and how they are managed on the backend side (i.e., how the DB handles them).
 
-### Transazioni in Cassandra
+### Queries and Transactions in Cassandra
 
-Me ne occupo ancora io
+I'll take care of it.
 
-## Gestione su larghi volumi
+## Management of Large Volumes
 
-Devo ancora capire bene cazzo dobbiamo fare qua ma poi anch'esso sarà diviso in Mongo e Cassandra
+I still need to understand what exactly we need to do here, but it will also be divided into Mongo and Cassandra.
 
-## Conclusioni
+## Conclusions
 
-Tiriamo un po' le somme: quali sono le principalissime differenze e quando è meglio usare uno al posto di un altro
+Let's summarize: what are the main differences and when it is better to use one over the other.
 
-Riassumiamo tipo questi 3 siti:
+Summarize like these 3 sites:
 https://aws.amazon.com/it/compare/the-difference-between-cassandra-and-mongodb/#:~:text=Riepilogo%20delle%20differenze%3A%20Cassandra%20e%20MongoDB,-Apache%20Cassandra&text=Documenti%20JSON%20serializzati.&text=Cassandra%20supporta%20indici%20secondari%20e,offre%20diverse%20opzioni%20di%20indicizzazione.
 https://www.mongodb.com/resources/compare/cassandra-vs-mongodb
 https://www.ionos.it/digitalguide/server/know-how/mongodb-e-cassandra/
 
-questa parte è giusto per rispondere alla domanda "e quindi quando usate uno al posto dell'altro?"
+This part is just to answer the question "so when do you use one over the other?"
 
-## Grazie, Arrivederci e dacci 30L
+## Thank You, Goodbye, and Give Us 30L
