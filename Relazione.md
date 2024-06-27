@@ -1,280 +1,281 @@
-# Data Architecture
+# Air Travel Reservation Modeling Using MongoDB and Cassandra
 
 ## Team Members
 - 902011, Moleri Andrea, a.moleri@campus.unimib.it
 - 865939, Armani Filippo, f.armani1@campus.unimib.it
 
-## Abstract
+## Introduction
+In the report you are about to read, we will explore NoSQL solutions and how they can be used to model real-world
+application problems. We will focus on MongoDB and Cassandra, two widely-used non-relational databases, and 
+examine their features and differences. By doing so, we will demonstrate how each database can be utilized to 
+model an airline reservation system.
 
-This report presents a comparison between MongoDB and Cassandra, two of the most popular non-relational databases currently in use. The primary objective is to analyze the distinctive features of each system and highlight what sets them apart.
+The study will cover several important aspects, such as managing concurrent entries, designing various types of 
+transactions, handling large volume read operations, and dealing with system malfunctions. Key database structures
+will be highlighted to give a clear understanding of their functionalities.
 
-The discussion will begin with an analysis of the architecture, examining how each database is structured and organized internally. Next, the language used by each system to interact with the data will be explored, highlighting the main peculiarities and differences.
-
-We will then consider the data model and design choices, comparing how MongoDB and Cassandra handle data modeling and the approaches they follow to optimize performance and scalability. Particular attention will be given to the management of queries and transactions, illustrating how each database addresses the complexity of read and write operations and how it ensures data integrity and consistency.
-
-Finally, the topic of handling large volumes of data will be addressed, analyzing the capabilities of each system to scale horizontally and maintain efficient performance even with large datasets.
-
-To concretely illustrate the practical differences and implications of design choices, query and transaction management, and the ability to handle large volumes of data, a specific data model designed by us will be used. This practical example will serve to highlight the strengths and potential limitations of MongoDB and Cassandra in real-world scenarios.
+Additionally, we will analyze the entire data management process, from modeling to query execution. This comprehensive 
+approach will provide a detailed look at how MongoDB and Cassandra perform in real-world scenarios, offering insights 
+into their strengths and limitations in managing complex data systems.
 
 ## Architecture
-
 ### MongoDB Architecture
 
-### Cassandra Architecture
+#### Introducing Atlas, MongoDB's DBaaS
 
-## Language
+MongoDB is a NoSQL database management system renowned for its flexibility and scalability,
+including the ability to manage huge amounts of data. A crucial aspect of MongoDB's ecosystem is Atlas,
+MongoDB's Multi-Cloud Developer Data Platform. Understanding how MongoDB Atlas stores and hosts data through
+Atlas Clusters is fundamental to using its capabilities effectively.
 
-### MongoDB Syntax
+Atlas serves as a comprehensive developer data platform, with its core offering being a Database as a Service (DBaaS).
+This implies that utilizing Atlas alleviates the burden of manual MongoDB management,
+as Atlas takes care of all lifecycle details. Deployments on Atlas benefit from built-in replication,
+referred to as Replica Sets by MongoDB, ensuring data redundancy and availability even in the event of server failures.
 
-### Cassandra Query Language (CQL)
+Atlas offers two primary types of Database Deployments: Serverless and Clusters.
+Serverless instances scale on-demand, charging users only for the resources utilized, making them ideal
+for applications with highly variable workloads. On the other hand, Clusters consist of multiple MongoDB servers
+working together. Shared Clusters, suitable for initial exploration, include a free tier, while Dedicated Clusters
+offer enhanced resources and customization options tailored to specific project requirements, making them optimal
+for production workloads. Atlas allows deployment across major cloud providers such as AWS, Azure, and Google Cloud.
 
-Unlike MongoDB, Cassandra uses a communication language that is very similar to SQL, typical of relational systems. The most basic way to interact with Apache Cassandra is by using the CQL shell, cqlsh. With cqlsh, you can create keyspaces and tables, insert data into tables, query tables, and much more. This makes it easier for those familiar with SQL to transition to Cassandra and leverage its capabilities for managing large-scale, distributed datasets. 
+Global deployment across multiple regions and clouds is facilitated by Atlas, ensuring flexibility to adapt
+to changing needs. Tier adjustments can be made seamlessly as products scale, without causing any downtime.
+Operational insights, backups with Point-In-Time Restoration, and features like built-in data tiering with online
+archiving contribute to Atlas's appeal across various stages of the development cycle. MongoDB serves as
+the underlying data engine powering Atlas's data management and analysis capabilities. Contrary to a common
+misconception, MongoDB is not simply the locally deployed version of Atlas.
 
-In the following subparagraphs the main possible operations of the CQL language will be illustrated.
+#### Creating and Deploying an Atlas Cluster
 
-#### Creating a Keyspace
+To effectively utilize MongoDB Atlas, the initial step involves creating an account. Upon account creation,
+selecting the Database M0 free sandbox tier, which provides 512MB of Storage, Shared RAM, and vCPU,
+initiates the process. Subsequently, a Dashboard is presented, housing various functionalities.
+Within this interface, the Organizations feature facilitates the grouping and management of users and projects.
+Projects, in turn, enable the organization of resources such as Database Clustering, allowing for the creation
+of distinct projects tailored for Development, Testing, and Production Environments. Notably, by default,
+databases are generated devoid of users and external IP addresses with access privileges. Consequently, creating
+an Admin user and an Access Point for the designated IP Address becomes important. Navigating to the
+Security Quickstart section enables the authentication of connections through username and password protocols,
+thereby establishing a new administrative user. Given MongoDB's default restriction on IP access to all addresses
+except those designated by Atlas, configuring access from the local machine necessitates inclusion of the local IP
+address within the Access List. This can be achieved by selecting "Add My Current IP Address" and, if required,
+additional addresses can be incorporated via the menu before finalizing with the "Finish and Close" button.
 
-In Cassandra, a keyspace is the highest level of abstraction for organizing data. It is, basically, a top-level namespace. When creating a keyspace, two parameters must be specified:
-- the replication factor: the number of copies of the data maintained within the cluster;
-- the strategy of replication: how the data are replicated. The choice of strategy depends on specific performance, fault tolerance, and data compaction needs. The main options are:
+#### MongoDB and the Document Model
 
-  - "SimpleStrategy": used only for a single datacenter and one rack. It places the first replica on a node determined by the partitioner. Additional replicas are placed on the next nodes clockwise in the ring without considering topology.
-  - "NetworkTopologyStrategy": used when you have multiple data centers available. This strategy specifies how many replicas you want in each data center.
-    NetworkTopologyStrategy places replicas in the same data center by traveling the ring clockwise until it reaches the first node in another rack. NetworkTopologyStrategy tries to place replicas on distinct racks because nodes in the same rack often fail at the same time.
+After introducing Atlas, it is now time to dive into the Document Model of MongoDB. In essence,
+we aim to comprehend how MongoDB stores data, how it is utilized, and its behavior in relation to Atlas.
+MongoDB serves as a General Purpose Document Database, structuring data in the form of Documents, akin to JSON Objects.
+This is very different from Relational Databases, which organize data into rows and columns within tables.
+Documents offer a flexible and developer-friendly approach to working with data.
+Consider the following code snippet as a simple example of a MongoDB Document:
 
-Less important alternatives include the "LeveledCompactionStrategy" for efficient data compaction, and the "DateTieredCompactionStrategy," ideal for long-term storage of time-based data.
-
-```cql
-CREATE  KEYSPACE [IF NOT EXISTS] keyspace_name 
-   WITH REPLICATION = { 
-      'class' : 'SimpleStrategy', 'replication_factor' : N } 
-     | 'class' : 'NetworkTopologyStrategy', 
-       'dc1_name' : N [, ...] 
-   }
-   [AND DURABLE_WRITES =  true|false] ;
-```
-An optional parameter is DURABLE_WRITES and if it is set to false it allows the commit log to be ignored when writing to the keyspace by disabling durable writes. The default value is true.
-
-#### Selecting the Keyspace
-
-After creating a keyspace, it must be selected before performing operations on tables within that keyspace.
-
-```cql
-USE keyspace_name;
-```
-
-#### Creating a Table
-
-As mentioned in the previous chapter, data in Cassandra can be viewed as contents within tables composed of rows and columns. Through the CQL language, developers have a rather abstract understanding of the database architecture; they do not need to have full knowledge of nodes, racks, and datacenters, but only basic information.
-
-Tables in Cassandra are organized around a primary key, which can consist of one or more columns, and clustering keys. It is essential to design primary keys correctly based on data access and performance requirements. The main (not complete) structure of the instruction to create a table involves:
-
-```cql
-CREATE TABLE [IF NOT EXISTS] [keyspace_name.]table_name ( 
-   column_name column_type [, ...]
-   PRIMARY KEY (column_name [, column_name ...])
-[WITH CLUSTERING ORDER BY (clustering_column_name order])]
-```
-The PRIMARY KEY clause identifies the set of columns that form the primary key of the table. This clause must be unique within the table. It can consist of a single column or a combination of columns. If the primary key consists of multiple columns, the first specified column is the partition key, while the subsequent columns are clustering keys that determine the order of rows within each partition.
-
-The WITH CLUSTERING ORDER BY clause specifies the order in which rows with the same partition key are stored and retrieved. You use the name of one of the clustering keys defined in the primary key, followed by ASC (ascending) or DESC (descending), to establish the clustering order of rows.
-
-#### Data Types
-The main data types in Cassandra are:
-
-- Primitive Data Types:
-    - `tinyint` (8-bit integers), `smallint` (16-bit integers), `int` (32-bit integers), `bigint` (64-bit integers),
-    - `varint` (variable-length integers),
-    - `float` (7 decimal digits of precision for a number), `double`, (15 decimal digits of precision for a number)
-    - `boolean`, 
-    - `text`, 
-    - `blob` (intended for storing large data in binary format not directly interpretable by the database)
-    - ...
-- Collection Data Types:
-    - `list`: Ordered list of values of the same type (e.g., `list<int>`).
-    - `set`: Unordered set of unique values of the same type (e.g., `set<int>`).
-    - `map`: Map of key-value pairs with arbitrary types (e.g., `map<int, text>`).
-- Temporal Data Types:
-    - `timestamp`: Timestamp, represented as the number of milliseconds since `1970-01-01`.
-    - `date`: Date without timezone, in the format `YYYY-MM-DD`.
-    - `time`: Time of day, represented as the number of milliseconds since midnight.
-    - `datetime`: Combination of date and time.
-- Special Data Types:
-    - `uuid`: Universally unique identifier (UUID), used to generate unique primary keys.
-    - `timeuuid`: Version 1 UUID, incorporating a timestamp, useful for ordering events based on generation time.
-
-It is also possible to define new types using the following syntax:
-
-```cql
-CREATE TYPE type_name ( 
-    type_field1 predefined_type1,
-    type_field2 predefined_type2, 
-    ...
-);
+```json
+{
+    "_id": 1,
+    "name": {
+        "first": "Michael",
+        "last": "Jackson"
+    },
+    "title": "Thriller",
+    "interests": ["singing", "dancing"]
+}
 ```
 
-#### Inserting Data
+Documents correspond to Objects in code, rendering them intuitive to manage.
+This simplifies the planning of how Application Data correlates with data stored in the Database.
+Furthermore, Documents can be utilized in a highly developer-friendly manner to model data of any shape or structure:
+Key-Value Pairs, Text, Geospatial Data, Time-Series, Graph Data, and much more can be modeled using documents.
+The flexibility of documents allows us to employ a format for modeling and querying data for any application.
+MongoDB provides drivers in all major programming languages, facilitating the connection of a MongoDB Database 
+to our application, regardless of the programming language used. 
 
-To insert data into a table, values must be specified for all mandatory columns, according to the structure defined when the table was created.
+#### Key Terminology
+_In the realm of MongoDB, several key terms are essential to comprehend its architecture and functionality._
 
-```cql
-INSERT INTO table_name (column_name1, column_name2, ...)
-VALUES (value1, value2, ...);
+1. **Document:** the fundamental unit of data within MongoDB is referred to as a "Document."
+   Each document encapsulates a set of key-value pairs representing a single entity.
+   Unlike traditional relational databases, MongoDB's document model allows for flexible and dynamic schemas,
+   enabling developers to store heterogeneous data structures within a collection.
+
+2. **Collection:** a "Collection" in MongoDB is a grouping of documents.
+   Documents within a collection typically share a similar structure, although MongoDB's flexible schema model permits
+   variations in document structure within the same collection. Collections serve as logical containers for organizing
+   related documents and are analogous to tables in relational databases.
+
+3. **Database:** a "Database" in MongoDB serves as a container for collections.
+   It provides a logical separation and management unit for organizing and accessing data.
+   Multiple collections, each containing distinct sets of documents, can reside within a single database.
+   MongoDB's architecture allows for the creation of multiple databases within a MongoDB deployment,
+   facilitating data segregation and management at scale.
+
+#### The Document Model
+
+As anticipated, MongoDB stores data in structures known as documents which resemble JSON objects.
+Below is an example of a document used to store product data in a store. We can observe that the document has
+five fields, including a "colors" field containing an array of strings and an "available" field holding a boolean value.
+
+```json
+{
+	"_id": 1,
+	"name": "iPhone 14 Pro Max",
+	"colors" : ["space black", "silver", "gold", "deep purple"],
+	"price" : 1500,
+	"available" : true
+}
 ```
 
-#### Updating Data
+While documents are presented in JSON format, they are stored in the database in a format called BSON, which stands for
+Binary JSON, an extension of JSON providing additional features that MongoDB can leverage.
+BSON also adds support for additional data types that would not otherwise be present in standard JSON.
+Thanks to this choice, the database can support a vast range of data types, including all JSON data types
+(strings, objects, arrays, booleans, null), as well as dates, numbers, Object IDs, and more.
+Particularly, ObjectID is a special data type used in MongoDB to create unique identifiers.
+In the database, each document requires a field `"_id"` serving as the primary key.
+If a document does not include this field, MongoDB will automatically add it, generating a specific ObjectID value
+for the document in question. By default, MongoDB supports a flexible schema model and polymorphic data.
+This enables us to store documents with different structures in the same collection.
+Documents can contain various fields, and the fields can hold different data types from one document to another.
+This is a significant distinction from relational databases, where declaring a table schema is necessary before
+inserting data. MongoDB's flexible schema allows us to iterate rapidly and evolve as our requirements change.
+Here's a practical example of this flexible schema. Suppose we have an online furniture store with a catalog of items.
+When we start developing our application, we decide to include an `"_id"`, a `"name"`, and a `"price"` for each item.
 
-Data in a table can be updated using the `UPDATE` clause. Columns to be updated and the conditions that must be met for the update to occur must be specified. The current value is referred to using the column name.
-
-```cql
-UPDATE table_name
-SET column_name = new_value
-WHERE condition;
+```json
+{
+	"_id": ObjectId("abcdef"),
+	"name": "iPhone",
+	"price": 1500.00
+}
 ```
 
-In the `WHERE` clause, the condition can be expressed using mathematical operators (`+`, `-`, `*`, `/`), comparison operators (`<`, `>`, `<=`, `>=`, `=`, `!=`, `<>`), specific functions like `MOD()`, and logical operators:
+In the future, we might decide to add another field, such as a `"description"` field. With a relational database,
+we would encounter a complicated chain of dependencies to modify, risking downtime and significant time losses,
+even for a simple change like this. Instead, to achieve the same with MongoDB, we simply update the classes to
+include the new fields, and we can start inserting new documents with the new schema. This is facilitated by MongoDB's
+flexible schema model, which means that documents in the same collection are not required to share a common
+structure of fields and value types by default.
 
-- `AND`: Returns results that satisfy both conditions.
-
-  ```cql
-  SELECT * FROM table_name WHERE condition1 AND condition2;
-  ```
-
-- `OR`: Returns results that satisfy at least one condition.
-
-  ```cql
-  SELECT * FROM table_name WHERE condition1 OR condition2;
-  ```
-
-- `NOT`: Returns results that do not meet the specified condition.
-
-  ```cql
-  SELECT * FROM table_name WHERE NOT condition;
-  ```
-
-- `IN`: Checks if a value is present in a specified list of values.
-
-  ```cql
-  SELECT * FROM table_name WHERE column IN (value1, value2, value3);
-  ```
-
-- `CONTAINS`: Checks if a set contains a specific value (used primarily with `set` or `map` columns).
-
-  ```cql
-  SELECT * FROM table_name WHERE column CONTAINS value;
-  ```
-
-- `CONTAINS KEY`: Checks if a map contains a specific key (used with `map` columns).
-
-  ```cql
-  SELECT * FROM table_name WHERE column CONTAINS KEY key;
-  ```
-
-- `CONTAINS ENTRY`: Checks if a map contains a specific key/value pair (used with `map` columns).
-
-  ```cql
-  SELECT * FROM table_name WHERE column CONTAINS ENTRY (key, value);
-  ```
-
-#### Deleting Data
-
-The `DELETE` clause is used to remove data from a table. All data or a specific part of the data can be deleted based on conditions.
-
-```cql
-DELETE column_to_delete, ...
-FROM table_name
-WHERE condition;
+```json
+{
+	"_id": ObjectId("abcdef"),
+	"name": "iPhone",
+	"price": 1500.00,
+	"description": "the all new iPhone!"
+}
 ```
 
-The `WHERE` clause follows the same rules listed in the data update section.
+Should we desire more control over the structure and contents of the database, we can add optional
+Schema Validation Rule to impose constraints on the structure of documents in the collection.
+Nonetheless, the basic syntax of the Document Model remains as indicated in the following code:
 
-Alternatively, you can change a single variable by using an `UPDATE` statement and setting the value to a default one.
-
-#### Adding Columns
-
-The structure of a table can be modified by adding new columns using the `ALTER TABLE ADD` command.
-
-```cql
-ALTER TABLE table_name ADD column_name data_type;
-```
-Since Cassandra follows a dynamic schema and not all columns are required, it is not necessary to set any value of this column for rows previously added to the database.
-
-#### Dropping a Table
-
-To completely remove a table from the keyspace, the `DROP TABLE` command can be used.
-
-```cql
-DROP TABLE table_name;
+```json
+{
+	"key": "value",
+	"key": "value",
+	"key": "value"
+}
 ```
 
-#### Secondary Indexes
+#### Clusters in MongoDB
 
-Secondary indexes are data structures that allow access to table data using columns other than the primary key. In Cassandra, the primary key is fundamental for data partitioning and physical organization on disk. However, there are situations where querying other columns not part of the primary key may be useful. Secondary indexes help in these cases.
+MongoDB can also be configured as a cluster, a powerful setup that involves multiple servers or nodes working together. 
+A cluster ensures data availability and reliability by distributing data and tasks across multiple nodes. 
+This architecture provides several key benefits:
 
-When a secondary index is created on a column, Cassandra creates a separate data structure that maps the values of the indexed column to their respective row identifiers. This mapping allows for quickly retrieving all rows containing a specific value in the indexed column.
+1. **Scalability**: clusters can handle increasing amounts of data by adding more nodes, allowing horizontal scaling.
+2. **High Availability**: by distributing data across multiple nodes, clusters ensure that the system remains operational even if one or more nodes fail.
+3. **Load Balancing**: tasks and queries are distributed across the nodes, balancing the load and improving performance.
 
-```cql
-CREATE INDEX index_name ON table_name (column_name);
-```
+In MongoDB Atlas, clusters can be easily set up and managed through the Atlas user interface. Clusters can be deployed
+across multiple cloud providers and regions, allowing for global distribution of data and applications.
 
-Secondary indexes in Cassandra allow for querying non-key columns without modifying the table structure, offering flexibility in query management. However, they can degrade performance on large tables or with high write throughput, as every modification must also update the index. Additionally, they may not be suitable for large clusters or queries returning many results, requiring querying every node. In conclusion, secondary indexes are useful for extending query capabilities but must be used cautiously to avoid performance and scalability issues.
+#### Sharding in MongoDB
 
-#### Selecting Data
+Sharding is a technique used to distribute data across multiple machines. In MongoDB, sharding involves partitioning 
+data into smaller, more manageable pieces called shards. Each shard is a subset of the data and can reside on a 
+separate node within the cluster. This method enables horizontal scaling, making it possible to handle very large 
+datasets and high-throughput operations efficiently. Key concepts in MongoDB sharding include:
 
-SELECT queries in Cassandra are used to retrieve data from tables within a cluster. Since Cassandra is a distributed NoSQL database, its SELECT queries have some differences compared to those in traditional SQL databases.
+1. **Sharded Clusters**: composed of multiple shards, each storing a portion of the data. A sharded cluster includes three main components: shards, query routers, and config servers.
+    - **Shards**: store the actual data. Each shard can be a replica set to provide high availability and data redundancy.
+    - **Query Routers (mongos)**: route client requests to the appropriate shard(s). They handle the distribution of queries and aggregation of results.
+    - **Config Servers**: maintain metadata and configuration settings for the cluster. They store information about the sharding structure and the location of data.
 
-The basic syntax of a SELECT query in Cassandra is as follows:
+2. **Shard Keys**: a shard key is a field or a combination of fields that determines how data is distributed across shards. Choosing an appropriate shard key is crucial for balanced data distribution and query performance.
 
-```cql
-SELECT column1, column2, ... 
-FROM table_name 
-WHERE conditions
-[LIMIT number];
-```
+In MongoDB Atlas, sharding can be enabled and configured through the Atlas console, 
+providing an easy-to-use interface for managing sharded clusters.
 
-Where:
-- **SELECT clause**: Specifies the columns to be returned.
-- **FROM clause**: Specifies the table from which to retrieve the data.
-- **WHERE clause**: Defines the conditions for filtering the data. The logic of using this clause has some particularities:
-  - **Partition key**: Every query using a WHERE clause must include at least the partition key to ensure optimal performance. This allows Cassandra to quickly locate the node that holds the data using hash functions and hash tables.
-  - **Clustering keys**: In addition to the partition key, clustering keys can also be used to allow Cassandra to retrieve data more quickly.
-  - **Secondary indexes**: If you need to narrow the scope of a query based on a field that is not part of the primary key, you can create secondary indexes to allow WHERE clause queries on those columns. However, using secondary indexes can negatively impact performance, so they should be used with caution.
-- **LIMIT clause**: Limits the number of rows returned. Using this clause is useful to prevent retrieving too much data, which could be inefficient and resource-intensive.
+#### Replica Sets in MongoDB
 
-It is essential to design the data model with query requirements in mind to ensure high performance and efficient query execution.
+A replica set in MongoDB is a group of MongoDB instances that maintain the same dataset. 
+Replica sets provide redundancy and high availability, ensuring that data is replicated across multiple nodes. 
+Key features and benefits of replica sets include:
 
-#### Other operations
-- **Materialized views**: they are pre-calculated views of the data present in tables, providing faster access to query results. Automatically updated by the system based on changes to the underlying data, they ensure data consistency between views and base tables. These views optimize query performance, offering flexibility in database design and supporting complex queries.
-```cql
-CREATE MATERIALIZED VIEW name_m_view AS
-QUERY
-PRIMARY KEY (name_key1, ...);
-```
-- **Batch statements**: they in Cassandra allow executing multiple write or modification operations in a single atomic transaction, ensuring that either all operations are executed or none. They can involve one or more tables and can be configured as "unlogged" (write operations are not logged in the commit log, posing higher risks in case of data loss) or "logged" (all write operations are logged in the commit log before being applied to the actual data on disk), with significant differences in performance and data durability. Batches are useful for reducing the number of network calls and improving overall system performance, but it's important to balance data consistency and scalability needs when deciding to use them.
-```cql
-BEGIN [UNLOGGED | LOGGED] BATCH
-[USING TIMESTAMP [epoch_microseconds]]
-  dml_statement [USING TIMESTAMP [epoch_microseconds]];
-  [dml_statement; ...]
-APPLY BATCH;
-```
-- **LWT**: they can be used for operations that require strong consistency. You perform an LTW when using the IF command for conditionals and CAS (Compare and Set). These commands are primarily added to INSERT and SELECT operations. LWTs guarantee serializable isolation but can have a performance cost.
-- **Configurable consistency levels**: determine the number of replicas that must agree on the response before an operation is considered complete. Common consistency levels include ONE (completed when at least one replica responds), QUORUM (completed when a majority of replicas respond), ALL, EACH_QUORUM, etc. 
+1. **Data Redundancy**: data is replicated to multiple nodes, protecting against data loss in case of hardware failure or other issues.
+2. **Automatic Failover**: if the primary node fails, an eligible secondary node is automatically elected as the new primary, ensuring continuous availability.
+3. **Read Scalability**: read operations can be distributed across multiple nodes, improving read performance and balancing the load.
 
-Especially the last 3 structures/operations will be explored in depth in the specific chapter.
+A typical replica set consists of:
+- **Primary Node**: handles all write operations and coordinates replication to secondary nodes.
+- **Secondary Nodes**: maintain copies of the data from the primary node. They can be configured to handle read operations, providing load balancing and improved read performance.
+- **Arbiter Nodes**: participate in elections but do not store data. They are used to ensure a quorum in elections when there are an even number of data-bearing nodes.
 
-## Data Model
+In MongoDB Atlas, deploying a replica set is straightforward, and the platform provides tools for managing and monitoring 
+the health of the replica set. Automatic backups, point-in-time recovery, and monitoring tools are available to ensure the 
+reliability and performance of the replica set. By leveraging clusters, sharding, and replica sets, MongoDB Atlas offers 
+a robust and scalable infrastructure that can handle the demands of modern applications, ensuring data availability, 
+reliability, and performance. In summary, MongoDB's architecture is designed to be flexible, scalable and reliable, 
+allowing to manage a wide range of applications and workloads from the simplest to the most complex.
 
-### MongoDB Data Model
+### Architettura Cassandra
+_PLACEHOLDER PER FILIPPO_
 
-### Cassandra Data Model
+## Sintassi Linguaggi
+### Sintassi di MongoDB
 
-## Queries and Transactions
+Principali comandi tipo Inserimento documenti, query, delete (solo linguaggio di Mongo, niente parti di Java)
 
-### Queries and Transactions in Mongo
+### Sintassi di Cassandra
+_PLACEHOLDER PER FILIPPO_
 
-### Queries and Transactions in Cassandra
+## Modello dati
 
-## Management of Large Volumes
+Presentazione del nostro caso di studio (aereoporto), citiamo la fonte dei dati, come li abbiamo strutturati e il processo di generazione di quelli mancanti
+Anche le assunzioni varie (tipo no login)
 
-## Conclusions
+### Modello dati MongoDB
+
+Come a partire dal caso di studio e dei dati a tua disposizione hai creato il modello dati
+
+### Modello dati Cassandra
+_PLACEHOLDER PER FILIPPO_
+
+## Transazioni
+Spiegazione su cosa è una transazione e perchè è importante per il nostro caso di studio (semplicemnte non posso avere due persone sullo stesso posto)
+
+### Transazioni in Mongo
+spieghi come hai modellato le transazioni e come lato backend vengono gestite (quindi come le gestisce il db)
+
+### Transazioni in Cassandra
+_PLACEHOLDER PER FILIPPO_
+
+## Gestione su larghi volumi
+
+Devo ancora capire bene cazzo dobbiamo fare qua ma poi anch'esso sarà diviso in Mongo e Cassandra
+
+## Conclusioni
+
+Tiriamo un po' le somme: quali sono le principalissime differenze e quando è meglio usare uno al posto di un altro
+
+Riassumiamo tipo questi 3 siti:
+https://aws.amazon.com/it/compare/the-difference-between-cassandra-and-mongodb/#:~:text=Riepilogo%20delle%20differenze%3A%20Cassandra%20e%20MongoDB,-Apache%20Cassandra&text=Documenti%20JSON%20serializzati.&text=Cassandra%20supporta%20indici%20secondari%20e,offre%20diverse%20opzioni%20di%20indicizzazione.
+https://www.mongodb.com/resources/compare/cassandra-vs-mongodb
+https://www.ionos.it/digitalguide/server/know-how/mongodb-e-cassandra/
+
+questa parte è giusto per rispondere alla domanda "e quindi quando usate uno al posto dell'altro?"
+
+## Grazie, Arrivederci e dacci 30L
