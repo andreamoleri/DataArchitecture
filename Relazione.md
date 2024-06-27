@@ -1003,7 +1003,7 @@ public class Connection {
 }
 ```
 
-### Compiling and Running the Project
+#### Compiling and Running the Project
 
 To compile the project, execute the following Maven command from the terminal in the project's root directory:
 
@@ -1022,7 +1022,7 @@ mvn compile exec:java -Dexec.mainClass="com.mongodb.quickstart.Connection" -Dmon
 
 If the command executes successfully, it will return a list of databases contained within the Atlas cluster.
 
-### Best Practices for MongoClient Instances
+#### Best Practices for MongoClient Instances
 
 For optimal performance and cost efficiency, MongoDB's documentation recommendeds to have only one `MongoClient` instance per Atlas
 cluster in the application. Creating multiple `MongoClient` instances can lead to higher-than-normal database costs.
