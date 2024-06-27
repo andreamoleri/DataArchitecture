@@ -234,6 +234,436 @@ allowing to manage a wide range of applications and workloads from the simplest 
 ### Architettura Cassandra
 _PLACEHOLDER PER FILIPPO_
 
+
+
+
+
+
+
+
+
+
+### MongoDB Data Modeling
+
+Data modeling is a fundamental aspect of database design, as it serves the purpose of the structuring of data storage
+and the delineation of relationships among various entities within the data. It serves as a blueprint for organizing
+information within a database. We refer to the organization of data inside a database as a 'Schema'. When data modeling
+with MongoDB, it is advisable to conceptualize the application itself: its functionalities, the data it will handle,
+user data access patterns, and the data elements critical to the project's objectives. Addressing these questions aids
+in understanding the form of the data, its relationships, and the necessary tools for implementation. A robust data
+model offers several benefits, facilitating data management, enhancing query efficiency, optimizing resource usage,
+and reducing operational costs. As a guiding principle within MongoDB, the mantra _"data that is accessed together, should be stored together"_
+underscores the great importance of structuring data in a manner conducive to operational efficiency.
+MongoDB employs a flexible document data model, in which collections do not impose any default document structure.
+As a consequence, documents may exhibit diverse structures, thanks to a concept called polymorphism, as exemplified below:
+
+**Document I**
+```json
+{
+	"name": "Andrea"
+	"major": "CS"
+	"course": "Architetture Dati"
+	"amount": 1000
+	"tuition_payment": True
+}
+```
+
+**Document II**
+```json
+{
+	"name": "Filippo"
+	"major": "CS"
+	"course": "Qualità del Software"
+	"year": 2024
+}
+```
+
+It is important to clarify that while MongoDB's Document Model is flexible, it is not entirely schema-less but rather
+schema-flexible. This flexibility extends to employing Schema Validation and accommodating diverse data types within
+MongoDB. Additionally, MongoDB supports nested or embedded documents, enabling the construction of complex data relationships.
+Normalization of data is achievable through database references. The complication lies in aligning data modeling
+decisions with application requirements, contrasting with the traditional approach of modeling data in relational databases.
+
+Unlike the standard procedure of gathering data requirements, modeling data, and then handing over the data to developers,
+MongoDB's methodology commences with understanding application requirements, user interactions, and subsequently
+tailoring data modeling accordingly. MongoDB's versatility enables various data storage approaches, including normalization,
+embedding related data for cohesive access, or employing hybrid methods as dictated by application needs. The final goal
+of data modeling is to optimize storage, querying, and resource utilization, enhancing application performance and reducing
+database costs as a consequence. Once the foundational data modeling framework is established, attention can be directed
+towards modeling data relationships. A well-crafted data model simplifies data management, enhances query efficiency,
+minimizes resource consumption, and mitigates database operational costs.
+
+#### Types of Data Relationships
+
+When discussing data relationships, it is crucial to delineate between various types: One-To-One, One-To-Many,
+and Many-To-Many. Additionally, we will dive into the two primary methods for modeling these relationships:
+Embedding and Referencing. As we already said, it is important to structure our data to align with the querying and
+updating patterns of our application. In that regard, understanding common relationship types in databases is extremely important.
+
+##### One-To-One Relationship
+The One-To-One relationship is characterized by one Data Entity in a Set being connected to precisely one Data Entity in
+another set. In traditional relational databases, this relationship might be implemented using a JOIN operation.
+In MongoDB, a One-To-One Relationship can be represented succinctly within a single document, as exemplified below.
+In the example, a document representing a film encompasses not only the title but also the director's information.
+
+```json
+{
+	"_id": ObjectId("573a1390f29313caabcd413b"),
+	"title": "Her",
+	"director": "Spike Jonze",
+	"runtime": 126
+}
+```
+
+##### One-To-Many Relationship
+The One-To-Many relationship is characterized by one Data Entity in a set being associated with multiple Data Entities
+in another set. For instance, a film may feature several cast members. MongoDB facilitates the representation of this
+relationship within a single document using features like Nested Arrays, which are advantageous for modeling One-To-Many
+Relationships. The "cast" field in the code shown below exemplifies such a structure.
+
+```json
+{
+	"_id": ObjectId("573a1390f29313caabcd413b"),
+	"title": "Her",
+	"director": "Spike Jonze",
+	"runtime": 126,
+	"cast": [
+		{"actor": "Joaquin Phoenix", "character": "Theodore"},
+		{"actor": "Scarlett Johansson", "character": "Samantha"},
+		{"actor": "Rooney Mara", "character": "Catherine"}
+	]
+}
+```
+
+##### Many-To-Many Relationship
+The Many-To-Many relationship represents a scenario where any number of Data Entities in one set are connected to any
+number of Data Entities in another set. As previously mentioned, the primary methods for modeling relationships in
+MongoDB are Embedding and Referencing. Embedding involves incorporating related data within the document, while
+Referencing entails referring to documents in another collection within the document. The following examples illustrate
+Embedding and Referencing respectively. In the Embedding example, Actor documents are embedded within Movie documents
+using Nested Arrays. On the other hand, in the Referencing example, Filming Locations are referenced inside the document
+via their respective ObjectIDs.
+
+**Embedding**
+```json
+{
+	"_id": ObjectId("573a1390f29313caabcd413b"),
+	"title": "Her",
+	"director": "Spike Jonze",
+	"runtime": 126,
+	"cast": [
+		{"actor": "Joaquin Phoenix", "character": "Theodore"},
+		{"actor": "Scarlett Johansson", "character": "Samantha"},
+		{"actor": "Rooney Mara", "character": "Catherine"}
+	]
+}
+```
+
+**Referencing**
+```json
+{
+	"_id": ObjectId("573a1390f29313caabcd413b"),
+	"title": "Her",
+	"director": "Spike Jonze",
+	"runtime": 126,
+	"filming_locations": [
+		ObjectID("654a1420f29313fggbcd718"),
+		ObjectID("654a1420f29313fggbcd719")
+	]
+}
+```
+
+#### Modeling Data Relationships
+
+In this section, we provide an example of data modeling based on a practical scenario illustrated in the code below.
+When a student enrolls at a university, they fill out a form on a web application that creates their profile,
+which is then stored in a database. Upon examining the following code, there emerges a need to gather more information
+about the student, such as the courses taken and their grades. Furthermore, certain aspects of the code are not optimally structured.
+
+```json
+{
+	"student": "Andrea Moleri",
+	"student_id": "902011",
+	"age": "23",
+	"home_phone": "2125550000",
+	"cell_phone": "2125550001",
+	"email": "andreamoleri@gmail.com",
+	"grade_level": "master's degree",
+	"street": "Viale della Vittoria 6",
+	"city": "Milano",
+	"state": "MI",
+	"zip": "12345",
+	"emergency_contact_name": "Filippo Armani",
+	"emergency_contact_number": "212550002",
+	"emergency_contact_relation": "Friend"
+}
+```
+An initial observation reveals the presence of three phone numbers at different locations within the code,
+resulting in not-so-clean code. To address this issue, reorganization is proposed instead of treating them as
+separate elements indicating a One-To-One Relationship. This reorganization involves transforming it into a One-To-Many
+Relationship through the use of a Nested Array.
+
+```json
+{
+	"student": "Andrea Moleri",
+	"student_id": "902011",
+	"age": "23",
+	"email": "andreamoleri@gmail.com",
+	"grade_level": "master's degree",
+	"street": "Viale della Vittoria 6",
+	"city": "Milano",
+	"state": "MI",
+	"zip": "12345",
+	"emergency_contact_name": "Filippo Armani",
+	"emergency_contact_relation": "Friend",
+	"contact_number": [
+		{"number": "2125550000", "type": "home"},
+		{"number": "2125550001", "type": "cell"},
+		{"number": "212550002", "type": "emergency"}
+	]
+}
+```
+
+In the scenario where additional data regarding the student is available, such as considering the courses taken along
+with their respective grades, a different data modeling approach may be considered. Here, references to Course ID and
+Course Name are added within the Student Document.
+
+```json
+{
+	"student": "Andrea Moleri",
+	"student_id": "902011",
+	"age": "23",
+	"contact_number": [
+		{"number": "2125550000", "type": "home"},
+		{"number": "2125550001", "type": "cell"},
+		{"number": "212550002", "type": "emergency"}
+	],
+	"email": "andreamoleri@gmail.com",
+	"grade_level": "master's degree",
+	"gpa": "4.0",
+	"street": "Viale della Vittoria 6",
+	"city": "Milano",
+	"state": "MI",
+	"zip": "12345",
+	"emergency_contact_name": "Filippo",
+	"emergency_contact_relation": "Friend",
+	"courses": [
+		{"course_id": "2324-1-F1801Q159", "course_name": "Architetture Dati"},
+		{"course_id": "2324-1-F1801Q115", "course_name": "Qualità del Software"}
+	]
+}
+```
+
+Additionally, a dedicated Collection for Courses can be established, wherein the courses inserted within the Student
+Document are represented in a separate document as demonstrated below. In the provided data modeling scenario,
+the Student Document represents individual student profiles, containing comprehensive information such as student details,
+contact information, emergency contacts, enrolled courses, and other relevant data. Within the Student Document,
+a nested array named "courses" is included, which holds references to the courses taken by the student.
+Each course reference consists of a CourseID and Course Name.
+
+On the other hand, the separate Course Collection stores detailed information about all available courses offered
+by the university. Each document within the Course Collection represents a distinct course, featuring attributes like
+Course ID, Course Name, Professor, and Offered Term(s). The interconnection between these two pieces of code lies in
+the referencing mechanism established within the Student Document. When a student enrolls in a course, instead of
+duplicating course information within each student profile, a reference to the corresponding course is included within
+the "courses" array. This reference includes the Course ID, allowing easy retrieval of detailed course information from
+the Course Collection when and if needed.
+
+```json
+"courses": [
+	{
+		"course_id": "2324-1-F1801Q159",
+		"course_name": "Architetture Dati",
+		"professors": "Andrea Maurino, Marco Cremaschi, Fabio d'Adda",
+		"offered": "Spring, Summer, Fall, Winter"
+	},
+	
+	{
+		"course_id": "2324-1-F1801Q115",
+		"course_name": "Qualità del Software",
+		"professors": "Giovanni Denaro, Luca Guglielmo, Elson Kurian",
+		"offered": "Fall, Spring"
+	}
+]
+```
+#### Embedding Data in Documents
+
+In the realm of database management, understanding how to model data using embedding is really important.
+Embedding is frequently employed in scenarios involving One-To-Many or Many-To-Many Relationships within stored data.
+MongoDB's documentation advocates for embedding to streamline queries and enhance performance. Embedded Documents are
+also known as Nested Documents, that is documents that encapsulate another document within them.
+
+To better understand this concept, let us consider the following document, which contains two embedded subdocuments
+for both name and address. The client possesses only one name, embedded as First and Last Name. Regarding addresses,
+the client has three addresses, constituting a One-To-Many Relationship. Documents structured in this manner facilitate
+the retrieval of complete address information for a client, aligning with the principle "data that is accessed together
+should be stored together." Embedding enables the consolidation of various related pieces of information into a single document,
+potentially simplifying and reducing the number of required queries. One-To-One Relationships and One-To-Many Relationships
+are the relationships that are most commonly utilizing embedding.
+
+```json
+{
+    "name": {"firstName": "Walt", "lastName": "Disney"},
+    "job": "entrepreneur",
+    "address": {
+        "europeanAddress": {
+            "street": "Bd de Parc, Coupvray",
+            "city": "Coupvray (FR)",
+            "zipcode": "77700"
+        },
+        "americanAddress": {
+            "street": "Epcot Center Dr, Lake Buena Vista",
+            "city": "Florida (USA)",
+            "zipcode": "32830"
+        },
+        "asianAddress": {
+            "name": "Tokyo DisneySea",
+            "street": "1-13 Maihama, Urayasu",
+            "city": "Chiba (JP)",
+            "zipcode": "279-0031",
+            "country": "Japan"
+        }
+    }
+}
+```
+
+Incorporating embedding mitigates the necessity of application joins, thereby minimizing queries and enhancing read
+operation performance. Furthermore, it enables developers to update related data in a single write operation.
+However, employing Embedded Data Models entails certain risks as swell. Primarily, embedding data within a single
+document can lead to excessively large documents, potentially causing latency issues. Large documents must be entirely
+read into memory, which may result in reduced performance for end-users. Additionally, during the embedding process,
+there's a risk of inadvertently structuring documents in a manner where data is continually added without restraint,
+leading to Unbounded Documents. These documents pose a risk of exceeding the maximum BSON document threshold of 16MB.
+Both Large Documents and Unbounded Documents are recognized as [Schema Anti-Patterns](https://www.mongodb.com/developer/products/mongodb/schema-design-anti-pattern-summary/), and as such, they should be avoided.
+
+#### Referencing Data in Documents
+
+There may be scenarios where it becomes necessary to store related information in separate documents or even
+in distinct collections. When there is a need to store data across different collections while ensuring clarity
+regarding their relational nature, References come into play. Working with references is simple, and it is only
+a matter of saving the identifier field of one document within another document to establish a link between the two.
+The utilization of references is often referred to as Linking or Data Normalization. Let's revisit the example previously
+discussed, wherein we have a university student who has taken various university courses. In the following code snippet,
+the `course_id` serves as our reference. Referencing enables us to circumvent data duplication, leading to smaller
+documents. However, this approach may necessitate querying multiple documents, potentially incurring higher read times and costs.
+
+```json
+{
+   "student": "Andrea Moleri",
+   "student_id": "902011",
+   "age": "23",
+   "contact_number": [
+      {"number": "2125550000", "type": "home"},
+      {"number": "2125550001", "type": "cell"},
+      {"number": "212550002", "type": "emergency"}
+   ],
+   "email": "andreamoleri@gmail.com",
+   "grade_level": "master's degree",
+   "gpa": "4.0",
+   "street": "Viale della Vittoria 6",
+   "city": "Milano",
+   "state": "MI",
+   "zip": "12345",
+   "emergency_contact_name": "Filippo",
+   "emergency_contact_relation": "Friend",
+   "courses": [
+      {"course_id": "2324-1-F1801Q159", "course_name": "Architetture Dati"},
+      {"course_id": "2324-1-F1801Q115", "course_name": "Qualità del Software"}
+   ]
+}
+```
+
+To summarize the advantages and disadvantages, we employ embedding when we want to use a single query to retrieve
+data and when performing individual operations for data updates or deletions. However, this approach carries the risk
+of data duplication and the creation of substantial documents. Regarding referencing, this technique enables us to avoid
+duplicates, resulting in smaller and more manageable documents. However, this technique introduces
+the need of data joins from disparate documents. Another realistic example illustrates the utilization of referencing,
+where `user_id` in the first collection acts as a reference to a document in the `users` collection, thereby 
+establishing a linkage between the two documents through referencing.
+
+**Collection I**
+```json
+{
+    "author": "Aileen Long",
+    "title": "Learn The Basics of MongoDB in 90 Minutes",
+    "published_date": ISODate("2024-05-18T14:10:30Z"),
+    "tags": ["mongodb", "basics", "database", "nosql"],
+    "comments": [
+        {
+            "comment_id": "LM001",
+            "user_id": "AL001",
+            "comment_date": ISODate("2024-05-19T14:22:00Z"),
+            "comment": "Great read!"
+        },
+        {
+            "comment_id": "LM002",
+            "user_id": "AL002",
+            "comment_date": ISODate("2024-06-01T08:00:00Z"),
+            "comment": "So easy to understand - thank you for posting this!"
+        }
+    ]
+}
+```
+
+**Collection II**
+```json
+...
+{
+    "id": "AL001",
+    "name": "Andrea Moleri"
+},
+{
+    "id": "AL002",
+    "name": "Filippo Armani"
+},
+{
+    "id": "AL003",
+    "name": "Claudio Finazzi"
+},
+...  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Cassandra Data Modeling
+_PLACEHOLDER PER FILIPPO_
+
+
+
+
+
+
 ## Sintassi Linguaggi
 ### Sintassi di MongoDB
 
