@@ -37,71 +37,14 @@ _id: ObjectId('6636644d93e845efd9692af4')
 ```
 
 
-## Scaling a Data Model
 
-Creating non-scalable Data Models is a common issue that has serious consequences. The principle of "data that is 
-accessed together should be stored together" is not merely a mantra; it is based on the notion that the way we 
-access our data should align with the data model to achieve optimal efficiency in query result times, memory usage, 
-CPU usage, and storage. When designing a Data Model, we aim to avoid unbounded documents, which are documents whose 
-size can grow indefinitely. This can occur with Document Embedding. 
 
-Consider the following example in the code snippet below, where we have the structure of a Blog Post and its comments. 
-Currently, all comments on a single blog post are within an array in the Blog Post Document. However, what happens if 
-we have thousands of comments on a single post? There could be issues related to the growth of the comments array, 
-including the fact that the document will occupy increasingly more memory space, potentially leading to write performance
-issues as, with each comment addition, the entire document is rewritten in the MongoDB Data Storage. Additionally, 
-pagination of comments will be complex. Comments cannot be easily filtered in this manner, so we would need to retrieve 
-them all and potentially filter them in the application. Furthermore, we must not overlook the maximum BSON document 
-size of 16MB, avoiding which can lead to storage problems. The benefits of the model shown are that we can retrieve 
-all documents in a single Read, but this is not a feature we require, so the folliwing code certainly has more drawbacks than advantages.
 
-```json
-{
-	"title": "Basics of MongoDB",
-	"url": "https://www.mongodbbasics.com",
-	"text": "Let's learn the basics of MongoDB!",
-	"comments": [{
-		"name": "John Smith",
-		"created_on": "2022-07-21T11:00:00Z",
- 		"comment": "I learned a lot!"
-	}, {
-		"name": "Jane Doe",
-		"created_on": "2022-07-22T11:00:00Z",
-		"comment": "Looks great"
-	}
-	]
-}
-```
 
-To resolve the issue, we avoid using Embeddings and partition our data into multiple Collections, using References 
-to keep frequently accessed data together, effectively creating two different collections: one called `blog_post` 
-and another called `comments`, as illustrated below. We can use the `blog_entry_id` field as a reference between the two collections.
 
-**Blog Post Collection**
-```json
-{
-	"_id": 1,
-	"title": "Basics of MongoDB",
-	"url": "https://www.mongodbbasics.com",
-	"text": "Let's learn the basics of MongoDB!"
-}
-```
 
-**Comments Collection**
-```json
-{
-	"blog_entry_id": 1,
-	"name": "John Smith",
-	"created_on": "2022-07-21T11:00:00Z",
-	"comment": "I learned a lot!"
-},
-{
-	"blog_entry_id": 1,
-	"name": "Jane Doe",
-	"created_on": "2022-07-22T11:00:00Z",
-	"comment": "Looks great"
-}
-```
+
+
 
 ### Using Atlas Tools for Schema Help
 
