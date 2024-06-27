@@ -577,7 +577,7 @@ establishing a linkage between the two documents through referencing.
 **Collection I**
 ```json
 {
-    "author": "Aileen Long",
+    "author": "Mr.MongoDB",
     "title": "Learn The Basics of MongoDB in 90 Minutes",
     "published_date": ISODate("2024-05-18T14:10:30Z"),
     "tags": ["mongodb", "basics", "database", "nosql"],
@@ -685,21 +685,6 @@ field as a reference between the two collections.
 
 ### Cassandra Data Modeling
 _PLACEHOLDER PER FILIPPO_
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ## Database Connection
 ### Connecting to a MongoDB Database
@@ -1024,7 +1009,7 @@ If the command executes successfully, it will return a list of databases contain
 
 #### Best Practices for MongoClient Instances
 
-For optimal performance and cost efficiency, MongoDB's documentation recommendeds to have only one `MongoClient` instance per Atlas
+For optimal performance and cost efficiency, MongoDB's documentation recommends to have only one `MongoClient` instance per Atlas
 cluster in the application. Creating multiple `MongoClient` instances can lead to higher-than-normal database costs.
 The following example demonstrates the use of a Singleton pattern to ensure a single `MongoClient`
 instance is used throughout the application, thereby preventing the creation of multiple instance:
@@ -1195,7 +1180,7 @@ db.grades.insertMany([
     class_id: 550,
   },
   {
-    student_id: 223344,
+    student_id: 932234,
     products: [
       {
         type: "exam",
@@ -1230,7 +1215,7 @@ the collection.
 To view more results, the `it` shell directive can be employed. This directive will (it)erate over the extensive
 list of results. Therefore, by entering `it` and pressing enter, more results from the collection can be viewed.
 To retrieve a specific document from the collection, the syntax `{ field: <value> }` can be used.
-For example, `db.zips.find({ state: "AZ" })` will return all documents with `state: AZ`. Another example command might be:
+For example, `db.zips.find({ state: "CA" })` will return all documents with `state: CA`. Another example command might be:
 
 ```bash
 db.zips.find({ _id: ObjectId("5c8eccc1caa187d17ca6ed16") })
@@ -1264,23 +1249,23 @@ less than or equal to or `$lte`, and greater than or equal to or `$gte`. To use 
 the syntax is `<field>: { <operator> : <value> }`.
 
 Consider the following examples, starting with `$gt`, which returns documents where the field contains a value
-greater than the specified value. For instance, one might search for prices greater than 50 dollars.
+greater than the specified value. For instance, one might search for prices greater than 100 dollars.
 In the following code, we specify the document field name, followed by the sub-document field name in quotes.
 In this case, it is the field `items.price`. When this command is executed, all sub-documents with a price
-greater than $50 are returned.
+greater than $100 are returned.
 
 The same logic applies for elements that are less than, greater than or equal to, or less than or equal to a
 specified value. In the code provided below, `sales` is the collection,
-while the subdocument fields are `items.price` and `customer.age`.
+while the sub-document fields are `items.price` and `customer.age`.
 
 ```bash
-> db.sales.find({ "items.price": { $gt: 50 } })
+> db.sales.find({ "items.price": { $gt: 100 } })
 
-> db.sales.find({ "items.price": { $lt: 50 } })
+> db.sales.find({ "items.price": { $lt: 100 } })
 
-> db.sales.find({ "customer.age": { $gte: 50 } })
+> db.sales.find({ "customer.age": { $gte: 100 } })
 
-> db.sales.find({ "customer.age": { $lte: 50 } })
+> db.sales.find({ "customer.age": { $lte: 100 } })
 ```
 
 #### Querying on Array Elements in MongoDB
@@ -1294,22 +1279,22 @@ For example, consider a collection named `Accounts` defined as follows:
 	"account_id": 470650,
 	"limit": 10000,
 	"products": [
-		"CurrencyService",
-		"Commodity",
-		"InvestmentStock"
+		"Commodities",
+		"Currencies",
+		"Stocks"
 	]
 }
 ```
 
 Each document in this collection has a field called `products`. A query can be defined to find all documents
-containing the value `InvestmentStock`. The syntax for this query is as follows:
+containing the value `Stocks`. The syntax for this query is as follows:
 
 ```bash
-db.accounts.find({ products: "InvestmentStock" })
+db.accounts.find({ products: "Stocks" })
 ```
 
 This syntax is familiar to those used for equality matches. Upon executing the query, all documents will be returned
-that have a `products` field containing either an array or a scalar value that includes `InvestmentStock`.
+that have a `products` field containing either an array or a scalar value that includes `Stocks`.
 Documents not containing this value will not be returned.
 
 #### Using $elemMatch for Array Elements
@@ -1320,13 +1305,13 @@ the `$elemMatch` operator can be used. The syntax for this is shown below:
 ```bash
 db.accounts.find({
 	products: {
-		$elemMatch: { $eq: "InvestmentStock" }
+		$elemMatch: { $eq: "Stocks" }
 	}
 })
 ```
 
-This query ensures that the `products` field is an array containing `InvestmentStock`. Therefore, the returned
-documents will have a `products` field that is an array containing an element equal to `InvestmentStock`.
+This query ensures that the `products` field is an array containing `Stocks`. Therefore, the returned
+documents will have a `products` field that is an array containing an element equal to `Stocks`.
 
 The `$elemMatch` operator can also be used to find documents where a single array element matches multiple query
 criteria. Each query criterion is placed in `$elemMatch`, separated by a comma, as shown in the following syntax:
@@ -1345,7 +1330,7 @@ criteria. Each query criterion is placed in `$elemMatch`, separated by a comma, 
 
 Consider a collection named `sales`, focusing on the `items` field. This field contains an array of sub-documents
 with information about the items. The following query, executed in the terminal, will find all documents with at
-least one element in the `sales` collection that is a laptop priced over $800 and with a quantity of at least 1.
+least one element in the `sales` collection that is an iPhone priced over $800 and with a quantity of at least 1.
 
 ```bash
 db.sales.find({
@@ -1355,7 +1340,7 @@ db.sales.find({
 })
 ```
 
-After executing this query, the returned documents will contain laptops with quantities greater than or equal to 1
+After executing this query, the returned documents will contain iPhones with quantities greater than or equal to 1
 and prices greater than $800. In other words, the `$elemMatch` operator can be used to find all documents that
 contain the specified sub-document.
 
@@ -1449,14 +1434,14 @@ db.routes.find({
 #### Combining Logical Operators
 
 Logical operators can also be combined. Consider the following example, where an `$and` operator contains two `$or`
-operators. This query searches for every flight that has MXP as either the departure or arrival airport, and also
-all flights operated by Ryanair or using a Boeing 747 airplane:
+operators. This query searches for every flight that has `MXP` as either the departure or arrival airport, and also
+all flights operated by Ryanair or using a Boeing `747` airplane:
 
 ```bash
 db.routes.find({
   $and: [
     { $or: [{ dst_airport: "MXP" }, { src_airport: "MXP" }] },
-    { $or: [{ "airline.name": "Ryanair" }, { airplane: 747 }] },
+    { $or: [{ "airline.name": "Ryanair" }, { airplane: "747" }] },
   ]
 })
 ```
@@ -1477,9 +1462,9 @@ Below is an example of a document created before the book was ready for publicat
 {
 	_id: "62c5671541e2c6bcb528308",
 	title: "Harry Potter and the Philosopher's Stone",
-	ISBN: "12345678",
+	ISBN: "",
 	thumbnailUrl: "",
-	publicationDate: ISODate ("2019-01-01T00:00:00.000z"),
+	publicationDate: ISODate ("1997-01-01T00:00:00.000z"),
 	authors: ["J.K. Rowley"]
 }
 ```
@@ -1488,12 +1473,12 @@ To replace this document with an updated version, the `replaceOne` method is use
 The `_id` is provided as the filter criteria because it is guaranteed to be unique. The entire document is replaced by
 passing the replacement document as the second parameter. The program output will return a `matchedCount`
 (how many documents matched the filter) and a `modifiedCount` (how many of these documents were modified) to indicate
-the number of updated documents. In this case, both values will be 1.
+the number of updated documents. In this case, both values will be `1`.
 
 ```bash
 db.books.replaceOne(
   {
-    _id: ObjectId("6282afeb441a74a98dbbec4e")
+    _id: ObjectId("62c5671541e2c6bcb528308")
   },
   {
     title: "Data Science Fundamentals for Python and MongoDB",
@@ -1506,7 +1491,7 @@ db.books.replaceOne(
 )
 ```
 
-To confirm the modification, the `db.books.findOne({_id: ObjectId("6282afeb441a74a98dbbec4e")})` method can be invoked.
+To confirm the modification, the `db.books.findOne({_id: ObjectId("62c5671541e2c6bcb528308")})` method can be invoked.
 Running this command will allow confirmation that the document has been updated, as it will display the updated document.
 
 #### Updating MongoDB Documents by Using `updateOne()`
@@ -1539,7 +1524,7 @@ non-existent document, but since it does not exist and `upsert` is set to true, 
 ```bash
 db.podcasts.updateOne(
   { title: "Power Pizza" },
-  { $set: { topics: ["fun", "talk-show"] } },
+  { $set: { topics: ["fun", "talk-show", "friendship"] } },
   { upsert: true }
 )
 ```
@@ -1549,7 +1534,7 @@ The final example demonstrates the `$push` operator, which in the following case
 ```bash
 db.podcasts.updateOne(
   { _id: ObjectId("62822febf41a74a98nbbec4e") },
-  { $push: { hosts: "Sio, Nick, Lorro" } }
+  { $push: { hosts: "Sio" } }
 )
 ```
 
@@ -1573,7 +1558,7 @@ db.podcasts.findAndModify({
 #### Updating MongoDB Documents by Using `updateMany()`
 
 To update multiple documents, the `updateMany()` method can be used, which also accepts a filter, an update document,
-and an optional options object. The example below updates all books published before 2019 to the status `LEGACY`.
+and an optional options object. The example below updates all books published before 2020 to the status `LEGACY`.
 If `matchedCount` and `modifiedCount` are the same, the update was successful. This method is not an all-or-nothing
 operation and will not roll back updates. If this occurs, `updateMany()` must be run again to update the remaining
 documents. Additionally, `updateMany()` lacks isolation: updates will be visible as soon as they are performed,
@@ -1581,7 +1566,7 @@ which may not be appropriate for some business requirements.
 
 ```bash
 db.books.updateMany(
-  { publishedDate: { $lt: new Date("2023-01-01") } },
+  { publishedDate: { $lt: new Date("2020-01-01") } },
   { $set: { status: "LEGACY" } }
 )
 ```
@@ -1598,7 +1583,7 @@ value to confirm the process was successful.
 db.podcasts.deleteOne({ _id: ObjectId("62822febf41a74a98nbbec4e") })
 
 # Delete Multiple Documents
-db.podcasts.deleteMany({ category: "true crime" })
+db.podcasts.deleteMany({ category: "true-crime" })
 ```
 
 #### Using Cursors in MongoDB
@@ -1614,17 +1599,18 @@ db.collection.find(<query>).sort(<sort>)
 
 Within the parentheses of `sort()`, an object specifying the field(s) to sort by and the order of the sort must be
 included. Use `1` for ascending order and `-1` for descending order. The following code example illustrates this by
-returning companies with a `category_code` of "music" in alphabetical order. A projection is also shown to return only the names:
+returning companies with a `category_code` of `"tech"` in alphabetical order. 
+A projection is also shown to return only the names:
 
 ```bash
-# Return data on all music companies, sorted alphabetically from A to Z.
-db.companies.find({ category_code: "music" }).sort({ name: 1 });
+# Return data on all tech companies, sorted alphabetically from A to Z.
+db.companies.find({ category_code: "tech" }).sort({ name: 1 });
 
 # Projection to return only names
-db.companies.find({ category_code: "music" }, { name: 1 }).sort({ name: 1 });
+db.companies.find({ category_code: "tech" }, { name: 1 }).sort({ name: 1 });
 
-# Return data on all music companies, sorted alphabetically from A to Z. Ensure consistent sort order.
-db.companies.find({ category_code: "music" }).sort({ name: 1, _id: 1 });
+# Return data on all tech companies, sorted alphabetically from A to Z. Ensure consistent sort order.
+db.companies.find({ category_code: "tech" }).sort({ name: 1, _id: 1 });
 ```
 
 To ensure that documents are returned in a consistent order, a field containing unique values can be included in the
@@ -1641,17 +1627,17 @@ the cursor will return. The syntax is as follows:
 db.collection.find(<query>).limit(<number>)
 ```
 
-Here is an example where the three music companies with the highest number of employees are returned. A projection
+Here is an example where the three tech companies with the highest number of employees are returned. A projection
 can also be added to simplify the returned document:
 
 ```bash
-# Return the three music companies with the highest number of employees. Ensure consistent sort order.
-db.companies.find({ category_code: "music" })
+# Return the three tech companies with the highest number of employees. Ensure consistent sort order.
+db.companies.find({ category_code: "tech" })
   .sort({ number_of_employees: -1, _id: 1 })
   .limit(3);
 
 # Projection on two fields
-db.companies.find({ category_code: "music" }, { name: 1, number_of_employees: 1 })
+db.companies.find({ category_code: "tech" }, { name: 1, number_of_employees: 1 })
   .sort({ number_of_employees: -1, _id: 1 })
   .limit(3);
 ```
@@ -1669,13 +1655,13 @@ db.collection.find(<query>, <projection>)
 To include a field, set its value to `1` in the projection document, as shown in the example below. To exclude a field,
 set its value to `0`. While the `_id` field is included by default, it can be suppressed by setting its value to `0`
 in any projection, as illustrated in the third example. Note that inclusion and exclusion cannot be combined in most
-projections, except for the `_id` field, which can be both included and excluded. Accessing a subdocument is also shown,
+projections, except for the `_id` field, which can be both included and excluded. Accessing a sub-document is also shown,
 ensuring that the zip code is excluded:
 
 ```bash
-# Return all restaurant inspections - business name, result, and _id fields only
+# Return all swimming pools inspections - business name, result, and _id fields only
 db.inspections.find(
-  { sector: "Restaurant - 818" },
+  { sector: "Swimming Pools" },
   { business_name: 1, result: 1 }  # This is the projection document
 )
 
@@ -1685,9 +1671,9 @@ db.inspections.find(
   { date: 0, "address.zip": 0 }  # This is the projection document
 )
 
-# Return all restaurant inspections - business name and result fields only
+# Return all swimming pools inspections - business name and result fields only
 db.inspections.find(
-  { sector: "Restaurant - 818" },
+  { sector: "Swimming Pools" },
   { business_name: 1, result: 1, _id: 0 }  # This is the projection document
 )
 ```
@@ -1707,30 +1693,9 @@ Here are some code examples:
 # Count number of documents in trip collection
 db.trips.countDocuments({})
 
-# Count number of trips over 120 minutes by subscribers
-db.trips.countDocuments({ tripduration: { $gt: 120 }, usertype: "Subscriber" })
+# Count number of trips over 100 minutes by paid subscribers
+db.trips.countDocuments({ tripduration: { $gt: 100 }, usertype: "Paid-Subscriber" })
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #### BSON Format in MongoDB
 
@@ -1740,7 +1705,7 @@ data types. The MongoDB Java Driver provides several classes for representing BS
 class being recommended due to its flexible and concise data representation. MongoDB provides a BSON interface for
 types that can render themselves into a BSON Document, and the `Document` class implements this interface.
 
-Here is an example of a BSON document, which includes the usual `_id` field serving as the Primary Key and a subdocument
+Here is an example of a BSON document, which includes the usual `_id` field serving as the Primary Key and a sub-document
 represented by the `address` field. The `date` field is represented as a String, though it is advisable to use a
 specific BSON type for dates. Summarizing the aforementioned points, one way to represent BSON documents is by using
 the `Document` class. The `Document` class offers a flexible representation of a BSON document.
@@ -1748,17 +1713,17 @@ the `Document` class. The `Document` class offers a flexible representation of a
 ```json
 {
 	"_id": { "$oid": "56d61033a378eccde8a8354f" },
-	"business_id": "10021-2015-ENFO",
-	"certificate_number": 9278806,
-	"business_name": "ATLIXCO DELI GROCERY INC.",
-	"date": "Feb 20 2015",
-	"result": "No Violation Issued",
-	"sector": "Cigarette Retail Dealer - 127",
+	"business_id": "1507-1975-THME",
+	"certificate_number": 51395,
+	"business_name": "GARDALAND S.R.L.",
+	"date": "15 Jul 1975",
+	"result": "No Violations",
+	"sector": "Theme Parks",
 	"address": {
-		"city": "RIDGEWOOD",
-		"zip": 11385,
-		"street": "MENAHAN ST",
-		"number": 1712
+		"city": "Castelnuovo del Garda",
+		"zip": 37014,
+		"street": "Via Derna",
+		"number": 4
 	}
 }
 ```
@@ -1769,13 +1734,13 @@ such as `Date` for the date. The document is then ready to be sent to the MongoD
 
 ```java
 Document inspection = new Document("_id", new ObjectId())
-	.append("business_id", "10021-2015-ENFO")
-	.append("certificate_number", 9278886)
-	.append("business_name", "ATLIXCQ DELI GROCERY INC.")
-	.append("date", Date.from(LocalDate.of(2015, 2, 20).atStartOfDay(ZoneId.systemDefault()).toInstant()))
-	.append("result", "No Violation Issued")
-	.append("sector", "Cigarette Retail Dealer - 127")
-	.append("address", new Document().append("city", "RIDGEWOOD").append("zip", 11385).append("street", "MENAHAN ST").append("number", 1712));
+	.append("business_id", "1507-1975-THME")
+	.append("certificate_number", 51395)
+	.append("business_name", "GARDALAND S.R.L.")
+	.append("date", Date.from(LocalDate.of(1975, 7, 15).atStartOfDay(ZoneId.systemDefault()).toInstant()))
+	.append("result", "No Violations")
+	.append("sector", "Theme Parks")
+	.append("address", new Document().append("city", "Castelnuovo del Garda").append("zip", 37014).append("street", "Via Derna").append("number", 4));
 ```
 
 #### Inserting a Document in Java Applications
@@ -1783,20 +1748,20 @@ Document inspection = new Document("_id", new ObjectId())
 To insert a single document into a collection, use the `getCollection()` method to access the `MongoCollection` object,
 which represents the specified collection. Then, append the `insertOne()` method to the collection object. Within the
 parentheses of `insertOne()`, include an object that contains the document data and print the inserted document’s ID,
-as shown in the following example, which also contains a subdocument in the `address` field.
+as shown in the following example, which also contains a sub-document in the `address` field.
 
 ```java
 MongoDatabase database = mongoClient.getDatabase("sample_training");
 MongoCollection<Document> collection = database.getCollection("inspections");
 
 Document inspection = new Document("_id", new ObjectId())
-        .append("id", "10021-2015-ENFO")
-        .append("certificate_number", 9278806)
-        .append("business_name", "ATLIXCO DELI GROCERY INC.")
-        .append("date", Date.from(LocalDate.of(2015, 2, 20).atStartOfDay(ZoneId.systemDefault()).toInstant()))
-        .append("result", "No Violation Issued")
-        .append("sector", "Cigarette Retail Dealer - 127")
-        .append("address", new Document().append("city", "RIDGEWOOD").append("zip", 11385).append("street", "MENAHAN ST").append("number", 1712));
+        .append("id", "1507-1975-THME")
+        .append("certificate_number", 51395)
+        .append("business_name", "GARDALAND S.R.L.")
+        .append("date", Date.from(LocalDate.of(1975, 7, 15).atStartOfDay(ZoneId.systemDefault()).toInstant()))
+        .append("result", "No Violations")
+        .append("sector", "Theme Parks")
+        .append("address", new Document().append("city", "Castelnuovo del Garda").append("zip", 37014).append("street", "Via Derna").append("number", 4));
 
 InsertOneResult result = collection.insertOne(inspection);
 BsonValue id = result.getInsertedId();
@@ -1811,8 +1776,8 @@ the inserted documents. The following example clarifies this process.
 MongoDatabase database = mongoClient.getDatabase("bank");
 MongoCollection<Document> collection = database.getCollection("accounts");
 
-Document doc1 = new Document().append("account_holder", "john doe").append("account_id", "MDB99115881").append("balance", 1785).append("account_type", "checking");
-Document doc2 = new Document().append("account_holder", "jane doe").append("account_id", "MDB79101843").append("balance", 1468).append("account_type", "checking");
+Document doc1 = new Document().append("account_holder", "Andrea Moleri").append("account_id", "MDB99115881").append("balance", 1785).append("account_type", "checking");
+Document doc2 = new Document().append("account_holder", "Claudia Gatto").append("account_id", "MDB79101843").append("balance", 1468).append("account_type", "checking");
 
 List<Document> accounts = Arrays.asList(doc1, doc2);
 InsertManyResult result = collection.insertMany(accounts);
@@ -1827,7 +1792,7 @@ public void insertOneDocument(Document doc) {
   System.out.println("Inserting one account document");
   InsertOneResult result = collection.insertOne(doc);
   BsonValue id = result.getInsertedId();
-  System.out.println("Inserted document Id: " + id);
+  System.out.println("Inserted document ID: " + id);
 }
 
 public void insertManyDocuments(List<Document> documents) {
@@ -1883,9 +1848,8 @@ public void findDocuments(Bson query) {
 }
 ```
 
-## Updating Documents in Java Applications
-
-### Updating a Single Document
+#### Updating Documents in Java Applications
+#### Updating a Single Document
 
 To update a single document, use the `updateOne()` method on a `MongoCollection` object. This method accepts a filter
 that matches the document to be updated and an update statement that instructs the driver on how to modify the matching
@@ -1902,7 +1866,7 @@ Bson updates  = Updates.combine(Updates.set("account_status", "active"), Updates
 UpdateResult upResult = collection.updateOne(query, updates);
 ```
 
-### Updating Multiple Documents
+#### Updating Multiple Documents
 
 To update multiple documents, use the `updateMany()` method on a `MongoCollection` object. This method also accepts a
 filter to match the documents that need to be updated, along with an update statement. The `updateMany()` method
@@ -1918,7 +1882,7 @@ Bson updates  = Updates.combine(Updates.set("minimum_balance", 100));
 UpdateResult upResult = collection.updateMany(query, updates);
 ```
 
-### Creating Utility Methods
+#### Creating Utility Methods
 
 Utility methods can be created and called as shown below:
 
@@ -1958,27 +1922,26 @@ public class Crud {
 }
 ```
 
-## Deleting Documents in Java Applications
-
-### Deleting a Single Document
+#### Deleting Documents in Java Applications
+#### Deleting a Single Document
 
 To delete a single document from a collection, use the `deleteOne()` method on a `MongoCollection` object. This method
 accepts a query filter that matches the document to be deleted. If no filter is specified, MongoDB matches the first
 document in the collection. The `deleteOne()` method deletes only the first document that matches.
 
-In the following example, a single document related to John Doe's account is deleted. Assume that instances of
+In the following example, a single document related to Andrea Moleri's account is deleted. Assume that instances of
 `MongoClient` and `MongoCollection` have already been instantiated:
 
 ```java
 MongoDatabase database = mongoClient.getDatabase("bank");
 MongoCollection<Document> collection = database.getCollection("accounts");
-Bson query = Filters.eq("account_holder", "john doe");
+Bson query = Filters.eq("account_holder", "Andrea Moleri");
 DeleteResult delResult = collection.deleteOne(query);
 System.out.println("Deleted a document:");
 System.out.println("\t" + delResult.getDeletedCount());
 ```
 
-### Deleting Multiple Documents
+#### Deleting Multiple Documents
 
 To delete multiple documents in a single operation, use the `deleteMany()` method on a `MongoCollection` object.
 Specify the documents to be deleted with a query filter. If an empty document is provided, MongoDB matches all
@@ -1995,7 +1958,7 @@ DeleteResult delResult = collection.deleteMany(query);
 System.out.println(delResult.getDeletedCount());
 ```
 
-### Creating Utility Methods
+#### Creating Utility Methods
 
 Utility methods for deletion can also be created and called as shown below:
 
@@ -2031,6 +1994,401 @@ public class Crud {
 }
 ```
 
+### Cassandra Syntax
+_PLACEHOLDER PER FILIPPO_
+
+## Transactions and Aggregations
+### MongoDB Transactions and Aggregations
+
+#### Creating MongoDB Transactions in Java Applications
+
+In this section, we demonstrate how to create a multi-document transaction in MongoDB using Java. A multi-document
+transaction ensures the atomicity of reads and/or writes across multiple documents. Specifically, a transaction is
+a sequence of operations executed on a database that represents a single unit of work. Once committed, all write
+operations within the transaction are persisted. If a transaction is aborted or fails to complete successfully,
+all associated write operations are rolled back. Therefore, all operations within a transaction either succeed or
+fail together. This property is known as atomicity. Transactions also ensure the consistency, isolation, and
+durability of operations. These qualities—Atomicity, Consistency, Isolation, and Durability—are collectively
+referred to as ACID compliance.
+
+#### Implementation Example
+
+To initiate a transaction in MongoDB using Java, we utilize the `WithTransaction()` method of a session object.
+Below are the steps involved in completing a multi-document transaction, followed by the corresponding code snippet:
+
+1. **Session Initialization and Transaction Start**: Begin by establishing a new session and starting a transaction
+2. using the `WithTransaction()` method on the session object.
+
+2. **Transaction Operations**: Define the operations to be performed within the transaction. This typically includes
+3. fetching necessary data, performing updates, and inserting documents.
+
+3. **Transaction Commit**: After executing all operations successfully, commit the transaction to persist the changes.
+
+4. **Handling Timeouts and Resource Closure**: MongoDB automatically cancels any multi-document transaction that
+5. exceeds 60 seconds. Additionally, ensure proper closure of resources utilized by the transaction.
+
+#### Example Code
+
+```java
+final MongoClient client = MongoClients.create(connectionString);
+final ClientSession clientSession = client.startSession();
+
+TransactionBody txnBody = new TransactionBody<String>() {
+    public String execute() {
+        MongoCollection<Document> bankingCollection = client.getDatabase("bank").getCollection("accounts");
+
+        Bson fromAccountFilter = eq("account_id", "MDB310054629");
+        Bson withdrawalUpdate = Updates.inc("balance", -200);
+
+        Bson toAccountFilter = eq("account_id", "MDB643731035");
+        Bson depositUpdate = Updates.inc("balance", 200);
+
+        System.out.println("Withdrawing from Account " + fromAccountFilter.toBsonDocument().toJson() + ": " + withdrawalUpdate.toBsonDocument().toJson());
+        System.out.println("Depositing to Account " + toAccountFilter.toBsonDocument().toJson() + ": " + depositUpdate.toBsonDocument().toJson());
+
+        bankingCollection.updateOne(clientSession, fromAccountFilter, withdrawalUpdate);
+        bankingCollection.updateOne(clientSession, toAccountFilter, depositUpdate);
+
+        return "Transferred funds from Andrea Moleri to Claudia Gatto";
+    }
+};
+
+try {
+    clientSession.withTransaction(txnBody);
+} catch (RuntimeException e) {
+    System.out.println("Transaction aborted: " + e.getMessage());
+} finally {
+    clientSession.close();
+}
+```
+
+This Java code snippet exemplifies the process described. It begins by initializing a MongoDB client and starting a
+session. Within the `execute()` method of the `TransactionBody`, two updates are performed atomically on specified
+accounts. If all operations succeed, the transaction commits; otherwise, it rolls back automatically. Finally, the
+session is closed to release associated resources.
+
+By following these steps and utilizing MongoDB's transaction capabilities in Java, developers can ensure reliable
+and consistent data operations across multiple documents within a MongoDB database. What follows is another example of
+a real-world scenario in which we would use the method.
+
+```java
+// DemoApp.java
+public class DemoApp {
+    public static void main(final String[] args) {
+        Logger root = (Logger) LoggerFactory.getLogger("org.mongodb.driver");
+        // Available levels are: OFF, ERROR, WARN, INFO, DEBUG, TRACE, ALL
+        root.setLevel(Level.WARN);
+
+        String connectionString = System.getenv("MONGODB_URI");
+        try (MongoClient client = MongoClients.create(connectionString)) {
+            //Transaction
+            Transaction txn = new Transaction(client);
+            var senderAccountFilter = "MDB310054629";
+            var receiverAccountFilter = "MDB643731035";
+            double transferAmount = 200;
+            txn.transferMoney(senderAccountFilter, transferAmount, receiverAccountFilter);
+        }
+    }
+}
+
+// Transaction.java
+public class Transaction {
+    private final MongoClient client;
+
+    public Transaction(MongoClient client) {
+        this.client = client;
+    }
+
+    public void transferMoney(String accountIdOfSender, double transactionAmount, String accountIdOfReceiver) {
+    try (ClientSession session = client.startSession()) {
+        UUID transfer = UUID.randomUUID();
+        String transferId = transfer.toString();
+        try {
+            session.withTransaction(() -> {
+                MongoCollection<Document> accountsCollection = client.getDatabase("bank").getCollection("accounts");
+                MongoCollection<Document> transfersCollection = client.getDatabase("bank").getCollection("transfers");
+
+
+                Bson senderAccountFilter = eq("account_id", accountIdOfSender);
+                Bson debitUpdate = Updates.combine(inc("balance", -1 * transactionAmount),push("transfers_complete", transferId));
+
+                Bson receiverAccountId = eq("account_id", accountIdOfReceiver);
+                Bson credit = Updates.combine(inc("balance", transactionAmount), push("transfers_complete", transferId));
+
+                transfersCollection.insertOne(session, new Document("_id", new ObjectId()).append("transfer_id", transferId).append("to_account", accountIdOfReceiver).append("from_account", accountIdOfSender).append("amount", transactionAmount).append("last_updated", new Date()));
+                accountsCollection.updateOne(session, senderAccountFilter, debitUpdate);
+                accountsCollection.updateOne(session, receiverAccountId, credit);
+                return null;
+            });
+        } catch (RuntimeException e) {
+            throw e;
+        }
+    }
+}
+}
+```
+
+#### Introduction to MongoDB Aggregation
+
+In the realm of databases, aggregation involves the analysis and summary of data, where an aggregation stage represents
+an operation performed on data without permanently altering the source data. MongoDB facilitates the creation of
+aggregation pipelines, where developers specify aggregation operations sequentially. What distinguishes MongoDB
+aggregations is the ability to chain these operations into a pipeline, consisting of stages where data can be filtered,
+sorted, grouped, and transformed. Documents output from one stage become the input for the next. In MongoDB Atlas,
+developers can access the Aggregation tab to add stages one by one and view results for each stage. Similarly, this
+can be accomplished using MongoDB CLI or MongoDB Language Drivers. Below is an example of aggregation syntax using the
+CLI, starting with `db.collection.aggregate` followed by stage names and their contained expressions. Each stage
+represents a discrete data operation, commonly including `$match` for filtering data, `$group` for grouping documents,
+and `$sort` for ordering documents based on specified criteria. The use of `$` prefix signifies a field path,
+referencing the value in that field, useful for operations like concatenation (`$concat: ["$first_name", "$last_name"]`).
+
+```bash
+db.collection.aggregate([
+    {
+        $stage1: {
+            { expression1 },
+            { expression2 }...
+        },
+        $stage2: {
+            { expression1 }...
+        }
+    }
+])
+```
+
+#### Using $match and $group Stages in a MongoDB Aggregation Pipeline
+
+The `$match` stage filters documents that match specified conditions, as illustrated in the example below. The `$group`
+stage groups documents based on a specified group key. These stages are commonly used together in an aggregation
+pipeline. In the example, the aggregation pipeline identifies documents with a `"state"` field matching `"CA"` and then
+groups these documents by the "$city" group key to count the total number of zip codes in California. Placing `$match`
+early in the pipeline optimizes performance by utilizing indexes to reduce the number of documents processed.
+Conversely, the output of `$group` is a document for each unique value of the group key. Note that `$group` includes
+`_id` as the group key and an accumulator field, specifying how to aggregate information for each group. For instance,
+grouping by city and using `count` as an accumulator determines the count of ZIP Codes per city.
+
+```bash
+# Example of Match Stage
+{
+    $match: {
+        "field_name": "value"
+    }
+}
+
+# Example of Group Stage
+{
+    $group:
+    {
+        _id: <expression>, // Group key
+        <field>: { <accumulator> : <expression> }
+    }
+}
+ 
+# Example Using Both
+db.zips.aggregate([
+    { $match: { state: "CA" } },
+    {
+        $group: {
+            _id: "$city",
+            totalZips: { $count : { } }
+        }
+    }
+])
+```
+
+#### Using $sort and $limit Stages in a MongoDB Aggregation Pipeline
+
+Next, the `$sort` and `$limit` stages in MongoDB aggregation pipelines are discussed. The `$sort` stage arranges all
+input documents in a specified order, using `1` for ascending and `-1` for descending order. The `$limit` stage restricts
+output to a specified number of documents. These stages can be combined, such as in the third example where documents
+are sorted in descending order by population (`pop`), and only the top five documents are returned. `$sort` and `$limit`
+stages are essential for quickly identifying top or bottom values in a dataset. Order of stages is crucial; arranging
+`$sort` before `$limit` yields different results compared to the reverse order.
+
+```bash
+# Example of Sort Stage
+{
+    $sort: {
+        "field_name": 1
+    }
+}
+
+# Example of Limit Stage
+{
+    $limit: 5
+}
+
+# Example Using Both
+db.zips.aggregate([
+    { $sort: { pop: -1 } },
+    { $limit: 5 }
+])
+```
+
+#### Using $project, $count, and $set Stages in a MongoDB Aggregation Pipeline
+
+Moving on to `$project`, `$set`, and `$count` stages in MongoDB aggregation pipelines. The `$project` stage specifies
+output document fields, including (`1` for inclusion, `0` for exclusion), and optionally assigns new values to fields.
+This stage is typically the final one to format output. The `$set` stage creates new fields or modifies existing ones
+within documents, facilitating changes or additions for subsequent pipeline stages. The `$count` stage generates a
+document indicating the count of documents at that stage in the pipeline. `$set` is useful for field modifications,
+while `$project` controls output field visibility and value transformations. `$count` provides a count of documents
+in the aggregation pipeline stage.
+
+```bash
+# Example of Project Stage
+{
+    $project: {
+        state: 1, 
+        zip: 1,
+        population: "$pop",
+        _id: 0
+    }
+}
+
+# Example of Set Stage
+{
+    $set: {
+        place: {
+            $concat: ["$city", ",", "$state"]
+        },
+        pop: 10000
+    }
+}
+
+# Example of Count Stage
+{
+    $count: "total_zips"
+}
+```
+
+#### Using the $out Stage in a MongoDB Aggregation Pipeline
+
+The `$out` stage facilitates the creation of a new collection from the output of an aggregation pipeline. It writes
+documents returned by the pipeline into a specified collection. This stage must be the last one in the pipeline.
+Note that `$out` creates a new collection if one does not already exist. If the collection exists, `$out` overwrites
+it with new data. Therefore, careful consideration of the collection name is advised to avoid unintentionally
+overwriting existing data. The `$out` stage expects the database name in the `db` field and the collection name in
+the `coll` field. Alternatively, providing just the collection name directly is also valid. Executing `$out` does not
+produce command-line output; instead, results of the aggregation pipeline are written to a new collection, confirmed
+by `show collections` command in the terminal.
+
+```bash
+# Mode 1
+$out: {
+    db: "<db>",
+    coll: "<newcollection>"
+}
+
+# Mode 2
+{ $out: "<newcollection>" }
+
+# Example
+db.sightings.aggregate([
+    {
+        $match: {
+            date: {
+                $gte: ISODate('2024-01-01T00:00:00.0Z'),
+                $lt: ISODate('2024-01-01T00:00:00.0Z')
+            }
+        }
+    },
+    {
+        $out: 'sightings_2024'
+    }
+])
+db.sightings_2022.findOne()
+```
+
+#### Building a MongoDB Aggregation Pipeline in Java Applications
+
+When using the MongoDB Aggregation Framework to construct queries, one must conceptualize these queries as composed of
+discrete stages, where each stage produces an output document that serves as input to the next stage. This aggregation
+pipeline simplifies debugging and maintenance of individual stages, facilitating query rewriting and optimization.
+The expression operators used within this framework function akin to functions, offering a broad spectrum including
+arithmetic, trigonometric, date, and boolean operators. Once assembled, the aggregation pipeline can be validated using
+tools such as MongoShell, Atlas Aggregation Builder, and Compass before integration into the chosen programming language.
+
+#### Using MongoDB Aggregation Stages with Java: $match and $group
+
+In the following Java examples, the `Aggregates` builder class is employed to configure `$match` and `$group` stages
+within MongoDB aggregation pipelines. Each example demonstrates how to utilize these stages effectively to manipulate
+and aggregate data.
+
+### Example 1: Using $match
+
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchStage(accounts);
+    }
+}
+
+private static void matchStage(MongoCollection<Document> accounts){
+    Bson matchStage = Aggregates.match(Filters.eq("account_id", "MDB310054629"));
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+### Example 2: Using $match and $group
+
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchAndGroupStages(accounts);
+    }
+}
+
+private static void matchAndGroupStages(MongoCollection<Document> accounts){
+    Bson matchStage = Aggregates.match(Filters.eq("account_id", "MDB310054629"));
+    Bson groupStage = Aggregates.group("$account_type", sum("total_balance", "$balance"), avg("average_balance", "$balance"));
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage, groupStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+## Using MongoDB Aggregation Stages with Java: $sort and $project
+
+This example illustrates the use of `$sort` and `$project` stages within MongoDB aggregation pipelines, emphasizing
+sorting and projecting fields from queried documents.
+
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchSortAndProjectStages(accounts);
+    }
+}
+
+private static void matchSortAndProjectStages(MongoCollection<Document> accounts){
+    Bson matchStage =
+            Aggregates.match(Filters.and(Filters.gt("balance", 1500), Filters.eq("account_type", "checking")));
+    Bson sortStage = Aggregates.sort(Sorts.orderBy(descending("balance")));
+    Bson projectStage = Aggregates.project(
+            Projections.fields(
+                    Projections.include("account_id", "account_type", "balance"),
+                    Projections.computed("euro_balance", new Document("$divide", Arrays.asList("$balance", 1.20F))),
+                    Projections.excludeId()
+            )
+    );
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage, sortStage, projectStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+These examples demonstrate the structured use of MongoDB aggregation stages in Java applications, showcasing the
+flexibility and power of the MongoDB Aggregation Framework for data analysis and manipulation. Each stage—`$match`,
+`$group`, `$sort`, and `$project`—plays a crucial role in shaping and refining the results of queries executed against
+MongoDB databases.
 
 
 
@@ -2079,7 +2437,11 @@ public class Crud {
 
 
 
-### Sintassi di Cassandra
+
+
+
+
+### Cassandra Transactions and Aggregations
 _PLACEHOLDER PER FILIPPO_
 
 ## Modello dati
