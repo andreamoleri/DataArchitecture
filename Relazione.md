@@ -1030,8 +1030,6 @@ The following example demonstrates the use of a Singleton pattern to ensure a si
 instance is used throughout the application, thereby preventing the creation of multiple instance:
 
 ```java
-package com.mongodb.quickstart;
-
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import org.bson.Document;
@@ -1040,87 +1038,58 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Connection {
-    private static Connection instance;
-    private final MongoClient mongoClient;
+   private static Connection instance;
+   private final MongoClient mongoClient;
 
-    private Connection(String connectionString) {
-        this.mongoClient = MongoClients.create(connectionString);
-    }
+   /**
+    * Constructs a new Connection instance with the specified connection string.
+    *
+    * @param connectionString the MongoDB connection string
+    */
+   private Connection(String connectionString) {
+      this.mongoClient = MongoClients.create(connectionString);
+   }
 
-    public static synchronized Connection getInstance(String connectionString) {
-        if (instance == null) {
-            instance = new Connection(connectionString);
-        }
-        return instance;
-    }
+   /**
+    * Returns the singleton instance of the Connection class, creating it if necessary.
+    *
+    * @param connectionString the MongoDB connection string
+    * @return the singleton instance of Connection
+    */
+   public static synchronized Connection getInstance(String connectionString) {
+      if (instance == null) {
+         instance = new Connection(connectionString);
+      }
+      return instance;
+   }
 
-    public void listDatabases() {
-        // Retrieve the list of databases
-        List<Document> databases = mongoClient.listDatabases().into(new ArrayList<>());
+   /**
+    * Retrieves and prints the list of databases available on the connected MongoDB instance.
+    */
+   public void listDatabases() {
+      // Retrieve the list of databases
+      List<Document> databases = mongoClient.listDatabases().into(new ArrayList<>());
 
-        // Print information about each database
-        databases.forEach(db -> System.out.println(db.toJson()));
-    }
+      // Print information about each database
+      databases.forEach(db -> System.out.println(db.toJson()));
+   }
 
-    public static void main(String[] args) {
-        // Retrieve the MongoDB URI from the system properties
-        String connectionString = System.getProperty("mongodb.uri");
-
-        // Establish a connection to the MongoDB instance
-        Connection connection = Connection.getInstance(connectionString);
-        connection.listDatabases();
-    }
+   /**
+    * Getter method to return the MongoClient instance.
+    *
+    * @return MongoClient instance
+    */
+   public MongoClient getMongoClient() {
+      return this.mongoClient;
+   }
 }
 ```
 
 ### Connecting to a Cassandra Database
 _PLACEHOLDER PER FILIPPO_
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Sintassi Linguaggi
-### Sintassi di MongoDB
+## Syntax
+### MongoDB Syntax
 
 Principali comandi tipo Inserimento documenti, query, delete (solo linguaggio di Mongo, niente parti di Java)
 
