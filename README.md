@@ -42,32 +42,6 @@ _id: ObjectId('6636644d93e845efd9692af4')
 
 
 
-
-
-
-
-### Using Atlas Tools for Schema Help
-
-Schema Design Patterns are guidelines that assist developers in planning, organizing, and modeling data. 
-When applications are developed without adhering to best practices, suboptimal performance and unscalable solutions, 
-that we know are known as Schema Anti-Patterns, may arise. Some of the most common Anti-Patterns include massive arrays, 
-a massive number of collections, bloated documents, unnecessary indexes, queries without indexes, and data accessed together 
-but stored in different collections. Recognizing these Anti-Patterns is not always straightforward, but some of the tools 
-available in Atlas can aid in their identification. Specifically, we have Data Explorer and Performance Advisor.
-
-Data Explorer is accessible in the free tier of Atlas and serves as a valuable tool for schema analysis. By selecting a 
-collection, developers can access useful information such as Storage Size, Logical Data Size, Total Documents, and Indexes
-Total Size. Furthermore, by navigating to the Indexes tab within a selected collection, developers can gain insights into
-the indexes associated with the collection. This feature helps identify unnecessary indexes that can be eliminated, 
-such as those rarely utilized. If an index is deemed unnecessary, developers can seamlessly remove it by selecting 
-"Drop Index". Additionally, under the Collection section, developers can explore Schema Anti-Patterns, which assist
-in identifying potential issues. By clicking "Learn How to Fix This Issue", developers are directed to detailed 
-documentation explaining how to address the identified Anti-Pattern.
-
-Another valuable tool within Atlas is the Performance Advisor, located under Database. This tool aids in identifying 
-redundant indexes. Particularly beneficial for users operating within a paid tier from Cluster Tier M10 and above, 
-the Performance Advisor offers recommendations for enhancing the performance of active collections and queries that execute slowly. 
-
 ## Connecting to a MongoDB Database Using Connection Strings
 
 ### Introduction

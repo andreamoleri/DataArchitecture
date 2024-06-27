@@ -235,14 +235,7 @@ allowing to manage a wide range of applications and workloads from the simplest 
 _PLACEHOLDER PER FILIPPO_
 
 
-
-
-
-
-
-
-
-
+## Data Modeling
 ### MongoDB Data Modeling
 
 Data modeling is a fundamental aspect of database design, as it serves the purpose of the structuring of data storage
@@ -690,51 +683,68 @@ field as a reference between the two collections.
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Cassandra Data Modeling
 _PLACEHOLDER PER FILIPPO_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Database Connection
+### Connecting to a MongoDB Database
+_PLACEHOLDER PER ANDREA_
+
+### Connecting to a Cassandra Database
+_PLACEHOLDER PER FILIPPO_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
