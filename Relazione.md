@@ -1091,7 +1091,993 @@ _PLACEHOLDER PER FILIPPO_
 ## Syntax
 ### MongoDB Syntax
 
-Principali comandi tipo Inserimento documenti, query, delete (solo linguaggio di Mongo, niente parti di Java)
+#### Methods for Inserting Documents
+
+There are two methods available for inserting documents into a collection in MongoDB: `insertOne()` and `insertMany()`.
+To use the `insertOne()` method, it is appended to the database as follows: `db.<collection>.insertOne()`.
+For instance, when connected to a sample database, one can use the command `db.grades.insertOne()`.
+
+If the `grades` collection does not yet exist in the database, MongoDB will automatically create the collection.
+This is an important point to remember to avoid inadvertently creating new collections within the database.
+Once the command is set, the document intended for insertion is passed as a parameter within the `insertOne` method.
+The following example code can be executed in a bash terminal window connected to an Atlas cluster:
+
+```sh
+db.grades.insertOne({
+  student_id: 902011,
+  products: [
+    {
+      type: "exam",
+      score: 31,
+    },
+    {
+      type: "homework",
+      score: 30,
+    },
+    {
+      type: "quiz",
+      score: 29,
+    },
+    {
+      type: "homework",
+      score: 28,
+    },
+  ],
+  class_id: 550,
+})
+```
+
+If the operation is successful, it will return `acknowledged: true` along with the `ObjectID`
+of the newly created document, which is generated automatically.
+
+#### Inserting Multiple Documents
+
+To insert multiple documents at once, the `insertMany()` method is used with the following syntax:
+
+```sh
+db.<collection>.insertMany([
+	<document 1>,
+	<document 2>,
+	<document 3>
+])
+```
+
+As the name suggests, this code inserts multiple documents. An array of documents intended for insertion is passed,
+separated by commas. This method can be executed in the shell similarly to `insertOne()`.
+Again, an acknowledgment confirming the insertion of multiple documents into the database,
+along with their respective `ObjectID` values, will be returned. Below is an example of how to use `insertMany()`
+in a bash terminal window connected to an Atlas cluster:
+
+```sh
+db.grades.insertMany([
+  {
+    student_id: 902011,
+    products: [
+      {
+        type: "quiz",
+        score: 30,
+      },
+      {
+        type: "homework",
+        score: 29,
+      },
+      {
+        type: "quiz",
+        score: 28,
+      },
+      {
+        type: "exam",
+        score: 31,
+      },
+    ],
+    class_id: 551,
+  },
+  {
+    student_id: 901234,
+    products: [
+      {
+        type: "exam",
+        score: 30,
+      },
+      {
+        type: "quiz",
+        score: 26,
+      },
+      {
+        type: "quiz",
+        score: 24,
+      },
+      {
+        type: "quiz",
+        score: 26,
+      },
+    ],
+    class_id: 550,
+  },
+  {
+    student_id: 223344,
+    products: [
+      {
+        type: "exam",
+        score: 27,
+      },
+      {
+        type: "homework",
+        score: 28,
+      },
+      {
+        type: "quiz",
+        score: 23,
+      },
+      {
+        type: "homework",
+        score: 21,
+      },
+    ],
+    class_id: 551,
+  },
+])
+```
+
+#### Finding Documents in a MongoDB Collection Using the `find()` Method
+
+The `find()` method can be used to locate objects within a collection. Additionally, the `$in` operator can be
+utilized alongside this method. To use the `find()` method, one can simply execute `db.<collection>.find()`.
+For instance, assuming there is a collection named `zips`, the following command can be executed from a terminal
+connected to an Atlas cluster: `db.zips.find()`. This command will return some of the documents contained within
+the collection.
+
+To view more results, the `it` shell directive can be employed. This directive will (it)erate over the extensive
+list of results. Therefore, by entering `it` and pressing enter, more results from the collection can be viewed.
+To retrieve a specific document from the collection, the syntax `{ field: <value> }` can be used.
+For example, `db.zips.find({ state: "AZ" })` will return all documents with `state: AZ`. Another example command might be:
+
+```bash
+db.zips.find({ _id: ObjectId("5c8eccc1caa187d17ca6ed16") })
+```
+
+#### Using the `$in` Operator
+
+The `$in` operator allows for the selection of all documents that have a field value matching one of the values
+specified in an array. A query in the terminal might follow the syntax:
+
+```bash
+db.<collection>.find({
+    <field>: {$in:
+        [<value>, <value>, ...]
+    }
+})
+```
+
+Here, the keyword `in` is followed by an array of values to be matched. For example, in the following code,
+the goal is to find every document containing a city value that is either `ORLANDO` or `FLORIDA`.
+By executing this command, the database will respond with a list of documents that meet the query's criteria:
+
+```bash
+db.zips.find({ city: { $in: ["ORLANDO", "FLORIDA"] } })
+```
+
+#### Finding Documents by Using Comparison Operators
+
+Comparison operators can be utilized to find documents. These include greater than or `$gt`, less than or `$lt`,
+less than or equal to or `$lte`, and greater than or equal to or `$gte`. To use a comparison operator,
+the syntax is `<field>: { <operator> : <value> }`.
+
+Consider the following examples, starting with `$gt`, which returns documents where the field contains a value
+greater than the specified value. For instance, one might search for prices greater than 50 dollars.
+In the following code, we specify the document field name, followed by the sub-document field name in quotes.
+In this case, it is the field `items.price`. When this command is executed, all sub-documents with a price
+greater than $50 are returned.
+
+The same logic applies for elements that are less than, greater than or equal to, or less than or equal to a
+specified value. In the code provided below, `sales` is the collection,
+while the subdocument fields are `items.price` and `customer.age`.
+
+```bash
+> db.sales.find({ "items.price": { $gt: 50 } })
+
+> db.sales.find({ "items.price": { $lt: 50 } })
+
+> db.sales.find({ "customer.age": { $gte: 50 } })
+
+> db.sales.find({ "customer.age": { $lte: 50 } })
+```
+
+#### Querying on Array Elements in MongoDB
+
+To understand how to query specific values, also known as elements, within an array in a MongoDB database,
+consider a common scenario. This involves searching for all documents that have a field containing the specified value.
+For example, consider a collection named `Accounts` defined as follows:
+
+```json
+{
+	"account_id": 470650,
+	"limit": 10000,
+	"products": [
+		"CurrencyService",
+		"Commodity",
+		"InvestmentStock"
+	]
+}
+```
+
+Each document in this collection has a field called `products`. A query can be defined to find all documents
+containing the value `InvestmentStock`. The syntax for this query is as follows:
+
+```bash
+db.accounts.find({ products: "InvestmentStock" })
+```
+
+This syntax is familiar to those used for equality matches. Upon executing the query, all documents will be returned
+that have a `products` field containing either an array or a scalar value that includes `InvestmentStock`.
+Documents not containing this value will not be returned.
+
+#### Using $elemMatch for Array Elements
+
+To perform a query for one or more values but only return a match if they are elements of an array,
+the `$elemMatch` operator can be used. The syntax for this is shown below:
+
+```bash
+db.accounts.find({
+	products: {
+		$elemMatch: { $eq: "InvestmentStock" }
+	}
+})
+```
+
+This query ensures that the `products` field is an array containing `InvestmentStock`. Therefore, the returned
+documents will have a `products` field that is an array containing an element equal to `InvestmentStock`.
+
+The `$elemMatch` operator can also be used to find documents where a single array element matches multiple query
+criteria. Each query criterion is placed in `$elemMatch`, separated by a comma, as shown in the following syntax:
+
+```bash
+{ <field>: { $elemMatch: 
+	{
+		<query1>,
+		<query2>,
+		...
+	}
+}}
+```
+
+#### Example with Multiple Criteria
+
+Consider a collection named `sales`, focusing on the `items` field. This field contains an array of sub-documents
+with information about the items. The following query, executed in the terminal, will find all documents with at
+least one element in the `sales` collection that is a laptop priced over $800 and with a quantity of at least 1.
+
+```bash
+db.sales.find({
+	items: {
+		$elemMatch: { name: "iPhone", price: { $gt: 800 }, quantity: { $gte: 1 } }
+	}
+})
+```
+
+After executing this query, the returned documents will contain laptops with quantities greater than or equal to 1
+and prices greater than $800. In other words, the `$elemMatch` operator can be used to find all documents that
+contain the specified sub-document.
+
+#### Logical Operators in MongoDB
+
+In MongoDB, the logical operators `$and` and `$or` can be used to perform queries. The `$and` operator executes a
+logical AND on an array of one or more expressions, returning all documents that meet all the criteria specified in
+the array. The syntax for this operator is as follows:
+
+```bash
+db.<collection>.find({
+  $and: [
+    {<expression>},
+    {<expression>},
+    ...
+  ]
+})
+```
+
+This `$and` operator has an implicit syntax often used to simplify a query expression. It is sufficient to add a comma
+between expressions to specify an implicit AND, for example:
+
+```bash
+db.collection.find({ <expression>, <expression> })
+```
+
+#### Understanding the `$and` Operator
+
+It is important to remember that this comma acts just like the `AND` operator. When used, if even one of the specified
+criteria does not pass, the document will not be included in the results. Before proceeding to an example, consider
+a sample document from a collection called `Routes`. Each element in the collection contains information about a
+particular flight route:
+
+```json
+{
+  "_id": ObjectId("56e9b39b732b6122f877fa80"),
+  "airline": {
+    "id": 1234,
+    "name": "Fly Emirates",
+    "alias": "FE",
+    "iata": "AAN"
+  },
+  "src_airport": "BGY",
+  "dst_airport": "MXP",
+  "codeshare": "",
+  "stops": 1,
+  "airplane": "747"
+}
+```
+
+Consider the following query, where all documents are being searched for those whose airline is "Ryanair"
+and whose number of stops is greater than or equal to `1`. This query will return the relevant documents:
+
+```bash
+db.routes.find({
+  $and: [{ "airline": "Ryanair" }, { "stops": { $gte: 1 } }],
+})
+```
+
+However, the implicit syntax can simplify the query:
+
+```bash
+db.routes.find({ "airline.name": "Ryanair", stops: { $gte: 1 } })
+```
+
+This will return the same documents as before.
+
+#### The `$or` Operator
+
+Next, consider the `$or` operator, which performs a logical OR on an array of two or more expressions, returning
+documents that match at least one of the provided expressions.
+
+```bash
+db.<collection>.find({
+  $or: [
+    {<expression>},
+    {<expression>},
+    ...
+  ]
+})
+```
+
+An example query using this operator will return all flights either departing from or arriving at the BGY airport:
+
+```bash
+db.routes.find({
+  $or: [{ dst_airport: "BGY" }, { src_airport: "BGY" }],
+})
+```
+
+#### Combining Logical Operators
+
+Logical operators can also be combined. Consider the following example, where an `$and` operator contains two `$or`
+operators. This query searches for every flight that has MXP as either the departure or arrival airport, and also
+all flights operated by Ryanair or using a Boeing 747 airplane:
+
+```bash
+db.routes.find({
+  $and: [
+    { $or: [{ dst_airport: "MXP" }, { src_airport: "MXP" }] },
+    { $or: [{ "airline.name": "Ryanair" }, { airplane: 747 }] },
+  ]
+})
+```
+
+In such cases, the implicit syntax of `$and` is not used. This is because the first OR expression would be overwritten
+by the following OR expression. This occurs because two fields with the same name cannot be stored in the same JSON object.
+Thus, as a general rule, when including the same operator more than once in a query, the explicit `$and` operator must be used.
+
+#### Replacing a Document in MongoDB
+
+Occasionally, documents are erroneously inserted into a collection. Fortunately, replacing them is straightforward.
+To replace a single document, the `replaceOne()` method is used, for example: `db.collection.replaceOne(filter, replacement, options)`.
+This method accepts three arguments: filter, replacement, and options. The latter is optional. Here is an example:
+incomplete or temporary documents can be replaced with complete ones while retaining the same `_id`.
+Below is an example of a document created before the book was ready for publication, with both `ISBN` and `thumbnailUrl` set to default values.
+
+```bash
+{
+	_id: "62c5671541e2c6bcb528308",
+	title: "Harry Potter and the Philosopher's Stone",
+	ISBN: "12345678",
+	thumbnailUrl: "",
+	publicationDate: ISODate ("2019-01-01T00:00:00.000z"),
+	authors: ["J.K. Rowley"]
+}
+```
+
+To replace this document with an updated version, the `replaceOne` method is used on the Book Collection as follows.
+The `_id` is provided as the filter criteria because it is guaranteed to be unique. The entire document is replaced by
+passing the replacement document as the second parameter. The program output will return a `matchedCount`
+(how many documents matched the filter) and a `modifiedCount` (how many of these documents were modified) to indicate
+the number of updated documents. In this case, both values will be 1.
+
+```bash
+db.books.replaceOne(
+  {
+    _id: ObjectId("6282afeb441a74a98dbbec4e")
+  },
+  {
+    title: "Data Science Fundamentals for Python and MongoDB",
+    isbn: "1484235967",
+    publishedDate: new Date("2018-05-10"),
+    thumbnailUrl: "https://m.media-amazon.com/images/I/71opmUBc2wL._AC_UY218_.jpg",
+    authors: ["David Paper"],
+    categories: ["Data Science"]
+  }
+)
+```
+
+To confirm the modification, the `db.books.findOne({_id: ObjectId("6282afeb441a74a98dbbec4e")})` method can be invoked.
+Running this command will allow confirmation that the document has been updated, as it will display the updated document.
+
+#### Updating MongoDB Documents by Using `updateOne()`
+
+Next, update operators in the MongoDB Shell are discussed. The `updateOne()` method, used with the update operators
+`$set` and `$push`, is introduced. This method updates a single document and accepts three arguments: filter, update,
+and options. When updating documents, the `$set` operator can be used to add new fields and values to a document or
+replace the value of a field with a specified value, while the `$push` operator appends a value to an array.
+If the array field is absent, `$push` adds it with the value as its element. Consider managing a database called
+`audio` that contains a collection named `Podcasts`. Below is an example using the `$set` operator to replace the
+value of a field with a specified value. After running this, `matchedCount` and `modifiedCount` will again be returned.
+
+```bash
+db.podcasts.updateOne(
+  {
+    _id: ObjectId("62822febf41a74a98nbbec4e")
+  },
+  {
+    $set: {
+      subscribers: 100000
+    }
+  }
+)
+```
+
+An example of using the `upsert` option, which allows creating a new document if no documents match the filter criteria,
+is provided below. Upsert stands for Update or Insert. In the following example, an attempt is made to update a
+non-existent document, but since it does not exist and `upsert` is set to true, it will be created.
+
+```bash
+db.podcasts.updateOne(
+  { title: "Power Pizza" },
+  { $set: { topics: ["fun", "talk-show"] } },
+  { upsert: true }
+)
+```
+
+The final example demonstrates the `$push` operator, which in the following case adds a new value to the `hosts` array field.
+
+```bash
+db.podcasts.updateOne(
+  { _id: ObjectId("62822febf41a74a98nbbec4e") },
+  { $push: { hosts: "Sio, Nick, Lorro" } }
+)
+```
+
+#### Updating MongoDB Documents by Using `findAndModify()`
+
+The `findAndModify()` method is used to return the document that has just been updated. In other words, it performs in
+a single operation what would otherwise require two operations with `updateOne()` and `findOne()`. This avoids two
+roundtrips to the server and ensures that another user does not modify the document before it is viewed, thus
+returning the correct version of the document. This powerful method ensures the correct version of the document
+is returned before another thread can modify it. Below is an example that, in addition to modifying the document,
+also returns the modified document. The `new: true` option is specified to return the modified document instead of the original.
+
+```bash
+db.podcasts.findAndModify({
+  query: { _id: ObjectId("62822febf41a74a98nbbec4e") },
+  update: { $inc: { subscribers: 1 } },
+  new: true
+})
+```
+
+#### Updating MongoDB Documents by Using `updateMany()`
+
+To update multiple documents, the `updateMany()` method can be used, which also accepts a filter, an update document,
+and an optional options object. The example below updates all books published before 2019 to the status `LEGACY`.
+If `matchedCount` and `modifiedCount` are the same, the update was successful. This method is not an all-or-nothing
+operation and will not roll back updates. If this occurs, `updateMany()` must be run again to update the remaining
+documents. Additionally, `updateMany()` lacks isolation: updates will be visible as soon as they are performed,
+which may not be appropriate for some business requirements.
+
+```bash
+db.books.updateMany(
+  { publishedDate: { $lt: new Date("2023-01-01") } },
+  { $set: { status: "LEGACY" } }
+)
+```
+
+#### Deleting Documents in MongoDB
+
+To delete documents in MongoDB, the `deleteOne()` and `deleteMany()` methods can be used. Both methods accept a filter
+document and an options object, as seen previously. Below are examples showing how to delete a single document and
+multiple documents. Once executed, these methods return an `acknowledged` boolean value and an integer `deletedCount`
+value to confirm the process was successful.
+
+```bash
+# Delete a Single Document
+db.podcasts.deleteOne({ _id: ObjectId("62822febf41a74a98nbbec4e") })
+
+# Delete Multiple Documents
+db.podcasts.deleteMany({ category: "true crime" })
+```
+
+#### Using Cursors in MongoDB
+
+In MongoDB, a Cursor is a pointer to the result set of a query. For instance, the `find()` method returns a cursor that
+points to the documents matching the query. There are also Cursor Methods that can be chained to queries and used to
+perform actions on the resulting set, such as sorting or limiting the search results, before returning the data to the client.
+To begin with, results can be returned in a specified order using the `cursor.sort()` method, which has the following syntax:
+
+```plaintext
+db.collection.find(<query>).sort(<sort>)
+```
+
+Within the parentheses of `sort()`, an object specifying the field(s) to sort by and the order of the sort must be
+included. Use `1` for ascending order and `-1` for descending order. The following code example illustrates this by
+returning companies with a `category_code` of "music" in alphabetical order. A projection is also shown to return only the names:
+
+```bash
+# Return data on all music companies, sorted alphabetically from A to Z.
+db.companies.find({ category_code: "music" }).sort({ name: 1 });
+
+# Projection to return only names
+db.companies.find({ category_code: "music" }, { name: 1 }).sort({ name: 1 });
+
+# Return data on all music companies, sorted alphabetically from A to Z. Ensure consistent sort order.
+db.companies.find({ category_code: "music" }).sort({ name: 1, _id: 1 });
+```
+
+To ensure that documents are returned in a consistent order, a field containing unique values can be included in the
+sort. A simple way to achieve this is by including the `_id` field in the sort as demonstrated above. The `sort`
+method can be applied to virtually any type of field.
+
+### Limiting the Number of Results
+
+Limiting the number of returned results can improve application performance by avoiding unnecessary data processing.
+The `Limit Cursor Method` achieves this by using `cursor.limit()` to specify the maximum number of documents that
+the cursor will return. The syntax is as follows:
+
+```plaintext
+db.collection.find(<query>).limit(<number>)
+```
+
+Here is an example where the three music companies with the highest number of employees are returned. A projection
+can also be added to simplify the returned document:
+
+```bash
+# Return the three music companies with the highest number of employees. Ensure consistent sort order.
+db.companies.find({ category_code: "music" })
+  .sort({ number_of_employees: -1, _id: 1 })
+  .limit(3);
+
+# Projection on two fields
+db.companies.find({ category_code: "music" }, { name: 1, number_of_employees: 1 })
+  .sort({ number_of_employees: -1, _id: 1 })
+  .limit(3);
+```
+
+#### Returning Specific Data From a Query in MongoDB
+
+By default, queries in MongoDB return all fields in the matching document. However, sometimes an application may need
+to use data only from a subset of these fields. In this case, the amount of data returned by MongoDB can be limited
+by selecting specific fields to return. This process, known as projection, can be used in most find queries. The syntax is:
+
+```plaintext
+db.collection.find(<query>, <projection>)
+```
+
+To include a field, set its value to `1` in the projection document, as shown in the example below. To exclude a field,
+set its value to `0`. While the `_id` field is included by default, it can be suppressed by setting its value to `0`
+in any projection, as illustrated in the third example. Note that inclusion and exclusion cannot be combined in most
+projections, except for the `_id` field, which can be both included and excluded. Accessing a subdocument is also shown,
+ensuring that the zip code is excluded:
+
+```bash
+# Return all restaurant inspections - business name, result, and _id fields only
+db.inspections.find(
+  { sector: "Restaurant - 818" },
+  { business_name: 1, result: 1 }  # This is the projection document
+)
+
+# Return all inspections with result of "Pass" or "Warning" - exclude date and zip code
+db.inspections.find(
+  { result: { $in: ["Pass", "Warning"] } },
+  { date: 0, "address.zip": 0 }  # This is the projection document
+)
+
+# Return all restaurant inspections - business name and result fields only
+db.inspections.find(
+  { sector: "Restaurant - 818" },
+  { business_name: 1, result: 1, _id: 0 }  # This is the projection document
+)
+```
+
+#### Counting Documents in a MongoDB Collection
+
+The `db.collection.countDocuments()` method can be used to count the number of documents matching a query. This method
+takes two parameters: a query document and an options document. The syntax is:
+
+```plaintext
+db.collection.countDocuments(<query>, <options>)
+```
+
+Here are some code examples:
+
+```bash
+# Count number of documents in trip collection
+db.trips.countDocuments({})
+
+# Count number of trips over 120 minutes by subscribers
+db.trips.countDocuments({ tripduration: { $gt: 120 }, usertype: "Subscriber" })
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### BSON Format in MongoDB
+
+Binary JSON, or BSON, is the data format that MongoDB uses to organize and store data. BSON is optimized for storage,
+retrieval, and transmission across the wire. Additionally, it is more secure than plain text JSON and supports more
+data types. The MongoDB Java Driver provides several classes for representing BSON documents, with the `Document`
+class being recommended due to its flexible and concise data representation. MongoDB provides a BSON interface for
+types that can render themselves into a BSON Document, and the `Document` class implements this interface.
+
+Here is an example of a BSON document, which includes the usual `_id` field serving as the Primary Key and a subdocument
+represented by the `address` field. The `date` field is represented as a String, though it is advisable to use a
+specific BSON type for dates. Summarizing the aforementioned points, one way to represent BSON documents is by using
+the `Document` class. The `Document` class offers a flexible representation of a BSON document.
+
+```json
+{
+	"_id": { "$oid": "56d61033a378eccde8a8354f" },
+	"business_id": "10021-2015-ENFO",
+	"certificate_number": 9278806,
+	"business_name": "ATLIXCO DELI GROCERY INC.",
+	"date": "Feb 20 2015",
+	"result": "No Violation Issued",
+	"sector": "Cigarette Retail Dealer - 127",
+	"address": {
+		"city": "RIDGEWOOD",
+		"zip": 11385,
+		"street": "MENAHAN ST",
+		"number": 1712
+	}
+}
+```
+
+To instantiate this document in Java, use the following syntax. This example demonstrates instantiating a new document
+and setting its Primary Key, which in this case is `_id`. Subsequently, the corresponding fields and values are appended,
+such as `Date` for the date. The document is then ready to be sent to the MongoDB Server.
+
+```java
+Document inspection = new Document("_id", new ObjectId())
+	.append("business_id", "10021-2015-ENFO")
+	.append("certificate_number", 9278886)
+	.append("business_name", "ATLIXCQ DELI GROCERY INC.")
+	.append("date", Date.from(LocalDate.of(2015, 2, 20).atStartOfDay(ZoneId.systemDefault()).toInstant()))
+	.append("result", "No Violation Issued")
+	.append("sector", "Cigarette Retail Dealer - 127")
+	.append("address", new Document().append("city", "RIDGEWOOD").append("zip", 11385).append("street", "MENAHAN ST").append("number", 1712));
+```
+
+#### Inserting a Document in Java Applications
+
+To insert a single document into a collection, use the `getCollection()` method to access the `MongoCollection` object,
+which represents the specified collection. Then, append the `insertOne()` method to the collection object. Within the
+parentheses of `insertOne()`, include an object that contains the document data and print the inserted document’s ID,
+as shown in the following example, which also contains a subdocument in the `address` field.
+
+```java
+MongoDatabase database = mongoClient.getDatabase("sample_training");
+MongoCollection<Document> collection = database.getCollection("inspections");
+
+Document inspection = new Document("_id", new ObjectId())
+        .append("id", "10021-2015-ENFO")
+        .append("certificate_number", 9278806)
+        .append("business_name", "ATLIXCO DELI GROCERY INC.")
+        .append("date", Date.from(LocalDate.of(2015, 2, 20).atStartOfDay(ZoneId.systemDefault()).toInstant()))
+        .append("result", "No Violation Issued")
+        .append("sector", "Cigarette Retail Dealer - 127")
+        .append("address", new Document().append("city", "RIDGEWOOD").append("zip", 11385).append("street", "MENAHAN ST").append("number", 1712));
+
+InsertOneResult result = collection.insertOne(inspection);
+BsonValue id = result.getInsertedId();
+System.out.println(id);
+```
+
+Similarly, to insert multiple documents into a collection, append the `insertMany()` method to the collection object.
+Within the parentheses of `insertMany()`, include an object that contains the document data and print out the IDs of
+the inserted documents. The following example clarifies this process.
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+
+Document doc1 = new Document().append("account_holder", "john doe").append("account_id", "MDB99115881").append("balance", 1785).append("account_type", "checking");
+Document doc2 = new Document().append("account_holder", "jane doe").append("account_id", "MDB79101843").append("balance", 1468).append("account_type", "checking");
+
+List<Document> accounts = Arrays.asList(doc1, doc2);
+InsertManyResult result = collection.insertMany(accounts);
+result.getInsertedIds().forEach((x, y) -> System.out.println(y.asObjectId()));
+```
+
+Custom methods can be created to simplify these functions, as demonstrated in the following examples:
+
+```java
+// Example Methods
+public void insertOneDocument(Document doc) {
+  System.out.println("Inserting one account document");
+  InsertOneResult result = collection.insertOne(doc);
+  BsonValue id = result.getInsertedId();
+  System.out.println("Inserted document Id: " + id);
+}
+
+public void insertManyDocuments(List<Document> documents) {
+  InsertManyResult result = collection.insertMany(documents);
+  System.out.println("\tTotal # of documents: " + result.getInsertedIds().size());
+}
+```
+
+#### Querying a MongoDB Collection in Java Applications
+
+The `find()` method can be used to search for specific conditions. For example, in the following code, `find()` is used
+to locate all checking accounts with a balance of at least 1000. Each document returned by the `find()` method is
+processed by iterating the `MongoCursor` using a try block and a while loop. The `find()` method accepts a query
+filter and returns documents that match the filters in the collection.
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+try(MongoCursor<Document> cursor = collection.find(and(gte("balance", 1000), eq("account_type", "checking"))).iterator()) {
+    while(cursor.hasNext()) {
+        System.out.println(cursor.next().toJson());
+    }
+}
+```
+
+The `find()` and `first()` methods can be concatenated to find and return only the first document that matches the
+query filter given to the `find()` method. For example, the following code returns a single document from the same
+query. It is important to remember that all queries on MongoDB should use a Query Filter to optimize the use of database
+resources. The Java `Filters` builder class helps define more efficient queries by using query predicates.
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Document doc = collection.find(Filters.and(gte("balance", 1000), Filters.eq("account_type", "checking"))).first();
+System.out.println(doc.toJson());
+```
+
+Again, useful custom methods can be built to perform the same functions but be invoked more easily:
+
+```java
+// Example Methods
+public void findOneDocument(Bson query) {
+  Document doc = collection.find(query).first();
+  System.out.println(doc != null ? doc.toJson() : null);
+}
+
+public void findDocuments(Bson query) {
+  try (MongoCursor<Document> cursor = collection.find(query).iterator()) {
+    while (cursor.hasNext()) {
+      System.out.println(cursor.next().toJson());
+    }
+  }
+}
+```
+
+## Updating Documents in Java Applications
+
+### Updating a Single Document
+
+To update a single document, use the `updateOne()` method on a `MongoCollection` object. This method accepts a filter
+that matches the document to be updated and an update statement that instructs the driver on how to modify the matching
+document. The `updateOne()` method updates only the first document that matches the filter.
+
+In the following example, one document is updated by increasing the balance of a specific account by 100 and setting
+the account status to active:
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Bson query  = Filters.eq("account_id", "MDB12234728");
+Bson updates  = Updates.combine(Updates.set("account_status", "active"), Updates.inc("balance", 100));
+UpdateResult upResult = collection.updateOne(query, updates);
+```
+
+### Updating Multiple Documents
+
+To update multiple documents, use the `updateMany()` method on a `MongoCollection` object. This method also accepts a
+filter to match the documents that need to be updated, along with an update statement. The `updateMany()` method
+updates all documents that match the filter.
+
+In the following example, the minimum balance of all savings accounts is increased to 100:
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Bson query  = Filters.eq("account_type", "savings");
+Bson updates  = Updates.combine(Updates.set("minimum_balance", 100));
+UpdateResult upResult = collection.updateMany(query, updates);
+```
+
+### Creating Utility Methods
+
+Utility methods can be created and called as shown below:
+
+```java
+// Example of Methods and Usage #1
+public class Crud {
+    private final MongoCollection<Document> collection;
+
+    public Crud(MongoClient client) {
+        this.collection = client.getDatabase("bank").getCollection("accounts");
+    }
+
+    public void updateOneDocument(Bson query, Bson update) {
+        UpdateResult updateResult = collection.updateOne(query, update);
+        System.out.println("Updated a document:");
+        System.out.println("\t" + updateResult.getModifiedCount());
+    }
+}
+
+Bson query = Filters.eq("account_id", "MDB333829449");
+Bson update = Updates.combine(Updates.set("account_status", "active"), Updates.inc("balance", 100));
+crud.updateOneDocument(query, update);
+
+// Example of Methods and Usage #2
+public class Crud {
+    private final MongoCollection<Document> collection;
+
+    public Crud(MongoClient client) {
+        this.collection = client.getDatabase("bank").getCollection("accounts");
+    }
+
+    public void updateManyDocuments(Document query, Bson update) {
+        UpdateResult updateResult = collection.updateMany(query, update);
+        System.out.println("Updated this many documents:");
+        System.out.println("\t" + updateResult.getModifiedCount());
+    }
+}
+```
+
+## Deleting Documents in Java Applications
+
+### Deleting a Single Document
+
+To delete a single document from a collection, use the `deleteOne()` method on a `MongoCollection` object. This method
+accepts a query filter that matches the document to be deleted. If no filter is specified, MongoDB matches the first
+document in the collection. The `deleteOne()` method deletes only the first document that matches.
+
+In the following example, a single document related to John Doe's account is deleted. Assume that instances of
+`MongoClient` and `MongoCollection` have already been instantiated:
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Bson query = Filters.eq("account_holder", "john doe");
+DeleteResult delResult = collection.deleteOne(query);
+System.out.println("Deleted a document:");
+System.out.println("\t" + delResult.getDeletedCount());
+```
+
+### Deleting Multiple Documents
+
+To delete multiple documents in a single operation, use the `deleteMany()` method on a `MongoCollection` object.
+Specify the documents to be deleted with a query filter. If an empty document is provided, MongoDB matches all
+documents in the collection and deletes them.
+
+In the following example, all dormant accounts are deleted using a query object, and the total number of deleted
+documents is printed:
+
+```java
+MongoDatabase database = mongoClient.getDatabase("bank");
+MongoCollection<Document> collection = database.getCollection("accounts");
+Bson query = Filters.eq("account_status", "dormant");
+DeleteResult delResult = collection.deleteMany(query);
+System.out.println(delResult.getDeletedCount());
+```
+
+### Creating Utility Methods
+
+Utility methods for deletion can also be created and called as shown below:
+
+```java
+// Example of Methods and Usage #1
+public class Crud {
+    private final MongoCollection<Document> collection;
+
+    public Crud(MongoClient client) {
+        this.collection = client.getDatabase("bank").getCollection("accounts");
+    }
+
+    public void deleteOneDocument(Bson query) {
+        DeleteResult delResult = collection.deleteOne(query);
+        System.out.println("Deleted a document:");
+        System.out.println("\t" + delResult.getDeletedCount());
+    }    
+}
+
+// Example of Methods and Usage #2
+public class Crud {
+    private final MongoCollection<Document> collection;
+
+    public Crud(MongoClient client) {
+        this.collection = client.getDatabase("bank").getCollection("accounts");
+    }
+
+    public void deleteManyDocuments(Bson query) {
+        DeleteResult delResult = collection.deleteMany(query);
+        System.out.println("Deleted this many documents:");
+        System.out.println("\t" + delResult.getDeletedCount());
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Sintassi di Cassandra
 _PLACEHOLDER PER FILIPPO_
