@@ -2915,7 +2915,7 @@ In conclusion, while indexes play a pivotal role in enhancing query performance 
 management—including periodic review, deletion of redundant indexes, and careful consideration of operational
 implications—is essential to maintain optimal database performance and efficiency.
 
-## Cassandra Optimization
+### Cassandra Optimization
 _PLACEHOLDER PER FILIPPO_
 
 ## Data Modeling
