@@ -2639,7 +2639,7 @@ In the following Java examples, the `Aggregates` builder class is employed to co
 within MongoDB aggregation pipelines. Each example demonstrates how to utilize these stages effectively to manipulate
 and aggregate data.
 
-### Example 1: Using $match
+##### Example 1: Using $match
 
 ```java
 public static void main(String[] args) {
@@ -2658,7 +2658,7 @@ private static void matchStage(MongoCollection<Document> accounts){
 }
 ```
 
-### Example 2: Using $match and $group
+##### Example 2: Using $match and $group
 
 ```java
 public static void main(String[] args) {
@@ -2678,7 +2678,7 @@ private static void matchAndGroupStages(MongoCollection<Document> accounts){
 }
 ```
 
-## Using MongoDB Aggregation Stages with Java: $sort and $project
+#### Using MongoDB Aggregation Stages with Java: $sort and $project
 
 This example illustrates the use of `$sort` and `$project` stages within MongoDB aggregation pipelines, emphasizing
 sorting and projecting fields from queried documents.
@@ -2719,7 +2719,7 @@ _PLACEHOLDER PER FILIPPO_
 
 ## Optimization
 ### MongoDB Optimization With Indexes
-## Using MongoDB Indexes in Collections
+#### Using MongoDB Indexes in Collections
 
 Indexes in MongoDB are specialized data structures that store a subset of the collection's data in a sorted format,
 facilitating efficient traversal and search operations. They significantly enhance query performance by allowing quick
@@ -2735,7 +2735,7 @@ or updated. Over-indexing can further degrade performance, necessitating periodi
 The most common index types in MongoDB include Single Field Indexes, which index a single field, and Compound Indexes,
 which involve multiple fields in the index definition. Both types can also function as Multikey Indexes if they index arrays within documents.
 
-## Creating a Single Field Index in MongoDB
+#### Creating a Single Field Index in MongoDB
 
 To create a Single Field Index in MongoDB, the `createIndex()` method is utilized. This method specifies the field and
 optionally its sorting order within the index definition. For instance, the following command creates an ascending index
@@ -2773,7 +2773,7 @@ db.customers.getIndexes()
 This command displays comprehensive information about each index present in the `customers` collection, aiding in index
 management and optimization efforts.
 
-## Creating a Multikey Index in MongoDB
+#### Creating a Multikey Index in MongoDB
 
 To create a multikey index in MongoDB, the `createIndex()` method is utilized with an object parameter specifying the
 array field and sort order. For instance, to index the `accounts` array field in ascending order:
@@ -2787,7 +2787,7 @@ db.customers.createIndex({
 MongoDB imposes a constraint where only one array field can be indexed per index. If multiple fields are indexed,
 only one of them can be an array.
 
-## Query Optimization with `explain()`
+#### Query Optimization with `explain()`
 
 To verify whether an index is being utilized by a query, the `explain()` method is employed. By executing `explain()`
 on a query against a collection, MongoDB provides an execution plan detailing various stages such as `IXSCAN`,
@@ -2802,7 +2802,7 @@ db.customers.explain().find({
 })
 ```
 
-## Working with Compound Indexes
+#### Working with Compound Indexes
 
 Compound indexes in MongoDB involve indexing multiple fields within a document. Using the `createIndex()` method,
 a compound index is defined with an object containing two or more fields and their respective sort orders. Here's
@@ -2833,7 +2833,7 @@ db.customers.find({
 })
 ```
 
-## Index Utilization and Projections
+#### Index Utilization and Projections
 
 Indexes in MongoDB can cover queries entirely when all necessary data is contained within the index itself, without
 requiring data retrieval from memory. Projections specify which fields to return in query results. By including only
@@ -2861,7 +2861,7 @@ By following these indexing and querying strategies, MongoDB optimizes query per
 operations efficiency. Understanding how indexes and query execution plans interact is crucial for maximizing
 MongoDB's capabilities in handling large datasets and complex queries.
 
-## Deleting an Index
+#### Deleting an Index
 
 In MongoDB, managing indexes is crucial for optimizing query performance and minimizing operational costs associated
 with write operations. Indexes in MongoDB are automatically created for the `_id` field in every collection and are
@@ -2895,7 +2895,7 @@ db.customers.dropIndex({
 })
 ```
 
-## Deleting Multiple Indexes
+#### Deleting Multiple Indexes
 
 In scenarios where multiple indexes need to be deleted simultaneously, MongoDB offers the `dropIndexes()` method.
 This command removes all non-default indexes from a collection, preserving the mandatory index on `_id`. Alternatively,
@@ -2915,7 +2915,7 @@ In conclusion, while indexes play a pivotal role in enhancing query performance 
 management—including periodic review, deletion of redundant indexes, and careful consideration of operational
 implications—is essential to maintain optimal database performance and efficiency.
 
-### Cassandra Optimization
+## Cassandra Optimization
 _PLACEHOLDER PER FILIPPO_
 
 ## Data Modeling
