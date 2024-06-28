@@ -3550,11 +3550,30 @@ Devo ancora capire bene cazzo dobbiamo fare qua ma poi anch'esso sarà diviso in
 
 ## Conclusioni
 
-Tiriamo un po' le somme: quali sono le principalissime differenze e quando è meglio usare uno al posto di un altro
+MongoDB e Apache Cassandra sono due dei database NoSQL più popolari, ognuno con caratteristiche e applicazioni specifiche che li rendono adatti a diverse esigenze. Nonostante le loro somiglianze nel supportare dati non strutturati e nella scalabilità, le differenze nelle loro architetture e funzionalità li distinguono chiaramente.
 
-Riassumiamo tipo questi 3 siti:
-https://aws.amazon.com/it/compare/the-difference-between-cassandra-and-mongodb/#:~:text=Riepilogo%20delle%20differenze%3A%20Cassandra%20e%20MongoDB,-Apache%20Cassandra&text=Documenti%20JSON%20serializzati.&text=Cassandra%20supporta%20indici%20secondari%20e,offre%20diverse%20opzioni%20di%20indicizzazione.
-https://www.mongodb.com/resources/compare/cassandra-vs-mongodb
-https://www.ionos.it/digitalguide/server/know-how/mongodb-e-cassandra/
+MongoDB utilizza un modello di dati basato su documenti, archiviati in formato BSON, simile a JSON. I documenti sono raccolti in collezioni e non richiedono uno schema fisso, il che lo rende particolarmente flessibile per gestire dati dinamici e non strutturati. Al contrario, Cassandra utilizza un modello di dati a colonne larghe, un ibrido tra un archivio tabellare e uno chiave-valore. Ogni riga può avere un set di colonne diverso, organizzate in famiglie di colonne, con le Sorted String Tables (SSTable) come unità di archiviazione base, contenenti coppie chiave-valore per una particolare famiglia di colonne.
 
-questa parte è giusto per rispondere alla domanda "e quindi quando usate uno al posto dell'altro?"
+In termini di linguaggio di query, MongoDB utilizza il MongoDB Query Language (MQL), che supporta operazioni CRUD con comandi simili a quelli di Node.js, mentre Cassandra utilizza il Cassandra Query Language (CQL), simile a SQL ma adattato al suo modello di dati. Questa differenza rende CQL più intuitivo per chi ha familiarità con SQL, mentre MQL offre una maggiore flessibilità per operazioni specifiche dei documenti.
+
+MongoDB offre vari tipi di indici, inclusi indici su singoli campi, indici composti, multichiave, geospaziali e di ricerca testuale. Cassandra, invece, supporta indici secondari e SASI (SSTable-Attached Secondary Indexes) per query complesse, anche se limita le prestazioni del sistema.
+
+La gestione della concorrenza e delle transazioni è un'altra area di differenza tra MongoDB e Cassandra. MongoDB gestisce la concorrenza attraverso MVCC (Multi-Version Concurrency Control) e blocchi a livello di documento, permettendo transazioni ACID a livello di documento singolo. Offre anche transazioni multi-documento a partire dalla versione 4.0, ma con alcune limitazioni in termini di performance.
+
+Cassandra implementa la concorrenza con consistenza girevole e atomicità a livello di riga. Non supporta pienamente le transazioni ACID in modo nativo, ma permette batch di operazioni con isolamento a livello di riga, fornendo una consistenza eventuale con possibilità di configurare il livello di coerenza.
+
+Dal punto di vista della scalabilità e della disponibilità, entrambi i sistemi sono progettati per supportare la scalabilità orizzontale tramite la partizione e la replica dei dati su più nodi.
+
+MongoDB utilizza un singolo nodo primario con repliche per le letture e le scritture. La sua architettura di sharding permette di distribuire i dati tra più nodi, con un bilanciamento del carico e una scalabilità elastica. Questo approccio offre un maggiore controllo sul partizionamento tramite chiavi di sharding, permettendo di ottimizzare la distribuzione dei dati e le query.
+
+Cassandra è progettato per alta disponibilità con nodi master multipli, utilizzando una topologia peer-to-peer. Ogni nodo nel cluster è uguale, eliminando il punto di fallimento singolo. Questa architettura permette una scalabilità lineare, aggiungendo semplicemente nuovi nodi al cluster senza necessità di riconfigurare l'intera infrastruttura.
+
+MongoDB utilizza un modello di replica primaria-secondaria, dove un nodo primario gestisce tutte le operazioni di scrittura e le repliche secondarie sono utilizzate per la lettura e il failover. Se il nodo primario fallisce, uno dei secondari viene eletto come nuovo primario, garantendo la continuità operativa.
+
+Cassandra utilizza un modello di replicazione masterless, dove ogni nodo può ricevere operazioni di lettura e scrittura. I dati sono replicati automaticamente su più nodi per garantire la tolleranza ai guasti. Questo modello assicura che anche in caso di fallimento di uno o più nodi, il sistema continui a operare senza interruzioni.
+
+Entrambi i database sono open source nelle loro prime versioni, con MongoDB sviluppato da MongoDB, Inc. e Cassandra inizialmente sviluppato da Facebook e poi rilasciato da Apache. Supportano un'ampia gamma di linguaggi di programmazione, con MongoDB che offre supporto per 12 linguaggi, mentre Cassandra ne supporta un numero leggermente inferiore, ma comunque vario.
+
+La sicurezza è un aspetto critico per entrambi i database. Nelle rispettive versioni di base, la sicurezza di MongoDB e Cassandra è soprattutto nelle mani dell'utente, con SSL e TLS per le connessioni client e le autenticazioni utente. MongoDB Atlas, la versione a pagamento di MongoDB, offre funzioni di sicurezza estese, come X.509, crittografia lato client e lato server e integrazione Kerberos e LDAP.
+
+In sintesi, MongoDB è ideale per gestire dati non strutturati e dinamici grazie alla sua flessibilità e scalabilità, mentre Cassandra è ottimo per applicazioni che richiedono alta disponibilità e prestazioni elevate di lettura e scrittura. Entrambi i database offrono soluzioni potenti per diverse esigenze, rendendoli strumenti indispensabili nel panorama moderno della gestione dei dati.
