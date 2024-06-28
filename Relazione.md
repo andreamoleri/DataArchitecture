@@ -1071,7 +1071,97 @@ public class Connection {
 ```
 
 ### Connecting to a Cassandra Database
-_PLACEHOLDER PER FILIPPO_
+Amazon Keyspaces requires the use of Transport Layer Security (TLS) to protect client connections. TLS is an encryption protocol that ensures the security and privacy of data exchanged between client and server applications. Here’s how to configure the connection:
+
+1. Download the Starfield digital certificate using the following command and save it as `sf-class2-root.crt` in your local directory or home directory:
+
+```sh
+curl https://certs.secureserver.net/repository/sf-class2-root.crt -O
+```
+
+2. Convert the Starfield digital certificate into a TrustStore file:
+
+```sh
+openssl x509 -outform der -in sf-class2-root.crt -out temp_file.der
+keytool -import -alias cassandra -keystore cassandra_truststore.jks -file temp_file.der
+```
+
+During this step, you will need to create a password (e.g., `my_password`) for the keystore and trust the certificate.
+
+3. Attach the TrustStore file in the JVM arguments:
+
+```sh
+-Djavax.net.ssl.trustStore=path_to_file/cassandra_truststore.jks 
+-Djavax.net.ssl.trustStorePassword=my_password
+```
+
+To establish the connection, we use the DataStax Java driver 3.x for Apache Cassandra along with the SigV4 authentication plugin.
+
+SigV4 (Signature Version 4) is an AWS authentication protocol that uses encrypted signatures to authenticate API requests. This protocol allows requests to be signed with access keys, providing a secure alternative to using a username and password.
+
+IAM (Identity and Access Management) credentials are a set of access keys and passwords associated with an IAM user or role on AWS. These credentials are used to authenticate and authorize requests to AWS resources, ensuring that only authorized users can access specified resources.
+
+The SigV4 authentication plugin enables the use of IAM credentials for users and roles when connecting to Amazon Keyspaces, signing API requests with access keys instead of requiring a username and password. To run this code example, complete the following tasks:
+
+4. Create credentials for your IAM user or role: generate an access key and its password, and store them as environment variables.
+
+5. Add the DataStax Java driver for Apache Cassandra to your Java project (in the `pom.xml` file for a Maven project):
+
+```xml
+<dependency>
+    <groupId>com.datastax.cassandra</groupId>
+    <artifactId>cassandra-driver-core</artifactId>
+    <version>3.7.2</version>
+</dependency>
+```
+
+6. Add the authentication plugin to your application, compatible with version 3.x of the DataStax Java driver for Apache Cassandra:
+
+```xml
+<dependency>
+    <groupId>software.aws.mcs</groupId>
+    <artifactId>aws-sigv4-auth-cassandra-java-driver-plugin_3</artifactId>
+    <version>3.0.3</version>
+</dependency>
+```
+
+7. Identify the endpoint of the keyspace you want to connect to. A keyspace endpoint has the following format:
+
+```plaintext
+cassandra.<region>.amazonaws.com:9142
+```
+
+8. Configure your application's main method to create a pool of connections to Amazon Keyspaces. Typically, the connection is confirmed by running a simple query:
+
+```java
+import software.aws.mcs.auth.SigV4AuthProvider;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+
+public class App 
+{
+    public static void main(String[] args)
+    {
+        String endPoint = "cassandra.<region>.amazonaws.com";
+        int portNumber = 9142;
+        Session session = Cluster.builder()
+                                 .addContactPoint(endPoint)
+                                 .withPort(portNumber)
+                                 .withAuthProvider(new SigV4AuthProvider("<region>"))
+                                 .withSSL()
+                                 .build()
+                                 .connect();
+
+        ResultSet rs = session.execute("select * from system_schema.keyspaces");
+        Row row = rs.one();
+        System.out.println(row.getString("keyspace_name"));
+    }
+}
+```
+
+This configuration ensures that connections to your Amazon Keyspaces keyspace are secure and authenticated using TLS and IAM credentials.
 
 ## Syntax
 ### MongoDB Syntax
