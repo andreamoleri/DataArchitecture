@@ -72,7 +72,7 @@ This is very different from Relational Databases, which organize data into rows 
 Documents offer a flexible and developer-friendly approach to working with data.
 Consider the following code snippet as a simple example of a MongoDB Document:
 
-```json
+```bash
 {
     "_id": 1,
     "name": {
@@ -117,7 +117,7 @@ As anticipated, MongoDB stores data in structures known as documents which resem
 Below is an example of a document used to store product data in a store. We can observe that the document has
 five fields, including a "colors" field containing an array of strings and an "available" field holding a boolean value.
 
-```json
+```bash
 {
 	"_id": 1,
 	"name": "iPhone 14 Pro Max",
@@ -143,7 +143,7 @@ inserting data. MongoDB's flexible schema allows us to iterate rapidly and evolv
 Here's a practical example of this flexible schema. Suppose we have an online furniture store with a catalog of items.
 When we start developing our application, we decide to include an `"_id"`, a `"name"`, and a `"price"` for each item.
 
-```json
+```bash
 {
 	"_id": ObjectId("abcdef"),
 	"name": "iPhone",
@@ -158,7 +158,7 @@ include the new fields, and we can start inserting new documents with the new sc
 flexible schema model, which means that documents in the same collection are not required to share a common
 structure of fields and value types by default.
 
-```json
+```bash
 {
 	"_id": ObjectId("abcdef"),
 	"name": "iPhone",
@@ -171,7 +171,7 @@ Should we desire more control over the structure and contents of the database, w
 Schema Validation Rule to impose constraints on the structure of documents in the collection.
 Nonetheless, the basic syntax of the Document Model remains as indicated in the following code:
 
-```json
+```bash
 {
 	"key": "value",
 	"key": "value",
@@ -251,7 +251,7 @@ MongoDB employs a flexible document data model, in which collections do not impo
 As a consequence, documents may exhibit diverse structures, thanks to a concept called polymorphism, as exemplified below:
 
 **Document I**
-```json
+```bash
 {
 	"name": "Andrea"
 	"major": "CS"
@@ -262,7 +262,7 @@ As a consequence, documents may exhibit diverse structures, thanks to a concept 
 ```
 
 **Document II**
-```json
+```bash
 {
 	"name": "Filippo"
 	"major": "CS"
@@ -299,7 +299,7 @@ another set. In traditional relational databases, this relationship might be imp
 In MongoDB, a One-To-One Relationship can be represented succinctly within a single document, as exemplified below.
 In the example, a document representing a film encompasses not only the title but also the director's information.
 
-```json
+```bash
 {
 	"_id": ObjectId("573a1390f29313caabcd413b"),
 	"title": "Her",
@@ -314,7 +314,7 @@ in another set. For instance, a film may feature several cast members. MongoDB f
 relationship within a single document using features like Nested Arrays, which are advantageous for modeling One-To-Many
 Relationships. The "cast" field in the code shown below exemplifies such a structure.
 
-```json
+```bash
 {
 	"_id": ObjectId("573a1390f29313caabcd413b"),
 	"title": "Her",
@@ -338,7 +338,7 @@ using Nested Arrays. On the other hand, in the Referencing example, Filming Loca
 via their respective ObjectIDs.
 
 **Embedding**
-```json
+```bash
 {
 	"_id": ObjectId("573a1390f29313caabcd413b"),
 	"title": "Her",
@@ -353,7 +353,7 @@ via their respective ObjectIDs.
 ```
 
 **Referencing**
-```json
+```bash
 {
 	"_id": ObjectId("573a1390f29313caabcd413b"),
 	"title": "Her",
@@ -373,7 +373,7 @@ When a student enrolls at a university, they fill out a form on a web applicatio
 which is then stored in a database. Upon examining the following code, there emerges a need to gather more information
 about the student, such as the courses taken and their grades. Furthermore, certain aspects of the code are not optimally structured.
 
-```json
+```bash
 {
 	"student": "Andrea Moleri",
 	"student_id": "902011",
@@ -396,7 +396,7 @@ resulting in not-so-clean code. To address this issue, reorganization is propose
 separate elements indicating a One-To-One Relationship. This reorganization involves transforming it into a One-To-Many
 Relationship through the use of a Nested Array.
 
-```json
+```bash
 {
 	"student": "Andrea Moleri",
 	"student_id": "902011",
@@ -421,7 +421,7 @@ In the scenario where additional data regarding the student is available, such a
 with their respective grades, a different data modeling approach may be considered. Here, references to Course ID and
 Course Name are added within the Student Document.
 
-```json
+```bash
 {
 	"student": "Andrea Moleri",
 	"student_id": "902011",
@@ -462,7 +462,7 @@ duplicating course information within each student profile, a reference to the c
 the "courses" array. This reference includes the Course ID, allowing easy retrieval of detailed course information from
 the Course Collection when and if needed.
 
-```json
+```bash
 "courses": [
 	{
 		"course_id": "2324-1-F1801Q159",
@@ -494,7 +494,7 @@ should be stored together." Embedding enables the consolidation of various relat
 potentially simplifying and reducing the number of required queries. One-To-One Relationships and One-To-Many Relationships
 are the relationships that are most commonly utilizing embedding.
 
-```json
+```bash
 {
     "name": {"firstName": "Walt", "lastName": "Disney"},
     "job": "entrepreneur",
@@ -540,7 +540,7 @@ discussed, wherein we have a university student who has taken various university
 the `course_id` serves as our reference. Referencing enables us to circumvent data duplication, leading to smaller
 documents. However, this approach may necessitate querying multiple documents, potentially incurring higher read times and costs.
 
-```json
+```bash
 {
    "student": "Andrea Moleri",
    "student_id": "902011",
@@ -575,7 +575,7 @@ where `user_id` in the first collection acts as a reference to a document in the
 establishing a linkage between the two documents through referencing.
 
 **Collection I**
-```json
+```bash
 {
     "author": "Mr.MongoDB",
     "title": "Learn The Basics of MongoDB in 90 Minutes",
@@ -599,7 +599,7 @@ establishing a linkage between the two documents through referencing.
 ```
 
 **Collection II**
-```json
+```bash
 ...
 {
     "id": "AL001",
@@ -634,7 +634,7 @@ them all and potentially filter them in the application. Furthermore, we must no
 size of 16MB, avoiding which can lead to storage problems. The benefits of the model shown are that we can retrieve
 all documents in a single Read, but this is not a feature we require, so the following code certainly has more drawbacks than advantages.
 
-```json
+```bash
 {
 	"title": "Learn The Basics of MongoDB in 90 Minutes",
 	"url": "https://www.mongodbbasics.com",
@@ -658,7 +658,7 @@ and another called `comments`, as illustrated below. We can use the `blog_entry_
 field as a reference between the two collections.
 
 **Blog Post Collection**
-```json
+```bash
 {
 	"_id": 1,
 	"title": "Learn The Basics of MongoDB in 90 Minutes",
@@ -668,7 +668,7 @@ field as a reference between the two collections.
 ```
 
 **Comments Collection**
-```json
+```bash
 {
 	"blog_entry_id": 1,
 	"name": "Andrea Moleri",
@@ -684,8 +684,21 @@ field as a reference between the two collections.
 ```
 
 ### Cassandra Data Modeling
-_PLACEHOLDER PER FILIPPO_
+In Apache Cassandra, data is organized using a unique combination of column-based and row-based structures, which significantly differ from the traditional conventions of relational databases. Unlike relational databases where the schema is rigid and predefined, Cassandra’s data model is designed for flexibility and scalability. The primary data storage unit in Cassandra is the Column Family, which can be likened to a table in a relational database, albeit with a distinctive twist: each row in a Column Family can contain a variable number of columns, allowing for a highly flexible schema design.
 
+A Column Family in Cassandra is essentially a set of key-value pairs. In this context, the key is utilized for identifying columns and for distributing and partitioning data among the cluster nodes, while the value comprises a set of columns. Conceptually, each key-value pair in a Column Family corresponds to a table row in a relational database, with the key value serving as the identifier for the row.
+
+In this model, rows are collections of columns, where each column is characterized by a name, a value, and a timestamp. The column name serves as an identifier for the specific piece of data, the value holds the actual data, and the timestamp is crucial for conflict resolution during write operations. This design is particularly advantageous because it provides the flexibility needed to handle diverse data models and use cases efficiently. For example, it is possible to have a row where one entry has only a few columns while another has hundreds or even thousands, all within the same Column Family. This adaptability makes Cassandra particularly suited for applications where data structures can vary significantly from one record to another.
+
+![data representation.png](img/data representation.png)
+
+Within a Column Family, Cassandra also supports a more advanced data structure known as SuperColumns. Essentially, a SuperColumn is a collection of columns grouped under a single key. Each column within a SuperColumn has its own name, value, and timestamp, much like regular columns. This hierarchical data structure allows for more complex data models and relationships to be represented. For instance, a SuperColumn can be used to model nested data, such as a blog post with multiple comments where each comment has attributes like author, timestamp, and content. Despite their utility, SuperColumns have become less favored in newer versions of Cassandra, which now prefer the use of collections such as maps, lists, and sets. These collections offer a more straightforward and efficient approach to data modeling, simplifying the representation of complex relationships like one-to-many and many-to-many associations.
+
+One of Cassandra's key strengths is its support for wide-row tables, where a single row key can have an exceptionally large number of columns. This feature is particularly useful for applications like social media platforms, event logging, or time-series data where it is common to have many related records associated with a single key. For instance, in a social media application, a user’s timeline can be stored as a wide row, with each column representing an individual post or activity. This capability allows Cassandra to handle large volumes of related data efficiently under a single key, making it an excellent choice for managing data that grows over time.
+
+Cassandra, unlike relational models and MongoDB, strongly discourages the use of relationships between data/tables, instead favoring data duplication. Instead of using complex joins as in relational databases, data is designed to be read together in the same row or partition, reducing the need for costly joins. This denormalization approach is particularly advantageous in distributed environments, where data retrieval from multiple nodes can be slow. By storing related data together, Cassandra optimizes read and write performance. In fact, from a computational cost point of view, it is much more efficient for Cassandra to perform multiple write operations to keep the data consistent, compared to performing join operations based on the queries.
+
+To facilitate efficient data storage and transmission, Cassandra uses a flexible serialization format for writing data to disk and communicating between nodes. This serialization format is designed to ensure efficient storage and fast network communication, contributing to Cassandra's high performance in managing large volumes of data. The combination of a flexible schema, efficient serialization, and robust partitioning mechanisms allows Cassandra to adapt to a wide variety of access patterns and workloads while maintaining high performance and scalability.
 ## Database Connection
 ### Connecting to a MongoDB Database
 
@@ -1364,7 +1377,7 @@ To understand how to query specific values, also known as elements, within an ar
 consider a common scenario. This involves searching for all documents that have a field containing the specified value.
 For example, consider a collection named `Accounts` defined as follows:
 
-```json
+```bash
 {
 	"account_id": 470650,
 	"limit": 10000,
@@ -1464,7 +1477,7 @@ criteria does not pass, the document will not be included in the results. Before
 a sample document from a collection called `Routes`. Each element in the collection contains information about a
 particular flight route:
 
-```json
+```bash
 {
   "_id": ObjectId("56e9b39b732b6122f877fa80"),
   "airline": {
@@ -1800,7 +1813,7 @@ represented by the `address` field. The `date` field is represented as a String,
 specific BSON type for dates. Summarizing the aforementioned points, one way to represent BSON documents is by using
 the `Document` class. The `Document` class offers a flexible representation of a BSON document.
 
-```json
+```bash
 {
 	"_id": { "$oid": "56d61033a378eccde8a8354f" },
 	"business_id": "1507-1975-THME",
@@ -3434,7 +3447,7 @@ In general, what the Java class just shown does is transform the .csv resulting 
 the Jupyter Notebook shown previously into a MongoDB collection called `airportCollection`. Below is a short-form example 
 of the structure of a single document within the collection, converted to a JSON file for visual simplicity.
 
-```json
+```bash
 [{
    "_id": {
       "$oid": "6677f94b7acf35542d8ee8b2"
