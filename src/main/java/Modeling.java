@@ -125,7 +125,7 @@ public class Modeling {
     /**
      * Generates flights for an airport based on its size and inserts them into the database.
      * @param airportDoc Document representing the airport for which flights are generated
-     * @param collection MongoDB collection where flights are stored
+     * @param collection MongoDB's collection where flights are stored
      * @param airports List of all airports for generating destination airports
      */
     private static void generateAndInsertFlights(Document airportDoc, MongoCollection<Document> collection, List<Document> airports) {

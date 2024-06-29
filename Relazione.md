@@ -3536,7 +3536,7 @@ a structure that is easy for programmers to work with and understand.
 _PLACEHOLDER PER FILIPPO_
 
 ## Transazioni
-Spiegazione su cosa è una transazione e perchè è importante per il nostro caso di studio (semplicemnte non posso avere due persone sullo stesso posto)
+Spiegazione su cosa è una transazione e perché è importante per il nostro caso di studio (semplicemnte non posso avere due persone sullo stesso posto)
 
 ### Transazioni in Mongo
 spieghi come hai modellato le transazioni e come lato backend vengono gestite (quindi come le gestisce il db)
@@ -3577,3 +3577,69 @@ Entrambi i database sono open source nelle loro prime versioni, con MongoDB svil
 La sicurezza è un aspetto critico per entrambi i database. Nelle rispettive versioni di base, la sicurezza di MongoDB e Cassandra è soprattutto nelle mani dell'utente, con SSL e TLS per le connessioni client e le autenticazioni utente. MongoDB Atlas, la versione a pagamento di MongoDB, offre funzioni di sicurezza estese, come X.509, crittografia lato client e lato server e integrazione Kerberos e LDAP.
 
 In sintesi, MongoDB è ideale per gestire dati non strutturati e dinamici grazie alla sua flessibilità e scalabilità, mentre Cassandra è ottimo per applicazioni che richiedono alta disponibilità e prestazioni elevate di lettura e scrittura. Entrambi i database offrono soluzioni potenti per diverse esigenze, rendendoli strumenti indispensabili nel panorama moderno della gestione dei dati.
+
+
+
+
+
+
+## Conclusions
+
+MongoDB and Apache Cassandra are two of the most popular NoSQL databases, each with unique characteristics and 
+applications that make them suitable for different needs. Despite their similarities in supporting unstructured data 
+and scalability, the differences in their architectures and functionalities distinguish them clearly.
+
+MongoDB utilizes a document-based data model, where documents are stored in BSON format, similar to JSON. These 
+documents are collected in collections and do not require a fixed schema, making it particularly flexible for handling 
+dynamic and unstructured data. In contrast, Cassandra uses a wide-column data model, which is a hybrid between a tabular 
+storage and a key-value store. Each row can have a different set of columns, organized into column families, with 
+Sorted String Tables (SSTables) serving as the basic storage unit containing key-value pairs for a specific column family.
+
+In terms of query language, MongoDB employs the MongoDB Query Language (MQL), which supports CRUD operations with 
+commands similar to those in Node.js. Cassandra, on the other hand, uses the Cassandra Query Language (CQL), which is 
+similar to SQL but adapted to its data model. This difference makes CQL more intuitive for those familiar with SQL, 
+while MQL offers greater flexibility for document-specific operations.
+
+MongoDB offers various types of indexes, including single field, compound, multikey, geospatial, and text search indexes. 
+Cassandra supports secondary indexes and SSTable-Attached Secondary Indexes (SASI) for complex queries, although 
+these can impact system performance.
+
+Concurrency control and transaction management represent another area of difference between MongoDB and Cassandra. 
+MongoDB manages concurrency through Multi-Version Concurrency Control (MVCC) and document-level locking, allowing for 
+ACID transactions at the single-document level. Starting from version 4.0, MongoDB also offers multi-document transactions, 
+albeit with some performance limitations.
+
+Cassandra handles concurrency with tunable consistency and row-level atomicity. It does not natively support full ACID 
+transactions but allows for batches of operations with row-level isolation, providing eventual consistency with 
+configurable consistency levels. From a scalability and availability perspective, both systems are designed to support 
+horizontal scalability through data partitioning and replication across multiple nodes.
+
+MongoDB employs a primary node with replicas for read and write operations. Its sharding architecture allows data 
+distribution across multiple nodes with load balancing and elastic scalability. This approach offers greater control 
+over partitioning through sharding keys, optimizing data distribution and queries.
+
+Cassandra is designed for high availability with a peer-to-peer topology and multiple master nodes. Each node in the 
+cluster is equal, eliminating a single point of failure. This architecture allows for linear scalability by simply 
+adding new nodes to the cluster without the need to reconfigure the entire infrastructure.
+
+MongoDB uses a primary-secondary replication model, where a primary node handles all write operations and secondary 
+replicas are used for reading and failover. If the primary node fails, one of the secondaries is elected as the new 
+primary, ensuring operational continuity.
+
+Cassandra employs a masterless replication model, where any node can handle read and write operations. Data is 
+automatically replicated across multiple nodes to ensure fault tolerance. This model ensures that even in the event of 
+one or more node failures, the system continues to operate without interruptions.
+
+Both databases are open source in their initial versions, with MongoDB developed by MongoDB, Inc. and Cassandra initially 
+developed by Facebook and later released by Apache. They support a wide range of programming languages, with MongoDB
+offering support for 12 languages, while Cassandra supports a slightly smaller but still diverse number.
+
+Security is a critical aspect for both databases. In their base versions, the security of MongoDB and Cassandra is 
+primarily managed by the user, with SSL and TLS for client connections and user authentication. MongoDB Atlas, the 
+paid version of MongoDB, offers extended security features such as X.509, client-side and server-side encryption, 
+and integration with Kerberos and LDAP.
+
+In summary, MongoDB is ideal for handling unstructured and dynamic data due to its flexibility and scalability, 
+whereas Cassandra is excellent for applications requiring high availability and high performance for read and write 
+operations. Both databases provide powerful solutions for various needs, making them indispensable tools in the 
+modern data management landscape.
