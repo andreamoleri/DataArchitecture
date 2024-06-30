@@ -2828,7 +2828,7 @@ flexibility and power of the MongoDB Aggregation Framework for data analysis and
 `$group`, `$sort`, and `$project`—plays a crucial role in shaping and refining the results of queries executed against
 MongoDB databases.
 
-### Cassandra Transactions and Aggregations
+### Cassandra Transactions
 _PLACEHOLDER PER FILIPPO_
 
 ## Optimization
@@ -3624,16 +3624,145 @@ and scalability. What follows are some best practices that can be observed in th
 By implementing these practices, the database is kept as lightweight and efficient as possible while still maintaining 
 a structure that is easy for programmers to work with and understand.
 
+### Creating the Data Model in Cassandra
+In the context of Cassandra, maximizing database efficiency requires a data model design approach focused primarily on anticipated queries. This means the data structure must be conceived to facilitate and optimize query operations, even if this results in an increase in write operations, which are nonetheless executed almost instantaneously thanks to Cassandra's features. Therefore, according to this methodology, it is necessary to create tables that directly reflect the anticipated query types, while ensuring an even distribution of data across the cluster nodes to prevent overloading specific nodes and to guarantee effective, seamless scalability.
+To successfully implement this approach, it is essential to follow a series of steps:
 
+#### Define the query flow
+The first fundamental step is to analyze the application's operational flow. This involves an in-depth study of the operations the user will perform during the application's use that involve the database. Each interaction with the database must be mapped and understood in detail.
+Beyond understanding specific operations, it is crucial to understand data paths and interactions between various components of the application. This study involves tracing how data flows through the application, from creation to destruction. Interactions between different modules of the application can reveal data access patterns that significantly impact database performance and are useful when it is necessary to ensure consistency between data copies in various tables.
+Another essential aspect is to clearly specify the application's performance and scalability requirements. This includes defining key metrics such as the acceptable response time for read and write operations, the transaction volume the system must handle per second, and the requirements for availability and fault tolerance.
+In the model described at the beginning of the chapter, the following operational flow was hypothesized:
+1. The user connects to the application.
+2. The user enters the departure airport and, if necessary, the destination airport (if omitted, it is as if "Any destination" is entered) and the temporal information. The goal is to obtain a screen similar to typical flight booking sites, with a list of all available flights based on the search criteria provided by the user.
+3. After identifying the desired flight, the user views information about available seats. Ideally, this phase presents a screen with a simplified representation of the plane, where occupied seats are marked in red and available seats in green.
+4. Once a seat is selected, the user enters their personal data. If the user's financial availability is greater than or equal to the flight price and there are no competition conflicts, the seat is booked.
+   Additionally, at any time, the user might want to obtain information about a single airport.
 
+#### Design the necessary queries
+After defining the operational flow, the next step is to carefully examine the read and write operations required by the application on the database. Each operation must be analyzed to understand exactly how it will be executed, how often, and what data will be involved. The most frequent operations must then occur as quickly as possible. For example, if an e-commerce application frequently requires access to product details and customer orders, these queries must be optimized to ensure quick response times.
+It is important to identify the search criteria, aggregations, and filtering operations necessary to meet the application's functional requirements. This helps to design queries that are efficient and fast. Typically, fields that need frequent filtering should be indexed or part of the table's primary key.
+The main queries identified from the model and the operational flow are, in pseudo-natural language:
+- “Given the IATA code of an airport, return all information about that airport.”
+- “Given the IATA code of an airport, return a list of all flights departing from that airport.”
+- “Given two IATA codes of airports, respectively the departure and arrival airport, return a list of all flights on that route.”
+- “Given two IATA codes of airports, respectively the departure and arrival airport, and the day, return a list of all flights on that route during that time period.”
+- “Given two IATA codes of airports, respectively the departure and arrival airport, the day and the hour, return a list of all flights on that route during that time period.”
+- “Given the code of a flight, return a list of all seats on that flight.”
+- “Given two codes, respectively the flight code and the seat code, return the status of the seat on that flight.”
+- “Given two codes, respectively the flight code and the seat code, and the user information, insert the user data and change the seat status from 'Vacant' to 'Occupied.'”
 
+#### Create the table structure
+Designing the database tables effectively, considering the identified queries, data relationships, and access frequency, is fundamental. The table structure should optimize the read and write operations needed to satisfy common queries. Frequently accessed data together should be stored in a way that minimizes read operations.
+Crucial aspects for a good table structure are:
+- **Denormalization**: Evaluating data denormalization can significantly improve query performance. In many cases, a bit of redundancy can reduce the number of necessary joins, thus speeding up read operations.
+- **Primary keys**: Carefully defining the primary keys for each table is crucial, as they ensure not only the uniqueness of data but also its distribution among nodes. Composite keys can be used to support complex queries when necessary. Composite keys organize the data in a way that allows efficient query execution, reducing the number of read operations.
+- **Data type**: Choosing the most suitable data types to represent information in the database is essential for ensuring efficiency and speed. This means choosing data types that minimize storage space and maximize read and write operation speed. Native Cassandra data types can be used, as well as collection data types (such as sets, lists, and maps) for efficient modeling of complex data. These data types can greatly improve query performance by enabling normalization and eliminating joins between tables.
 
+In the context described at the beginning of the chapter and based on the operational flow and identified queries, three tables have been identified:
 
+##### Airport
 
+```cql
+CREATE TABLE IF NOT EXISTS airport (
+    Name_en text, 
+    Country text, 
+    Website text, 
+    Geo_Point text, 
+    ICAO_code text, 
+    Country_code text, 
+    Phone text, 
+    Name_fr text,
+    Name text, 
+    IATA_code text, 
+    Size int, 
+    Operator text, 
+    PRIMARY KEY (IATA_code)
+);
+```
 
+This favors the search for the airport only through its unique IATA code. The main operations, excluding INSERTs, planned for this table are:
 
-### Modello dati Cassandra
-_PLACEHOLDER PER FILIPPO_
+- “Given the IATA code of an airport, return all information about that airport.”
+
+```cql
+SELECT * FROM airport WHERE IATA_code = ‘v’;
+```
+
+##### Flight
+
+```cql
+CREATE TABLE IF NOT EXISTS flight (
+    ID text, 
+    Number_of_Seats int, 
+    Day date, 
+    Hour time, 
+    Operator text, 
+    Duration text, 
+    Price_per_Person float, 
+    Destination text, 
+    Departure text, 
+    PRIMARY KEY ((Departure), Destination, Day, Hour, ID)
+);
+```
+
+The combination of Departure, Destination, Day, Hour, and ID ensures that each flight is uniquely identified and, most importantly, favors search using only the departure airport code. Adding the ID field allows for distinguishing flights with the same route and time (a very unlikely but possible case).
+Any variation in the fields that make up the primary key identifies a distinct flight. The main operations, excluding INSERTs, planned for this table are:
+- “Given the IATA code of an airport, return a list of all flights departing from that airport.”
+
+```cql
+SELECT * FROM flight WHERE departure = ‘v’;
+```
+
+- “Given two IATA codes of airports, respectively the departure and arrival airport, return a list of all flights on that route.”
+
+```cql
+SELECT * FROM flight WHERE departure = ‘v1’ AND destination = ‘v2’;
+```
+- “Given two IATA codes of airports, respectively the departure and arrival airport, and the day, return a list of all flights on that route during that time period.”
+
+```cql
+SELECT * FROM flight WHERE departure = ‘v1’ AND destination = ‘v2’ AND day = ‘v3’;
+```
+- “Given two IATA codes of airports, respectively the departure and arrival airport, the day and the hour, return a list of all flights on that route during that time period.”
+
+```cql
+SELECT * FROM flight WHERE departure = ‘v1’ AND destination = ‘v2’ AND day = ‘v3’ AND hour = ‘v4’;
+```
+
+##### Seat
+```cql
+CREATE TABLE IF NOT EXISTS seat (
+    Flight text, 
+    Status text, 
+    ID text, 
+    Name text, 
+    Surname text, 
+    Document_Info text, 
+    Date_of_Birth date, 
+    Balance float, 
+    PRIMARY KEY ((Flight), ID)
+);
+```
+By including only the flight code in the partition key, it is possible to quickly obtain the entire list of seats for a flight. Including the ID field as a clustering key also ensures cases where a single seat is analyzed. The main operations, excluding INSERTs, planned for this table are:
+
+- “Given the code of a flight, return a list of all seats on that flight.”
+
+```cql
+SELECT * FROM seat WHERE flight = ‘v’;
+```
+- “Given two codes, respectively the flight code and the seat code, return the status of the seat on that flight.”
+
+```cql
+SELECT status FROM seat WHERE flight = ‘v1’ AND id = ‘v2’;
+```
+- “Given two codes, respectively the flight code and the seat code, and the user information, insert the user data and change the seat status from 'Vacant' to 'Occupied.'”
+
+```cql
+UPDATE seat SET status = 'Occupied', balance = ‘v1’, date_of_birth = ‘v2’, document_info = ‘v3’, name = ‘v4’, surname = ‘v5’ WHERE flight = ‘v6’ AND id = ‘v7’
+```
+
+In conclusion, the Java script used to communicate with the database is reported (the UPDATE operation is not included as it will be addressed in the appropriate chapter). To load the database so that the data matches those of MongoDB, the latter was exported to a json file and the various fields were extracted from it.
 
 ## Transazioni
 Spiegazione su cosa è una transazione e perché è importante per il nostro caso di studio (semplicemnte non posso avere due persone sullo stesso posto)
