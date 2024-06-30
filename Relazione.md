@@ -2829,7 +2829,48 @@ flexibility and power of the MongoDB Aggregation Framework for data analysis and
 MongoDB databases.
 
 ### Cassandra Transactions
-_PLACEHOLDER PER FILIPPO_
+
+Transaction and concurrency management in a distributed system like Cassandra requires specific structures to ensure consistency and reliability. These include batch operations and Lightweight Transactions (LWT), which facilitate data operations by offering a certain level of atomicity and consistency.
+
+#### Batch Operations in Cassandra
+
+Batch operations in Cassandra allow executing a group of write operations as a single unit. This means all operations within the batch are sent to the database together and executed in the same context. A batch can include insert, update, or delete instructions. Its syntax can be:
+```cql
+BEGIN BATCH
+INSERT INTO keyspace_name.table_name (column1, column2) VALUES (value1, value2);
+UPDATE keyspace_name.table_name SET column1 = value WHERE column2 = value2;
+DELETE FROM keyspace_name.table_name WHERE column1 = value1;
+APPLY BATCH;
+```
+Batch operations are particularly useful for increasing the efficiency of sending operations to the server, as they reduce the number of exchanges between the client and server. When executing a batch, if it involves operations on a single partition, Cassandra can ensure atomicity. This means that all operations in the batch will either be applied together or none of them will be applied. If any operation fails for any reason (e.g., syntax error, data validation error, or network error preventing batch completion), none of the operations in the batch will be applied. Thus, the entire batch is treated as an atomic unit, as if it were a single operation.
+
+When the batch involves operations on multiple partitions, complete atomicity is not guaranteed. In these cases, Cassandra tries to apply all operations, but if one operation fails, the behavior does not ensure the complete reversibility of already applied operations. Therefore, batches in Cassandra provide a form of partial atomicity.
+
+In the context of transaction and concurrency management, batch operations help coordinate multiple writes in a single request. This can reduce concurrency issues as operations are applied in a coherent unit. However, since Cassandra is a distributed system designed for scalability, its consistency model is eventual, meaning that without additional control mechanisms, batch operations cannot guarantee that all nodes will immediately see the same data version.
+
+##### Lightweight Transactions (LWT) in Cassandra
+
+Lightweight Transactions (LWT) in Cassandra are a mechanism for performing write operations with consensus control that ensures consistency in the presence of concurrency. LWTs use a Paxos-based protocol to achieve consensus among cluster nodes before applying the write. The syntax of an LWT includes the `IF` clause that checks a condition before performing an insert, delete, or update operation. Some examples are:
+```cql
+INSERT INTO keyspace_name.table_name (column1, column2) VALUES (value1, value2) IF NOT EXISTS;
+```
+```cql
+UPDATE keyspace_name.table_name SET column1 = value WHERE column2 = value2 IF column3 = value3;
+```
+```cql
+DELETE FROM keyspace_name.table_name WHERE column1 = value1 IF EXISTS;
+```
+LWTs are particularly useful for ensuring that write operations respect certain conditions, maintaining data consistency in concurrency scenarios. They are ideal for implementing conditional write operations, such as inserting a record only if it does not already exist (`IF NOT EXISTS`), or updating a record only if another condition is met (`IF column = value`).
+
+When a client sends an LWT to the coordinator node, a Paxos-based protocol is applied in four phases:
+- **Preparation Phase**: The coordinator sends a "Prepare" request to all replicas involved in the transaction. The participating nodes locally evaluate whether they can satisfy the condition specified in the `IF` clause before confirming their readiness to proceed. The replicas respond by indicating the highest proposal number they have accepted so far.
+- **Proposal Phase**: Based on the responses received during the preparation phase, the coordinator generates a new proposal with a unique number and the value to be written. This proposal is then sent to all involved replicas. The replicas compare the new proposal number with any previously accepted proposal numbers. If the new proposal number is higher, the replicas accept the proposal and respond to the coordinator.
+- **Commit Phase**: This phase verifies the consensus of the transaction. Once the coordinator has received acceptances from the majority of replicas, it decides to commit the transaction. The coordinator then sends a "Commit" request to all replicas, indicating that the proposal should be applied. The replicas receive this request and mark the proposal as committed. The `IF` clause is re-evaluated before the final commit to ensure that the condition is still met.
+- **Application Phase**: The replicas apply the committed value to their local data. Each replica confirms to the coordinator that the value has been correctly applied. Finally, once the coordinator has received confirmations from all replicas, it sends a confirmation to the client that the LWT has been successfully completed.
+
+In the context of transaction and concurrency management, LWTs offer a strong consistency mechanism. Through the use of the protocol, an LWT ensures that only one consistent version of the data is written and made visible to all nodes in the cluster. This is crucial in applications where data integrity must be ensured, such as in a user registration system where each username must be unique.
+
+However, LWTs come with a performance cost. The consensus process requires a series of information exchanges between nodes to reach an agreement, which slows down the operation compared to normal writes.
 
 ## Optimization
 ### MongoDB Optimization With Indexes
