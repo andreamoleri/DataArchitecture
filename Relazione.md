@@ -3158,7 +3158,7 @@ from which he intends to depart, and the system will return which flights will d
 the user will be able to choose one of the flights among those available, effectively choosing an air route from the
 chosen airport to a destination airport.
 
-At this point, a testing seats retreival will take place: given the selected
+At this point, a testing seats retrieval will take place: given the selected
 route, the system will return the number of available seats, and the codes associated with the individual seats.
 The system will then test a concurrent transaction, in which two people will try to book the same seat at the same time.
 This will highlight the management of competing writes with the various technologies used, and the fact that only one
@@ -3173,7 +3173,9 @@ happening correctly.
 
 Let's now move on to the creation of the Data Model, which is configured through the use of various Java Classes, 
 which interact with our Database. The class from which it all begins is the `Connection.java` class, whose code is 
-shown below:
+shown below. We already talked in great detail about this class in this document, but it will be shown again in order
+to aid the reader in better understanding the structure of the overall code without having to refer to previous
+sections. To be thorough, several more comments were added to better understand the code.
 
 ```java
 import com.mongodb.client.MongoClient;
