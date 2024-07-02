@@ -185,8 +185,8 @@ structure of MongoDB involves various components such as nodes, clusters, and da
 these components interact and how the reading and writing processes occur. Let's start by saying that A running MongoDB 
 instance is called a "node". There are two main types of nodes:
 
-- *Primary Nodes*: they are responsible for write operations. Each replica set has only one primary node at a time.
-- *Secondary Nodes*: receive copies of data from the primary node and can serve read operations if configured to do so.
+- **Primary Nodes**: they are responsible for write operations. Each replica set has only one primary node at a time.
+- **Secondary Nodes**: receive copies of data from the primary node and can serve read operations if configured to do so.
 
 #### Clusters in MongoDB
 
