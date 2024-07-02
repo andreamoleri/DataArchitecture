@@ -335,12 +335,12 @@ When the coordinator node receives a read request, it determines the replica nod
 
 Cassandra's architecture ensures high availability, fault tolerance, and scalability through its distributed nature, replication strategies, and efficient data management protocols. It allows users to manage consistency and availability trade-offs, making it suitable for various use cases requiring fast and reliable data access.
 
-## Data Modeling
-### MongoDB Data Modeling
+## Data Representation
+### MongoDB Data Representation
 
-Data modeling is a fundamental aspect of database design, as it serves the purpose of the structuring of data storage
+Data representation is a fundamental aspect of database design, as it serves the purpose of the structuring of data storage
 and the delineation of relationships among various entities within the data. It serves as a blueprint for organizing
-information within a database. We refer to the organization of data inside a database as a 'Schema'. When data modeling
+information within a database. We refer to the organization of data inside a database as a 'Schema'. When data representation
 with MongoDB, it is advisable to conceptualize the application itself: its functionalities, the data it will handle,
 user data access patterns, and the data elements critical to the project's objectives. Addressing these questions aids
 in understanding the form of the data, its relationships, and the necessary tools for implementation. A robust data
@@ -374,22 +374,22 @@ As a consequence, documents may exhibit diverse structures, thanks to a concept 
 It is important to clarify that while MongoDB's Document Model is flexible, it is not entirely schema-less but rather
 schema-flexible. This flexibility extends to employing Schema Validation and accommodating diverse data types within
 MongoDB. Additionally, MongoDB supports nested or embedded documents, enabling the construction of complex data relationships.
-Normalization of data is achievable through database references. The complication lies in aligning data modeling
-decisions with application requirements, contrasting with the traditional approach of modeling data in relational databases.
+Normalization of data is achievable through database references. The complication lies in aligning data representation
+decisions with application requirements, contrasting with the traditional approach of representing data in relational databases.
 
 Unlike the standard procedure of gathering data requirements, modeling data, and then handing over the data to developers,
 MongoDB's methodology commences with understanding application requirements, user interactions, and subsequently
-tailoring data modeling accordingly. MongoDB's versatility enables various data storage approaches, including normalization,
+tailoring data representation accordingly. MongoDB's versatility enables various data storage approaches, including normalization,
 embedding related data for cohesive access, or employing hybrid methods as dictated by application needs. The final goal
-of data modeling is to optimize storage, querying, and resource utilization, enhancing application performance and reducing
-database costs as a consequence. Once the foundational data modeling framework is established, attention can be directed
-towards modeling data relationships. A well-crafted data model simplifies data management, enhances query efficiency,
+of data representation is to optimize storage, querying, and resource utilization, enhancing application performance and reducing
+database costs as a consequence. Once the foundational data representation framework is established, attention can be directed
+towards representing data relationships. A well-crafted data model simplifies data management, enhances query efficiency,
 minimizes resource consumption, and mitigates database operational costs.
 
 #### Types of Data Relationships
 
 When discussing data relationships, it is crucial to delineate between various types: One-To-One, One-To-Many,
-and Many-To-Many. Additionally, we will dive into the two primary methods for modeling these relationships:
+and Many-To-Many. Additionally, we will dive into the two primary methods for representing these relationships:
 Embedding and Referencing. As we already said, it is important to structure our data to align with the querying and
 updating patterns of our application. In that regard, understanding common relationship types in databases is extremely important.
 
@@ -411,7 +411,7 @@ In the example, a document representing a film encompasses not only the title bu
 ##### One-To-Many Relationship
 The One-To-Many relationship is characterized by one Data Entity in a set being associated with multiple Data Entities
 in another set. For instance, a film may feature several cast members. MongoDB facilitates the representation of this
-relationship within a single document using features like Nested Arrays, which are advantageous for modeling One-To-Many
+relationship within a single document using features like Nested Arrays, which are advantageous for representing One-To-Many
 Relationships. The "cast" field in the code shown below exemplifies such a structure.
 
 ```bash
@@ -430,7 +430,7 @@ Relationships. The "cast" field in the code shown below exemplifies such a struc
 
 ##### Many-To-Many Relationship
 The Many-To-Many relationship represents a scenario where any number of Data Entities in one set are connected to any
-number of Data Entities in another set. As previously mentioned, the primary methods for modeling relationships in
+number of Data Entities in another set. As previously mentioned, the primary methods for representing relationships in
 MongoDB are Embedding and Referencing. Embedding involves incorporating related data within the document, while
 Referencing entails referring to documents in another collection within the document. The following examples illustrate
 Embedding and Referencing respectively. In the Embedding example, Actor documents are embedded within Movie documents
@@ -466,9 +466,9 @@ via their respective ObjectIDs.
 }
 ```
 
-#### Modeling Data Relationships
+#### Representing Data Relationships
 
-In this section, we provide an example of data modeling based on a practical scenario illustrated in the code below.
+In this section, we provide an example of data representation based on a practical scenario illustrated in the code below.
 When a student enrolls at a university, they fill out a form on a web application that creates their profile,
 which is then stored in a database. Upon examining the following code, there emerges a need to gather more information
 about the student, such as the courses taken and their grades. Furthermore, certain aspects of the code are not optimally structured.
@@ -518,7 +518,7 @@ Relationship through the use of a Nested Array.
 ```
 
 In the scenario where additional data regarding the student is available, such as considering the courses taken along
-with their respective grades, a different data modeling approach may be considered. Here, references to Course ID and
+with their respective grades, a different data representation approach may be considered. Here, references to Course ID and
 Course Name are added within the Student Document.
 
 ```bash
@@ -548,7 +548,7 @@ Course Name are added within the Student Document.
 ```
 
 Additionally, a dedicated Collection for Courses can be established, wherein the courses inserted within the Student
-Document are represented in a separate document as demonstrated below. In the provided data modeling scenario,
+Document are represented in a separate document as demonstrated below. In the provided data representation scenario,
 the Student Document represents individual student profiles, containing comprehensive information such as student details,
 contact information, emergency contacts, enrolled courses, and other relevant data. Within the Student Document,
 a nested array named "courses" is included, which holds references to the courses taken by the student.
@@ -586,7 +586,7 @@ Embedding is frequently employed in scenarios involving One-To-Many or Many-To-M
 MongoDB's documentation advocates for embedding to streamline queries and enhance performance. Embedded Documents are
 also known as Nested Documents, that is documents that encapsulate another document within them.
 
-To better understand this concept, let us consider the following document, which contains two embedded subdocuments
+To better understand this concept, let us consider the following document, which contains two embedded sub-documents
 for both name and address. The client possesses only one name, embedded as First and Last Name. Regarding addresses,
 the client has three addresses, constituting a One-To-Many Relationship. Documents structured in this manner facilitate
 the retrieval of complete address information for a client, aligning with the principle "data that is accessed together
@@ -783,7 +783,7 @@ field as a reference between the two collections.
 }
 ```
 
-### Cassandra Data Modeling
+### Cassandra Data Representation
 In Apache Cassandra, data is organized using a unique combination of column-based and row-based structures, which significantly differ from the traditional conventions of relational databases. Unlike relational databases where the schema is rigid and predefined, Cassandra’s data model is designed for flexibility and scalability. The primary data storage unit in Cassandra is the Column Family, which can be likened to a table in a relational database, albeit with a distinctive twist: each row in a Column Family can contain a variable number of columns, allowing for a highly flexible schema design.
 
 A Column Family in Cassandra is essentially a set of key-value pairs. In this context, the key is utilized for identifying columns and for distributing and partitioning data among the cluster nodes, while the value comprises a set of columns. Conceptually, each key-value pair in a Column Family corresponds to a table row in a relational database, with the key value serving as the identifier for the row.
@@ -3804,9 +3804,6 @@ UPDATE seat SET status = 'Occupied', balance = ‘v1’, date_of_birth = ‘v2�
 ```
 
 In conclusion, the Java script used to communicate with the database is reported (the UPDATE operation is not included as it will be addressed in the appropriate chapter). To load the database so that the data matches those of MongoDB, the latter was exported to a json file and the various fields were extracted from it.
-
-## Transazioni
-Spiegazione su cosa è una transazione e perché è importante per il nostro caso di studio (semplicemnte non posso avere due persone sullo stesso posto)
 
 ### Transazioni in Mongo
 spieghi come hai modellato le transazioni e come lato backend vengono gestite (quindi come le gestisce il db)
