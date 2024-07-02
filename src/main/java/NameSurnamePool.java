@@ -1,7 +1,20 @@
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * The NameSurnamePool class provides static lists of common Italian names and surnames.
+ * These lists can be used for generating sample data or for any other purpose requiring
+ * a set of predefined names and surnames.
+ *
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
 public class NameSurnamePool {
+
+    /**
+     * A static list of common Italian first names.
+     */
     public static final List<String> NAMES = Arrays.asList(
             "Luca", "Marco", "Giulia", "Francesca", "Alessandro", "Chiara", "Matteo", "Valentina", "Simone", "Martina",
             "Andrea", "Sara", "Stefano", "Giorgia", "Davide", "Alice", "Federico", "Elena", "Nicola", "Silvia", "Giulio",
@@ -15,6 +28,9 @@ public class NameSurnamePool {
             "Matilde", "Ginevra", "Arianna", "Samuele", "Noemi", "Aurora", "Rachele", "Michela", "Melissa", "Rebecca"
     );
 
+    /**
+     * A static list of common Italian surnames.
+     */
     public static final List<String> SURNAMES = Arrays.asList(
             "Rossi", "Bianchi", "Esposito", "Romano", "Ferrari", "Ricci", "Marino", "Greco", "Bruno", "Gallo",
             "Conti", "De Luca", "Costa", "Giordano", "Manenti", "Rizzo", "Lombardi", "Moretti", "Barbieri", "Fontana",

@@ -1,4 +1,4 @@
-// Importa le classi necessarie
+// Import necessary classes
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 
@@ -11,27 +11,42 @@ import java.util.logging.Formatter;
 import java.util.logging.Logger;
 import java.util.logging.LogRecord;
 
+/**
+ * The Main class serves as the entry point for the application, demonstrating various operations
+ * such as MongoDB interactions, logging configurations, and concurrent transaction handling.
+ *
+ * @author
+ * @version 1.0
+ * @since 2024-07-02
+ */
 public class Main {
 
     private static final Logger logger = Logger.getLogger(Main.class.getName());
 
+    /**
+     * The main method configures logging, establishes a connection to a MongoDB instance,
+     * and performs various database operations such as retrieving flight information,
+     * booking seats, and handling concurrent transactions.
+     *
+     * @param args Command line arguments (not used).
+     */
     public static void main(String[] args) {
         try {
-            // Configurazione del FileHandler con un Formatter personalizzato
+            // Configure the FileHandler with a custom Formatter
             FileHandler fileHandler = new FileHandler("app.log");
             fileHandler.setFormatter(new SimpleLogFormatter());
             logger.addHandler(fileHandler);
 
-            // Dettagli della connessione a MongoDB
+            // MongoDB connection details
             String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
             String dbName = "Airports";
             String collectionName = "airportCollection";
 
-            // Inizializzazione del client MongoDB e istanza Transactions
+            // Initialize MongoDB client and Transactions instance
             MongoClient mongoClient = MongoClients.create(connectionString);
             Transactions transactions = new Transactions(mongoClient, dbName, collectionName);
 
-            // Esempio di utilizzo dei metodi di Transactions
+            // Example usage of Transactions methods
             String departureAirportCode = "MXP";
             String arrivalAirportCode = "PMV";
 
@@ -97,7 +112,7 @@ public class Main {
                 logger.info("│---├─ No flights found departing from " + departureAirportCode);
             }
 
-            // Testing per la persona "povera" che prova a prenotare un posto libero
+            // Testing for the "poor" person attempting to book an available seat
             availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
             PeopleGenerator.Person poorPerson = generator.generatePoorPerson();
             String poorPersonSeatID = availableSeatsDetails.get(1);
@@ -105,13 +120,13 @@ public class Main {
             logger.info("├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR");
             logger.info("│---├─ " + poorPerson.getName() + " " + poorPerson.getSurname() + " with balance " + poorPerson.getBalance() + "$ is attempting to book seat " + poorPersonSeatID);
             logger.info("│---├─ Booking result for person with insufficient funds: " + transactions.bookFlight(flightID, poorPersonSeatID, poorPerson));
-            logger.info("│---├─ The booking failed to to having insufficient balance to complete the transaction");
+            logger.info("│---├─ The booking failed due to insufficient balance to complete the transaction");
             logger.info("");
 
-            // Chiudi il client MongoDB
+            // Close the MongoDB client
             transactions.close();
 
-            // Chiudi il FileHandler dopo l'utilizzo
+            // Close the FileHandler after use
             fileHandler.close();
 
         } catch (IOException e) {
@@ -119,7 +134,9 @@ public class Main {
         }
     }
 
-    // Formatter personalizzato per escludere la data, l'ora, il nome della classe e il livello di log
+    /**
+     * A custom formatter to exclude the date, time, class name, and log level from the log messages.
+     */
     static class SimpleLogFormatter extends Formatter {
         @Override
         public String format(LogRecord record) {
@@ -127,6 +144,12 @@ public class Main {
         }
     }
 
+    /**
+     * Logs the balance change for a person after booking a flight.
+     *
+     * @param logger The logger instance to use for logging.
+     * @param person The person whose balance change is being logged.
+     */
     private static void logBalanceChange(Logger logger, PeopleGenerator.Person person) {
         logger.info(String.format("│---├─ The balance of %s %s before booking the flight was %.2f$",
                 person.getName(), person.getSurname(), person.getOldBalance()));

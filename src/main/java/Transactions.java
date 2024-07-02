@@ -16,6 +16,15 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.*;
 
+/**
+ * The Transactions class provides methods for interacting with a MongoDB collection
+ * to retrieve flight information, check seat availability, and handle booking operations
+ * with thread safety considerations.
+ *
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
 class Transactions {
 
     private MongoClient mongoClient;
@@ -24,12 +33,25 @@ class Transactions {
     private Lock lock = new ReentrantLock();
     private static final Logger logger = Logger.getLogger(Transactions.class.getName());
 
+    /**
+     * Constructs a Transactions object with the specified MongoDB client, database name, and collection name.
+     *
+     * @param mongoClient The MongoDB client instance.
+     * @param dbName The name of the database.
+     * @param collectionName The name of the collection.
+     */
     public Transactions(MongoClient mongoClient, String dbName, String collectionName) {
         this.mongoClient = mongoClient;
         this.database = mongoClient.getDatabase(dbName);
         this.collection = database.getCollection(collectionName);
     }
 
+    /**
+     * Retrieves flights departing from the specified airport.
+     *
+     * @param airportCode The IATA code of the departure airport.
+     * @return A map containing flight details keyed by destination airport IATA code.
+     */
     public Map<String, Map<String, String>> getFlightsFromAirport(String airportCode) {
         Map<String, Map<String, String>> flightsMap = new HashMap<>();
 
@@ -54,10 +76,23 @@ class Transactions {
         return flightsMap;
     }
 
+    /**
+     * Retrieves the details of an airport by its ID.
+     *
+     * @param airportId The ObjectId of the airport.
+     * @return The document containing airport details, or null if not found.
+     */
     private Document getAirportById(ObjectId airportId) {
         return collection.find(Filters.eq("_id", airportId)).first();
     }
 
+    /**
+     * Retrieves the list of available seats for a flight from a departure airport to an arrival airport.
+     *
+     * @param departureAirportCode The IATA code of the departure airport.
+     * @param arrivalAirportCode The IATA code of the arrival airport.
+     * @return A list of seat IDs that are available.
+     */
     public List<String> getAvailableSeats(String departureAirportCode, String arrivalAirportCode) {
         List<String> availableSeatsList = new ArrayList<>();
 
@@ -83,6 +118,14 @@ class Transactions {
         return availableSeatsList;
     }
 
+    /**
+     * Attempts to book a flight for a given person, ensuring thread safety and atomic updates in MongoDB.
+     *
+     * @param flightID The ID of the flight to book.
+     * @param seatID The ID of the seat to book.
+     * @param person The person attempting to book the flight.
+     * @return True if the booking is successful, false otherwise.
+     */
     public boolean bookFlight(String flightID, String seatID, PeopleGenerator.Person person) {
         lock.lock();
         try {
@@ -103,9 +146,9 @@ class Transactions {
 
             Object priceObject = targetFlight.get("Price_per_Person");
             if (!(priceObject instanceof Number)) {
-                return false; // Gestione se il prezzo non è un numero valido
+                return false; // Handle case where price is not a valid number
             }
-            double seatPrice = ((Number) priceObject).doubleValue(); // Converti il prezzo del posto in double
+            double seatPrice = ((Number) priceObject).doubleValue(); // Convert seat price to double
 
             List<Document> seats = targetFlight.getList("Seats", Document.class);
             Document seat = seats.stream()
@@ -166,11 +209,11 @@ class Transactions {
         }
     }
 
-
-
+    /**
+     * Closes the MongoDB client connection.
+     */
     public void close() {
         mongoClient.close();
     }
 
 }
-

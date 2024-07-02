@@ -3073,7 +3073,7 @@ implications—is essential to maintain optimal database performance and efficie
 ### Cassandra Optimization
 _PLACEHOLDER PER FILIPPO_
 
-## Data Modeling
+## Data Modeling and Transactions
 
 #### Data Ingestion and Processing
 After having talked in length about MongoDB and Cassandra technologies, we can finally move on to presenting the case
@@ -3169,7 +3169,7 @@ have enough money to be able to get on a flight, and therefore a test will be do
 Not only this, the logs will also return the balance of people before and after booking, to show that everything is
 happening correctly.
 
-#### Creating the Data Model in MongoDB
+#### Creating the Data Model and Transactions in MongoDB
 
 Let's now move on to the creation of the Data Model, which is configured through the use of various Java Classes, 
 which interact with our Database. The class from which it all begins is the `Connection.java` class, whose code is 
@@ -3667,7 +3667,806 @@ and scalability. What follows are some best practices that can be observed in th
 By implementing these practices, the database is kept as lightweight and efficient as possible while still maintaining 
 a structure that is easy for programmers to work with and understand.
 
-### Creating the Data Model in Cassandra
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+However, the code does not end here, in fact, in addition to the Connection class and the Modeling class, there are 
+various other classes in the project, whose purpose is to model and manage transactions. In this regard, let's start 
+by observing the main class, which serves as the entry point for the application, demonstrating various operations such 
+as MongoDB interactions, logging configurations, and concurrent transaction handling. The Java code of the application
+is as follows:
+
+```java
+// Import necessary classes
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Logger;
+import java.util.logging.LogRecord;
+
+/**
+ * The Main class serves as the entry point for the application, demonstrating various operations
+ * such as MongoDB interactions, logging configurations, and concurrent transaction handling.
+ *
+ * @author Andrea Moleri
+ * @version 1.0
+ * @since 2024-07-02
+ */
+public class Main {
+
+    private static final Logger logger = Logger.getLogger(Main.class.getName());
+
+    /**
+     * The main method configures logging, establishes a connection to a MongoDB instance,
+     * and performs various database operations such as retrieving flight information,
+     * booking seats, and handling concurrent transactions.
+     *
+     * @param args Command line arguments (not used).
+     */
+    public static void main(String[] args) {
+        try {
+            // Configure the FileHandler with a custom Formatter
+            FileHandler fileHandler = new FileHandler("app.log");
+            fileHandler.setFormatter(new SimpleLogFormatter());
+            logger.addHandler(fileHandler);
+
+            // MongoDB connection details
+            String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
+            String dbName = "Airports";
+            String collectionName = "airportCollection";
+
+            // Initialize MongoDB client and Transactions instance
+            MongoClient mongoClient = MongoClients.create(connectionString);
+            Transactions transactions = new Transactions(mongoClient, dbName, collectionName);
+
+            // Example usage of Transactions methods
+            String departureAirportCode = "MXP";
+            String arrivalAirportCode = "PMV";
+
+            Map<String, Map<String, String>> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
+
+            logger.info("├─ TESTING FLIGHT RETRIEVAL");
+            logger.info("│---├─ Retrieving flights departing from the specified airport (" + departureAirportCode + ")");
+            for (Map.Entry<String, Map<String, String>> entry : flightsFromBGY.entrySet()) {
+                String iataCode = entry.getKey();
+                Map<String, String> flightDetails = entry.getValue();
+                logger.info("│---├─ Flight to " + iataCode + ": " + flightDetails);
+            }
+            logger.info("");
+
+            PeopleGenerator generator = null;
+            String flightID = null;
+            List<String> availableSeatsDetails = null;
+            if (flightsFromBGY.containsKey(arrivalAirportCode)) {
+                flightID = flightsFromBGY.get(arrivalAirportCode).get("ID");
+
+                logger.info("├─ TESTING SEATS RETRIEVAL");
+                logger.info("│---├─ The user chose to depart from " + departureAirportCode + " to " + arrivalAirportCode);
+                logger.info("│---├─ Retrieving available seats for the specified flight (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
+                logger.info("│---├─ Number of available seats: " + availableSeatsDetails.size());
+                logger.info("│---├─ Available seats are: " + availableSeatsDetails);
+                logger.info("");
+
+                if (!availableSeatsDetails.isEmpty()) {
+                    // Shuffle the list to randomize the seat selection
+                    Collections.shuffle(availableSeatsDetails);
+
+                    // TESTING CONCURRENT TRANSACTIONS
+                    String seatID = availableSeatsDetails.get(0);
+                    generator = new PeopleGenerator();
+                    List<PeopleGenerator.Person> people = generator.generatePeople(2);
+                    PeopleGenerator.Person person1 = people.get(0);
+                    PeopleGenerator.Person person2 = people.get(1);
+
+                    logger.info("├─ TESTING CONCURRENT TRANSACTIONS");
+                    logger.info("│---├─ Testing concurrent booking for the same seat (" + seatID + ") on flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                    logger.info("│---├─ Booking result for person 1: " + transactions.bookFlight(flightID, seatID, person1));
+                    logger.info("│---├─ Booking result for person 2: " + transactions.bookFlight(flightID, seatID, person2));
+                    logger.info("│---├─ Person 1 booked the seat first and successfully: " + person1);
+                    logger.info("│---├─ Person 2 consequently failed to book the same seat: " + person2);
+                    logBalanceChange(logger, person1);
+                    logger.info("");
+
+                    // TESTING NON-CONCURRENT TRANSACTION
+                    String newSeatID = availableSeatsDetails.get(1);
+                    PeopleGenerator.Person newPerson = generator.generatePeople(1).get(0);
+
+                    logger.info("├─ TESTING NON-CONCURRENT TRANSACTION");
+                    logger.info("│---├─ A new user chose to book the " + newSeatID + " seat, without any concurrency from other users");
+                    logger.info("│---├─ Booking result for new person: " + transactions.bookFlight(flightID, newSeatID, newPerson));
+                    logger.info("│---├─ New person booked the seat successfully: " + newPerson);
+                    logBalanceChange(logger, newPerson);
+                    logger.info("");
+                } else {
+                    logger.info("│---├─ No available seats found for the flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                }
+            } else {
+                logger.info("│---├─ No flights found departing from " + departureAirportCode);
+            }
+
+            // Testing for the "poor" person attempting to book an available seat
+            availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
+            PeopleGenerator.Person poorPerson = generator.generatePoorPerson();
+            String poorPersonSeatID = availableSeatsDetails.get(1);
+
+            logger.info("├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR");
+            logger.info("│---├─ " + poorPerson.getName() + " " + poorPerson.getSurname() + " with balance " + poorPerson.getBalance() + "$ is attempting to book seat " + poorPersonSeatID);
+            logger.info("│---├─ Booking result for person with insufficient funds: " + transactions.bookFlight(flightID, poorPersonSeatID, poorPerson));
+            logger.info("│---├─ The booking failed due to insufficient balance to complete the transaction");
+            logger.info("");
+
+            // Close the MongoDB client
+            transactions.close();
+
+            // Close the FileHandler after use
+            fileHandler.close();
+
+        } catch (IOException e) {
+            logger.severe("│---├─ Error during logger configuration: " + e.getMessage());
+        }
+    }
+
+    /**
+     * A custom formatter to exclude the date, time, class name, and log level from the log messages.
+     */
+    static class SimpleLogFormatter extends Formatter {
+        @Override
+        public String format(LogRecord record) {
+            return record.getMessage() + System.lineSeparator();
+        }
+    }
+
+    /**
+     * Logs the balance change for a person after booking a flight.
+     *
+     * @param logger The logger instance to use for logging.
+     * @param person The person whose balance change is being logged.
+     */
+    private static void logBalanceChange(Logger logger, PeopleGenerator.Person person) {
+        logger.info(String.format("│---├─ The balance of %s %s before booking the flight was %.2f$",
+                person.getName(), person.getSurname(), person.getOldBalance()));
+        logger.info(String.format("│---├─ The cost of the flight was %.2f$", person.getDifference()));
+        logger.info(String.format("│---├─ This means the new balance of %s %s is %.2f$",
+                person.getName(), person.getSurname(), person.getBalance()));
+    }
+}
+```
+
+When executed, this class returns a log file called `app.log`, an example of the plaintext content of which is shown below:
+For visual simplicity, some of the flight parameters available in the testing flight retrieval section have been removed, 
+but they can be added again by editing the body of the main class above.
+
+```plaintext
+├─ TESTING FLIGHT RETRIEVAL
+│---├─ Retrieving flights departing from the specified airport (MXP)
+│---├─ Flight to CDG: {IATA_code=CDG, Country=France, ID=6677f9907acf35542d8ef21b, Name=Aéroport de Paris-Charles-de-Gaulle}
+│---├─ Flight to PMV: {IATA_code=PMV, Country=Venezuela, ID=6677f9907acf35542d8ef21c, Name=Aeropuerto Internacional del Caribe Santiago Mariño}
+
+├─ TESTING SEATS RETRIEVAL
+│---├─ The user chose to depart from MXP to PMV
+│---├─ Retrieving available seats for the specified flight (MXP -> PMV)
+│---├─ Number of available seats: 13
+│---├─ Available seats are: [1F, 2C, 3A, 4F, 5A, 5B, 5D, 9A, 9C, 10B, 11C, 13B, 13F]
+
+├─ TESTING CONCURRENT TRANSACTIONS
+│---├─ Testing concurrent booking for the same seat (11C) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
+│---├─ Booking result for person 1: true
+│---├─ Booking result for person 2: false
+│---├─ Person 1 booked the seat first and successfully: Person{name='Salvatore', surname='Montanari', documentInfo='M4J601O', dateOfBirth='1933-08-27', balance=43988.87}
+│---├─ Person 2 consequently failed to book the same seat: Person{name='Enrico', surname='Pellegrini', documentInfo='PGUJ8Q0', dateOfBirth='1938-06-12', balance=39196.33}
+│---├─ The balance of Salvatore Montanari before booking the flight was 44350.87$
+│---├─ The cost of the flight was 362.00$
+│---├─ This means the new balance of Salvatore Montanari is 43988.87$
+
+├─ TESTING NON-CONCURRENT TRANSACTION
+│---├─ A new user chose to book the 3A seat, without any concurrency from other users
+│---├─ Booking result for new person: true
+│---├─ New person booked the seat successfully: Person{name='Marcella', surname='D'Agostino', documentInfo='YUW4PE3', dateOfBirth='2005-08-05', balance=92079.26}
+│---├─ The balance of Marcella D'Agostino before booking the flight was 92441.26$
+│---├─ The cost of the flight was 362.00$
+│---├─ This means the new balance of Marcella D'Agostino is 92079.26$
+
+├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR
+│---├─ Angela Sanna with balance 10.0$ is attempting to book seat 2C
+│---├─ Booking result for person with insufficient funds: false
+│---├─ The booking failed to to having insufficient balance to complete the transaction
+```
+
+Various test cases are listed within the log file just shown as described by the objectives of our model. In particular, 
+flight retrieval, seats retrieval, concurrent and non-concurrent transactions and testing of insufficient funds behavior 
+are tested. It should be specified that it would have been possible to add a test case called "TESTING ALREADY BOOKED 
+TRANSACTION", in which the behavior of a user who would have tried to book an already occupied seat would have been 
+tested. However, this test was omitted as it was already logically incorporated by the locking mechanism of the test 
+case called "TESTING CONCURRENT TRANSACTIONS".
+
+At this point it is natural to ask how the actual Transactions work within the database. 
+To do this, let's take a look at how the `Transactions.java` class works below
+
+```java
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.*;
+
+/**
+ * The Transactions class provides methods for interacting with a MongoDB collection 
+ * to retrieve flight information, check seat availability, and handle booking operations 
+ * with thread safety considerations.
+ * 
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
+class Transactions {
+
+    private MongoClient mongoClient;
+    private MongoDatabase database;
+    private MongoCollection<Document> collection;
+    private Lock lock = new ReentrantLock();
+    private static final Logger logger = Logger.getLogger(Transactions.class.getName());
+
+    /**
+     * Constructs a Transactions object with the specified MongoDB client, database name, and collection name.
+     *
+     * @param mongoClient The MongoDB client instance.
+     * @param dbName The name of the database.
+     * @param collectionName The name of the collection.
+     */
+    public Transactions(MongoClient mongoClient, String dbName, String collectionName) {
+        this.mongoClient = mongoClient;
+        this.database = mongoClient.getDatabase(dbName);
+        this.collection = database.getCollection(collectionName);
+    }
+
+    /**
+     * Retrieves flights departing from the specified airport.
+     *
+     * @param airportCode The IATA code of the departure airport.
+     * @return A map containing flight details keyed by destination airport IATA code.
+     */
+    public Map<String, Map<String, String>> getFlightsFromAirport(String airportCode) {
+        Map<String, Map<String, String>> flightsMap = new HashMap<>();
+
+        FindIterable<Document> iterable = collection.find(Filters.eq("IATA_code", airportCode));
+
+        for (Document airportDoc : iterable) {
+            List<Document> flightsFromAirport = airportDoc.getList("Flights", Document.class);
+            for (Document flight : flightsFromAirport) {
+                ObjectId destinationId = flight.getObjectId("Destination");
+                Document destinationAirport = getAirportById(destinationId);
+                if (destinationAirport != null) {
+                    Map<String, String> flightDetails = new HashMap<>();
+                    flightDetails.put("ID", flight.getString("ID"));
+                    flightDetails.put("Name", destinationAirport.getString("Name"));
+                    flightDetails.put("IATA_code", destinationAirport.getString("IATA_code"));
+                    flightDetails.put("Country", destinationAirport.getString("Country"));
+                    flightsMap.put(destinationAirport.getString("IATA_code"), flightDetails);
+                }
+            }
+        }
+
+        return flightsMap;
+    }
+
+    /**
+     * Retrieves the details of an airport by its ID.
+     *
+     * @param airportId The ObjectId of the airport.
+     * @return The document containing airport details, or null if not found.
+     */
+    private Document getAirportById(ObjectId airportId) {
+        return collection.find(Filters.eq("_id", airportId)).first();
+    }
+
+    /**
+     * Retrieves the list of available seats for a flight from a departure airport to an arrival airport.
+     *
+     * @param departureAirportCode The IATA code of the departure airport.
+     * @param arrivalAirportCode The IATA code of the arrival airport.
+     * @return A list of seat IDs that are available.
+     */
+    public List<String> getAvailableSeats(String departureAirportCode, String arrivalAirportCode) {
+        List<String> availableSeatsList = new ArrayList<>();
+
+        Document departureAirport = collection.find(Filters.eq("IATA_code", departureAirportCode)).first();
+
+        if (departureAirport != null) {
+            List<Document> flightsFromDeparture = departureAirport.getList("Flights", Document.class);
+            for (Document flight : flightsFromDeparture) {
+                ObjectId destinationId = flight.getObjectId("Destination");
+                Document destinationAirport = getAirportById(destinationId);
+                if (destinationAirport != null && destinationAirport.getString("IATA_code").equals(arrivalAirportCode)) {
+                    List<Document> seats = flight.getList("Seats", Document.class);
+                    for (Document seat : seats) {
+                        if ("Vacant".equals(seat.getString("Status"))) {
+                            availableSeatsList.add(seat.getString("ID"));
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        return availableSeatsList;
+    }
+
+    /**
+     * Attempts to book a flight for a given person, ensuring thread safety and atomic updates in MongoDB.
+     *
+     * @param flightID The ID of the flight to book.
+     * @param seatID The ID of the seat to book.
+     * @param person The person attempting to book the flight.
+     * @return True if the booking is successful, false otherwise.
+     */
+    public boolean bookFlight(String flightID, String seatID, PeopleGenerator.Person person) {
+        lock.lock();
+        try {
+            Document flightDocument = collection.find(Filters.eq("Flights.ID", flightID)).first();
+            if (flightDocument == null) {
+                return false;
+            }
+
+            List<Document> flights = flightDocument.getList("Flights", Document.class);
+            Document targetFlight = flights.stream()
+                    .filter(f -> flightID.equals(f.getString("ID")))
+                    .findFirst()
+                    .orElse(null);
+
+            if (targetFlight == null) {
+                return false;
+            }
+
+            Object priceObject = targetFlight.get("Price_per_Person");
+            if (!(priceObject instanceof Number)) {
+                return false; // Handle case where price is not a valid number
+            }
+            double seatPrice = ((Number) priceObject).doubleValue(); // Convert seat price to double
+
+            List<Document> seats = targetFlight.getList("Seats", Document.class);
+            Document seat = seats.stream()
+                    .filter(s -> seatID.equals(s.getString("ID")) && "Vacant".equals(s.getString("Status")))
+                    .findFirst()
+                    .orElse(null);
+
+            if (seat == null) {
+                return false;
+            }
+
+            if (person.getBalance() < seatPrice) {
+                return false;
+            }
+
+            // Store old balance and difference in Person object
+            person.setOldBalance(person.getBalance());
+            person.setDifference(seatPrice);
+
+            // Update seat status and person details
+            seat.put("Status", "Booked");
+            seat.put("Name", person.getName());
+            seat.put("Surname", person.getSurname());
+            seat.put("Document_Info", person.getDocumentInfo());
+            seat.put("Date_of_Birth", person.getDateOfBirth());
+            seat.put("Balance", person.getBalance() - seatPrice);
+
+            // Update MongoDB document atomically
+            UpdateResult result = collection.updateOne(
+                    Filters.and(
+                            Filters.eq("Flights.ID", flightID),
+                            Filters.eq("Flights.Seats.ID", seatID),
+                            Filters.eq("Flights.Seats.Status", "Vacant")
+                    ),
+                    Updates.combine(
+                            Updates.set("Flights.$[flight].Seats.$[seat].Status", "Booked"),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Name", person.getName()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Surname", person.getSurname()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Document_Info", person.getDocumentInfo()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Date_of_Birth", person.getDateOfBirth()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Balance", person.getBalance() - seatPrice)
+                    ),
+                    new UpdateOptions().arrayFilters(Arrays.asList(
+                            Filters.eq("flight.ID", flightID),
+                            Filters.eq("seat.ID", seatID)
+                    ))
+            );
+
+            if (result.getModifiedCount() == 1) {
+                // Deduct seat price from person's balance
+                person.setBalance(person.getBalance() - seatPrice);
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Closes the MongoDB client connection.
+     */
+    public void close() {
+        mongoClient.close();
+    }
+
+}
+```
+
+The code in the `Transactions.java` class is designed to handle various operations related to flights in a MongoDB 
+collection. It allows for retrieving flight information, checking seat availability, and booking seats in a thread-safe manner.
+We now want to focus our attention on the management of concurrent read and write operations in MongoDB, and how the 
+database provides tools to manage them. Not only this, but we will also detail how the Java class just shown takes 
+advantage of Locking mechanisms in conjunction with the tools offered by MongoDB to avoid any conflicts
+
+#### Managing Concurrency 
+
+MongoDB is designed to handle high-concurrency environments, supporting concurrent read operations efficiently through 
+its architecture and features like multi-version concurrency control (MVCC). This mechanism allows multiple clients to 
+read data from the database simultaneously without interfering with each other, ensuring that each read operation 
+receives a consistent view of the data as it was at the start of the read operation.
+
+In MVCC, when a read operation begins, MongoDB provides a snapshot of the data at that moment. Any updates made by other 
+clients after the read operation has started do not affect the snapshot seen by the reader. This approach provides several benefits:
+
+1. **Consistency**: readers always see a consistent view of the data, even if other clients are making concurrent writes.
+2. **Isolation**: MVCC ensures that readers are isolated from writers. Changes made by a writer are not visible to readers until the write is complete.
+3. **Performance**: by allowing multiple clients to read from the same data set concurrently, MongoDB can handle a high number of read requests efficiently.
+
+MongoDB employs snapshot reads for read operations within transactions. A snapshot read captures the state of the database
+at the start of the transaction, ensuring that all read operations within the transaction see a consistent view of the data. 
+This is particularly useful in scenarios requiring strong consistency guarantees.
+MongoDB provides various read concern levels to control the consistency and isolation properties of read operations:
+
+- **"local"**: Returns the most recent data available, regardless of the acknowledgment of the write operations.
+- **"majority"**: Returns data that has been acknowledged by the majority of the replica set members, ensuring that the read data is durable.
+- **"snapshot"**: Provides a snapshot of the data as it was at the start of a transaction, ensuring a consistent view of the data during the transaction.
+
+The `Transactions.java` class leverages MongoDB's ability to handle concurrent operations to ensure efficient and safe 
+access to our dataset. Here is how the class handles concurrent reads and writes:
+
+1. **Retrieving Flights from an Airport**:
+  - The `getFlightsFromAirport` method retrieves all flights departing from a specified airport. MongoDB handles the concurrent reads internally, ensuring that the data returned is consistent.
+
+2. **Checking Available Seats**:
+  - The `getAvailableSeats` method checks the availability of seats on a flight. This method involves reading the flight and seat information from the database. MongoDB's concurrent read capabilities ensure that multiple clients can check seat availability simultaneously without interference.
+
+3. **Booking a Flight**:
+  - The `bookFlight` method handles concurrent write operations. This method is designed to be thread-safe, ensuring that only one thread can book a seat at a time using the `ReentrantLock`.
+
+The `ReentrantLock` in Java provides a way to ensure that only one thread can execute a block of code at a time. 
+In the `bookFlight` method, the lock is used to ensure that the entire process of checking seat availability and 
+updating the seat status is atomic. Here's how it works:
+
+1. **Acquire the Lock**: when a thread enters the `bookFlight` method, it calls `lock.lock()` to acquire the lock. This prevents other threads from entering the critical section of the code until the lock is released.
+2. **Check and Update**: inside the locked section, the code performs the following:
+  - It checks if the flight and the seat are available.
+  - It verifies that the person has sufficient balance.
+  - It updates the seat status to "Booked" and deducts the price from the person's balance.
+  - It performs an atomic update in the MongoDB collection using the `updateOne` method with array filters to ensure only the specified seat is updated.
+3. **Release the Lock**: after the update operation, the lock is released using `lock.unlock()`, allowing other threads to attempt booking operations.
+
+By using `ReentrantLock`, the code ensures that even if multiple threads try to book the same seat at the same time, 
+*only one will succeed,* and the others will receive a failure response. This approach prevents race conditions and 
+ensures data consistency within the application.
+
+#### Other Auxiliary Classes
+
+To conclude the overview of the code necessary for the operation of both the Main class and the Transactions class, it 
+is best to shift the focus of our attention to the last two classes that make up the model: PeopleGenerator and its 
+auxiliary class NameSurnamePool. First follows the PeopleGenerator code, whose purpose is to generate a People object. 
+Given the simplicity of its nature (it is effectively a random generator of people based on various parameters), the 
+code will be self-explanatory.
+
+```java
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * The PeopleGenerator class is responsible for generating a list of Person objects with
+ * random attributes, including name, surname, document information, date of birth, and balance.
+ * It can also generate a "poor" person with a limited balance.
+ *
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
+public class PeopleGenerator {
+
+    private static final Random RANDOM = new Random();
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
+
+    /**
+     * Generates a list of Person objects with specified count.
+     *
+     * @param count The number of Person objects to generate.
+     * @return A list of generated Person objects.
+     */
+    public List<Person> generatePeople(int count) {
+        List<Person> people = new ArrayList<>(count);
+        Set<String> documentNumbers = new HashSet<>(count);
+
+        for (int i = 0; i < count; i++) {
+            String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
+            String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
+            String documentInfo;
+
+            // Generate a unique document number
+            do {
+                documentInfo = generateDocumentInfo();
+            } while (documentNumbers.contains(documentInfo));
+
+            documentNumbers.add(documentInfo);
+            String dateOfBirth = generateDateOfBirth();
+            double balance = 100 + (100000 - 100) * RANDOM.nextDouble();
+
+            // Round the balance to two decimal places
+            balance = Double.parseDouble(DECIMAL_FORMAT.format(balance));
+
+            people.add(new Person(name, surname, documentInfo, dateOfBirth, balance));
+        }
+
+        return people;
+    }
+
+    /**
+     * Generates a 7-character alphanumeric document information string.
+     *
+     * @return A randomly generated document information string.
+     */
+    private String generateDocumentInfo() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder(7);
+        for (int i = 0; i < 7; i++) {
+            sb.append(chars.charAt(RANDOM.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Generates a random date of birth between 18 and 100 years ago.
+     *
+     * @return A randomly generated date of birth in "yyyy-MM-dd" format.
+     */
+    private String generateDateOfBirth() {
+        long now = System.currentTimeMillis();
+        long eighteenYearsAgo = now - (18L * 365 * 24 * 60 * 60 * 1000);
+        long hundredYearsAgo = now - (100L * 365 * 24 * 60 * 60 * 1000);
+        long randomMillis = ThreadLocalRandom.current().nextLong(hundredYearsAgo, eighteenYearsAgo);
+        return new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date(randomMillis));
+    }
+
+    /**
+     * Generates a Person object with limited balance, representing a "poor" person.
+     *
+     * @return A generated "poor" Person object.
+     */
+    public Person generatePoorPerson() {
+        String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
+        String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
+        String documentInfo = generateDocumentInfo();
+        String dateOfBirth = generateDateOfBirth();
+        double balance = 10.0; // Balance limited to 10$
+
+        return new Person(name, surname, documentInfo, dateOfBirth, balance);
+    }
+
+    /**
+     * The Person class represents an individual with attributes such as name, surname, document information,
+     * date of birth, and balance. It also tracks the previous balance and balance difference for transactions.
+     */
+    public static class Person {
+        private String name;
+        private String surname;
+        private String documentInfo;
+        private String dateOfBirth;
+        private double balance;
+        private double oldBalance; // Added to manage the previous balance
+        private double difference; // Added to manage balance difference
+
+        /**
+         * Constructs a new Person instance.
+         *
+         * @param name The name of the person.
+         * @param surname The surname of the person.
+         * @param documentInfo The document information of the person.
+         * @param dateOfBirth The date of birth of the person.
+         * @param balance The balance of the person.
+         */
+        public Person(String name, String surname, String documentInfo, String dateOfBirth, double balance) {
+            this.name = name;
+            this.surname = surname;
+            this.documentInfo = documentInfo;
+            this.dateOfBirth = dateOfBirth;
+            this.balance = balance;
+            this.oldBalance = balance; // Initially, the previous balance is equal to the current balance
+            this.difference = 0.0; // Initially, there is no balance difference
+        }
+
+        // Getters and setters...
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getSurname() {
+            return surname;
+        }
+
+        public void setSurname(String surname) {
+            this.surname = surname;
+        }
+
+        public String getDocumentInfo() {
+            return documentInfo;
+        }
+
+        public void setDocumentInfo(String documentInfo) {
+            this.documentInfo = documentInfo;
+        }
+
+        public String getDateOfBirth() {
+            return dateOfBirth;
+        }
+
+        public void setDateOfBirth(String dateOfBirth) {
+            this.dateOfBirth = dateOfBirth;
+        }
+
+        public double getBalance() {
+            return balance;
+        }
+
+        public void setBalance(double balance) {
+            this.balance = balance;
+        }
+
+        public double getOldBalance() {
+            return oldBalance;
+        }
+
+        public void setOldBalance(double oldBalance) {
+            this.oldBalance = oldBalance;
+        }
+
+        public double getDifference() {
+            return difference;
+        }
+
+        public void setDifference(double difference) {
+            this.difference = difference;
+        }
+
+        @Override
+        public String toString() {
+            return "Person{" +
+                    "name='" + name + '\'' +
+                    ", surname='" + surname + '\'' +
+                    ", documentInfo='" + documentInfo + '\'' +
+                    ", dateOfBirth='" + dateOfBirth + '\'' +
+                    ", balance=" + balance +
+                    '}';
+        }
+    }
+
+    /**
+     * The main method to test the generation of Person objects.
+     *
+     * @param args Command line arguments (not used).
+     */
+    public static void main(String[] args) {
+        PeopleGenerator generator = new PeopleGenerator();
+        List<Person> people = generator.generatePeople(10000);
+
+        // Print the first 10 people to verify the output
+        for (int i = 0; i < 10; i++) {
+            System.out.println(people.get(i));
+        }
+    }
+}
+```
+
+Similarly, we present the auxiliary class NameSurnamePool, which is nothing more than a class intended to contain Array 
+of possible names and surnames, which will be used in combination to generate a People object. Again, the code is simple 
+enough that it does not require further explanations other than those already provided by the comments within it.
+
+```java
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * The NameSurnamePool class provides static lists of common Italian names and surnames.
+ * These lists can be used for generating sample data or for any other purpose requiring 
+ * a set of predefined names and surnames.
+ *
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
+public class NameSurnamePool {
+
+    /**
+     * A static list of common Italian first names.
+     */
+    public static final List<String> NAMES = Arrays.asList(
+            "Luca", "Marco", "Giulia", "Francesca", "Alessandro", "Chiara", "Matteo", "Valentina", "Simone", "Martina",
+            "Andrea", "Sara", "Stefano", "Giorgia", "Davide", "Alice", "Federico", "Elena", "Nicola", "Silvia", "Giulio",
+            "Paolo", "Anna", "Antonio", "Laura", "Roberto", "Roberta", "Enrico", "Marta", "Gabriele", "Claudia",
+            "Leonardo", "Veronica", "Massimo", "Cristina", "Filippo", "Eleonora", "Giovanni", "Maria", "Pietro", "Federica",
+            "Vincenzo", "Daniela", "Riccardo", "Alberto", "Angela", "Emanuele", "Monica", "Salvatore", "Serena", "Beatrice",
+            "Tommaso", "Camilla", "Giovanna", "Vittoria", "Gabriella", "Lorenzo", "Michele", "Luigi", "Alessia", "Edoardo",
+            "Fabrizio", "Irene", "Fabio", "Patrizia", "Sergio", "Elisabetta", "Raffaele", "Caterina", "Ludovica", "Maurizio",
+            "Alberto", "Manuela", "Claudio", "Franco", "Tiziana", "Pasquale", "Debora", "Sabrina", "Giuseppe", "Marcella",
+            "Lucrezia", "Dario", "Cristiano", "Eleonora", "Renato", "Cinzia", "Alessia", "Cristian", "Lucia", "Sofia",
+            "Matilde", "Ginevra", "Arianna", "Samuele", "Noemi", "Aurora", "Rachele", "Michela", "Melissa", "Rebecca"
+    );
+
+    /**
+     * A static list of common Italian surnames.
+     */
+    public static final List<String> SURNAMES = Arrays.asList(
+            "Rossi", "Bianchi", "Esposito", "Romano", "Ferrari", "Ricci", "Marino", "Greco", "Bruno", "Gallo",
+            "Conti", "De Luca", "Costa", "Giordano", "Manenti", "Rizzo", "Lombardi", "Moretti", "Barbieri", "Fontana",
+            "Santoro", "Mariani", "Rinaldi", "Caruso", "Ferraro", "Gatti", "Testa", "Martini", "Pellegrini", "Palumbo",
+            "Sorrentino", "Longo", "Leone", "Gentile", "Lombardo", "Moleri", "Colombo", "D'Amico", "Martino", "Bianco",
+            "Morelli", "Amato", "Silvestri", "Grasso", "Parisi", "Sanna", "Farina", "Ruggiero", "Monti", "Coppola",
+            "De Santis", "Mazza", "Villa", "Marchetti", "Caputo", "Ferretti", "Battaglia", "Fiore", "Messina", "Donati",
+            "Vitali", "Fabbri", "Valentini", "Orlando", "Mariani", "Rizzi", "Benedetti", "Neri", "Bellini", "Rossetti",
+            "Bertoni", "Piras", "Rosati", "Di Lorenzo", "Martelli", "Marino", "Ferri", "Brunetti", "De Angelis", "Basili",
+            "Veneziani", "Pascarella", "Pagano", "Palmieri", "Ferraro", "Armani", "Raimondi", "Montanari", "Carbone", "D'Agostino"
+    );
+}
+```
+
+This concludes the overview of the code used for the purposes of data ingestion, data processing, data parsing, data 
+modeling and transactions management within the MongoDB database, paying careful attention to the management of 
+concurrent transactions.
+
+### Creating the Data Model and Transactions in Cassandra
 In the context of Cassandra, maximizing database efficiency requires a data model design approach focused primarily on anticipated queries. This means the data structure must be conceived to facilitate and optimize query operations, even if this results in an increase in write operations, which are nonetheless executed almost instantaneously thanks to Cassandra's features. Therefore, according to this methodology, it is necessary to create tables that directly reflect the anticipated query types, while ensuring an even distribution of data across the cluster nodes to prevent overloading specific nodes and to guarantee effective, seamless scalability.
 To successfully implement this approach, it is essential to follow a series of steps:
 
@@ -3807,12 +4606,6 @@ UPDATE seat SET status = 'Occupied', balance = ‘v1’, date_of_birth = ‘v2�
 
 In conclusion, the Java script used to communicate with the database is reported (the UPDATE operation is not included as it will be addressed in the appropriate chapter). To load the database so that the data matches those of MongoDB, the latter was exported to a json file and the various fields were extracted from it.
 
-### Transazioni in Mongo
-spieghi come hai modellato le transazioni e come lato backend vengono gestite (quindi come le gestisce il db)
-
-### Transazioni in Cassandra
-_PLACEHOLDER PER FILIPPO_
-
 ## Gestione su larghi volumi
 
 Devo ancora capire bene cazzo dobbiamo fare qua ma poi anch'esso sarà diviso in Mongo e Cassandra
@@ -3822,7 +4615,6 @@ Devo ancora capire bene cazzo dobbiamo fare qua ma poi anch'esso sarà diviso in
 MongoDB and Apache Cassandra are two of the most popular NoSQL databases, each with unique characteristics and 
 applications that make them suitable for different needs. Despite their similarities in supporting unstructured data 
 and scalability, the differences in their architectures and functionalities distinguish them clearly.
-
 MongoDB utilizes a document-based data model, where documents are stored in BSON format, similar to JSON. These 
 documents are collected in collections and do not require a fixed schema, making it particularly flexible for handling 
 dynamic and unstructured data. In contrast, Cassandra uses a wide-column data model, which is a hybrid between a tabular 
@@ -3833,7 +4625,6 @@ In terms of query language, MongoDB employs the MongoDB Query Language (MQL), wh
 commands similar to those in Node.js. Cassandra, on the other hand, uses the Cassandra Query Language (CQL), which is 
 similar to SQL but adapted to its data model. This difference makes CQL more intuitive for those familiar with SQL, 
 while MQL offers greater flexibility for document-specific operations.
-
 MongoDB offers various types of indexes, including single field, compound, multikey, geospatial, and text search indexes. 
 Cassandra supports secondary indexes and SSTable-Attached Secondary Indexes (SASI) for complex queries, although 
 these can impact system performance.
@@ -3842,12 +4633,10 @@ Concurrency control and transaction management represent another area of differe
 MongoDB manages concurrency through Multi-Version Concurrency Control (MVCC) and document-level locking, allowing for 
 ACID transactions at the single-document level. Starting from version 4.0, MongoDB also offers multi-document transactions, 
 albeit with some performance limitations.
-
 Cassandra handles concurrency with tunable consistency and row-level atomicity. It does not natively support full ACID 
 transactions but allows for batches of operations with row-level isolation, providing eventual consistency with 
 configurable consistency levels. From a scalability and availability perspective, both systems are designed to support 
 horizontal scalability through data partitioning and replication across multiple nodes.
-
 MongoDB employs a primary node with replicas for read and write operations. Its sharding architecture allows data 
 distribution across multiple nodes with load balancing and elastic scalability. This approach offers greater control 
 over partitioning through sharding keys, optimizing data distribution and queries.
@@ -3855,11 +4644,9 @@ over partitioning through sharding keys, optimizing data distribution and querie
 Cassandra is designed for high availability with a peer-to-peer topology and multiple master nodes. Each node in the 
 cluster is equal, eliminating a single point of failure. This architecture allows for linear scalability by simply 
 adding new nodes to the cluster without the need to reconfigure the entire infrastructure.
-
 MongoDB uses a primary-secondary replication model, where a primary node handles all write operations and secondary 
 replicas are used for reading and failover. If the primary node fails, one of the secondaries is elected as the new 
 primary, ensuring operational continuity.
-
 Cassandra employs a masterless replication model, where any node can handle read and write operations. Data is 
 automatically replicated across multiple nodes to ensure fault tolerance. This model ensures that even in the event of 
 one or more node failures, the system continues to operate without interruptions.
@@ -3867,12 +4654,10 @@ one or more node failures, the system continues to operate without interruptions
 Both databases are open source in their initial versions, with MongoDB developed by MongoDB, Inc. and Cassandra initially 
 developed by Facebook and later released by Apache. They support a wide range of programming languages, with MongoDB
 offering support for 12 languages, while Cassandra supports a slightly smaller but still diverse number.
-
 Security is a critical aspect for both databases. In their base versions, the security of MongoDB and Cassandra is 
 primarily managed by the user, with SSL and TLS for client connections and user authentication. MongoDB Atlas, the 
 paid version of MongoDB, offers extended security features such as X.509, client-side and server-side encryption, 
 and integration with Kerberos and LDAP.
-
 In summary, MongoDB is ideal for handling unstructured and dynamic data due to its flexibility and scalability, 
 whereas Cassandra is excellent for applications requiring high availability and high performance for read and write 
 operations. Both databases provide powerful solutions for various needs, making them indispensable tools in the 

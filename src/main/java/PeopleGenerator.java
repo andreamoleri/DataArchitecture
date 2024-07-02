@@ -6,12 +6,26 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * The PeopleGenerator class is responsible for generating a list of Person objects with
+ * random attributes, including name, surname, document information, date of birth, and balance.
+ * It can also generate a "poor" person with a limited balance.
+ *
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
 public class PeopleGenerator {
 
     private static final Random RANDOM = new Random();
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
 
-    // Metodo per generare una lista di persone
+    /**
+     * Generates a list of Person objects with specified count.
+     *
+     * @param count The number of Person objects to generate.
+     * @return A list of generated Person objects.
+     */
     public List<Person> generatePeople(int count) {
         List<Person> people = new ArrayList<>(count);
         Set<String> documentNumbers = new HashSet<>(count);
@@ -21,7 +35,7 @@ public class PeopleGenerator {
             String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
             String documentInfo;
 
-            // Genera un numero di documento univoco
+            // Generate a unique document number
             do {
                 documentInfo = generateDocumentInfo();
             } while (documentNumbers.contains(documentInfo));
@@ -30,7 +44,7 @@ public class PeopleGenerator {
             String dateOfBirth = generateDateOfBirth();
             double balance = 100 + (100000 - 100) * RANDOM.nextDouble();
 
-            // Arrotonda il saldo a due decimali
+            // Round the balance to two decimal places
             balance = Double.parseDouble(DECIMAL_FORMAT.format(balance));
 
             people.add(new Person(name, surname, documentInfo, dateOfBirth, balance));
@@ -39,7 +53,11 @@ public class PeopleGenerator {
         return people;
     }
 
-    // Metodo per generare una sequenza alfanumerica di 7 cifre
+    /**
+     * Generates a 7-character alphanumeric document information string.
+     *
+     * @return A randomly generated document information string.
+     */
     private String generateDocumentInfo() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder sb = new StringBuilder(7);
@@ -49,7 +67,11 @@ public class PeopleGenerator {
         return sb.toString();
     }
 
-    // Metodo per generare una data di nascita casuale tra 18 e 100 anni fa
+    /**
+     * Generates a random date of birth between 18 and 100 years ago.
+     *
+     * @return A randomly generated date of birth in "yyyy-MM-dd" format.
+     */
     private String generateDateOfBirth() {
         long now = System.currentTimeMillis();
         long eighteenYearsAgo = now - (18L * 365 * 24 * 60 * 60 * 1000);
@@ -58,38 +80,55 @@ public class PeopleGenerator {
         return new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date(randomMillis));
     }
 
-    // Metodo per generare una persona "povera" con saldo limitato
+    /**
+     * Generates a Person object with limited balance, representing a "poor" person.
+     *
+     * @return A generated "poor" Person object.
+     */
     public Person generatePoorPerson() {
         String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
         String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
         String documentInfo = generateDocumentInfo();
         String dateOfBirth = generateDateOfBirth();
-        double balance = 10.0; // Saldo limitato a 10$
+        double balance = 10.0; // Balance limited to 10$
 
         return new Person(name, surname, documentInfo, dateOfBirth, balance);
     }
 
-    // Classe interna per rappresentare una persona
+    /**
+     * The Person class represents an individual with attributes such as name, surname, document information,
+     * date of birth, and balance. It also tracks the previous balance and balance difference for transactions.
+     */
     public static class Person {
         private String name;
         private String surname;
         private String documentInfo;
         private String dateOfBirth;
         private double balance;
-        private double oldBalance; // Aggiunto per gestire il bilancio precedente
-        private double difference; // Aggiunto per gestire la differenza di saldo
+        private double oldBalance; // Added to manage the previous balance
+        private double difference; // Added to manage balance difference
 
+        /**
+         * Constructs a new Person instance.
+         *
+         * @param name The name of the person.
+         * @param surname The surname of the person.
+         * @param documentInfo The document information of the person.
+         * @param dateOfBirth The date of birth of the person.
+         * @param balance The balance of the person.
+         */
         public Person(String name, String surname, String documentInfo, String dateOfBirth, double balance) {
             this.name = name;
             this.surname = surname;
             this.documentInfo = documentInfo;
             this.dateOfBirth = dateOfBirth;
             this.balance = balance;
-            this.oldBalance = balance; // Inizialmente il bilancio precedente è uguale al bilancio attuale
-            this.difference = 0.0; // Inizialmente non c'è differenza di saldo
+            this.oldBalance = balance; // Initially, the previous balance is equal to the current balance
+            this.difference = 0.0; // Initially, there is no balance difference
         }
 
-        // Getters e setters...
+        // Getters and setters...
+
         public String getName() {
             return name;
         }
@@ -158,12 +197,16 @@ public class PeopleGenerator {
         }
     }
 
-    // Metodo principale per testare la generazione delle persone
+    /**
+     * The main method to test the generation of Person objects.
+     *
+     * @param args Command line arguments (not used).
+     */
     public static void main(String[] args) {
         PeopleGenerator generator = new PeopleGenerator();
         List<Person> people = generator.generatePeople(10000);
 
-        // Stampa le prime 10 persone per verificare l'output
+        // Print the first 10 people to verify the output
         for (int i = 0; i < 10; i++) {
             System.out.println(people.get(i));
         }
