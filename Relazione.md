@@ -179,6 +179,15 @@ Nonetheless, the basic syntax of the Document Model remains as indicated in the 
 }
 ```
 
+#### Nodes in MongoDB
+A MongoDB database is physically structured to support high availability, scalability, and resiliency. The physical 
+structure of MongoDB involves various components such as nodes, clusters, and datacenters. Below is an overview of how 
+these components interact and how the reading and writing processes occur. Let's start by saying that A running MongoDB 
+instance is called a "node". There are two main types of nodes:
+
+- *Primary Nodes*: they are responsible for write operations. Each replica set has only one primary node at a time.
+- *Secondary Nodes*: receive copies of data from the primary node and can serve read operations if configured to do so.
+
 #### Clusters in MongoDB
 
 MongoDB can also be configured as a cluster, a powerful setup that involves multiple servers or nodes working together. 
@@ -226,10 +235,28 @@ A typical replica set consists of:
 
 In MongoDB Atlas, deploying a replica set is straightforward, and the platform provides tools for managing and monitoring 
 the health of the replica set. Automatic backups, point-in-time recovery, and monitoring tools are available to ensure the 
-reliability and performance of the replica set. By leveraging clusters, sharding, and replica sets, MongoDB Atlas offers 
-a robust and scalable infrastructure that can handle the demands of modern applications, ensuring data availability, 
-reliability, and performance. In summary, MongoDB's architecture is designed to be flexible, scalable and reliable, 
-allowing to manage a wide range of applications and workloads from the simplest to the most complex.
+reliability and performance of the replica set. 
+
+#### Data Centers and Information Exchange
+
+In a distributed architecture, nodes can be distributed across multiple data centers to ensure geographic resilience 
+and fault tolerance. This configuration improves database availability in the event of natural disasters or regional outages.
+Let's now see an overview of how information exchange works in MongoDB
+
+- **Replica Set**: secondary nodes continuously synchronize data from the primary node over a network connection. They use the oplog (operation log) based replication protocol, a log of operations applied to the primary database.
+- **Sharded Clusters**: query routers (mongos) receive requests from the client, consult config servers to determine which shard contains the requested data, and then forward the requests to the appropriate shard.
+
+#### Reading and Writing Processes
+
+Write operations are sent to the primary node of a replica set. In the case of a sharded cluster, the write request is 
+forwarded to the query router (mongos), which routes it to the appropriate shard. The primary node confirms the write 
+and propagates it to the secondary nodes.
+On the other hand, read operations can be served by the primary node or secondary nodes, depending on the replica 
+set configuration. In a sharded cluster, the query router (mongos) directs the read request to the appropriate shard 
+that contains the requested data.
+
+In conclusion, MongoDB is designed to manage data distributed across nodes, replica sets, and sharded clusters, ensuring 
+high availability, scalability, and resilience through efficient synchronization and dynamic management of read and write operations.
 
 ### Cassandra Architecture
 
