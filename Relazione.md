@@ -4891,6 +4891,22 @@ By leveraging the connection string provided, users can easily connect to and ma
 MongoDB Atlas. The combination of sharding, fault tolerance, and containerization with Docker provides a robust solution 
 for managing large volumes of data in MongoDB.
 
+**Reference Note:** the whole procedure we have just shown can be performed in a much simpler way using MongoDB native
+commands. In particular, the entire operation just detailed can be summarized through the use of the following very 
+simple commands:
+
+```bash
+mongosh "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/Airports?retryWrites=true&w=majority"
+use Airports
+sh.enableSharding("Airports")
+sh.shardCollection("Airports.airportCollection", { "Country_code": 1 })
+```
+
+The reason why the report was based on the docker counterpart is that the MongoDB-specific commands just mentioned are 
+not available for the M0 free cluster tier. Therefore, to make the opportunity to use sharding accessible to anyone, 
+the Docker version was shown instead. In addition to this, the Docker version brings with it numerous advantages, which 
+we have already had the opportunity to mention in the previous subchapters.
+
 #### Large Volume Data Management in Cassandra
 _PLACEHOLDER PER FILIPPO_
 
