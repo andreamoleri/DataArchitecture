@@ -4633,43 +4633,6 @@ UPDATE seat SET status = 'Occupied', balance = ‘v1’, date_of_birth = ‘v2�
 
 In conclusion, the Java script used to communicate with the database is reported (the UPDATE operation is not included as it will be addressed in the appropriate chapter). To load the database so that the data matches those of MongoDB, the latter was exported to a json file and the various fields were extracted from it.
 
-## Gestione su larghi volumi
-
-Devo ancora capire bene cazzo dobbiamo fare qua ma poi anch'esso sarà diviso in Mongo e Cassandra
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Large Volume Data Management 
 #### Large Volume Data Management in MongoDB
 
@@ -4746,7 +4709,14 @@ deploying and managing a MongoDB cluster to handle large volumes of data efficie
 
 First of all, we need to ensure Docker is installed on your system. Assuming that Docker is installed, we need to place
 the following `docker-compose.yml` file in the root directory of our project. This location ensures that the Docker 
-commands and configuration are easily accessible and maintainable. The code is as follows
+commands and configuration are easily accessible and maintainable.
+
+**Reference Note:** the reason why the ports of the following YAML document, and consequently of the documentation that 
+follows the code, have not been implemented according to an ascending order is because, in the working machine on which 
+this report was written, certain ports they were already occupied by other running Docker containers, and therefore 
+different values ​​were used to ensure that each container was associated with a unique port and in a conflict-free 
+manner. Nobody forbids the re-elaboration of the following YAML document by choosing entirely different ports. This must 
+be done provided that the ports that the developer wants to use are free. The code is as follows
 
 ```yaml
 version: '3.8'
@@ -4785,27 +4755,27 @@ services:
 
    shard2:
       image: mongo
-      command: mongod --shardsvr --replSet shard2 --port 27018
+      command: mongod --shardsvr --replSet shard2 --port 27025
       volumes:
          - shard2:/data/shard2
       ports:
-         - "27019:27018"
+         - "27025:27025"
 
    shard3:
       image: mongo
-      command: mongod --shardsvr --replSet shard3 --port 27020
+      command: mongod --shardsvr --replSet shard3 --port 27024
       volumes:
          - shard3:/data/shard3
       ports:
-         - "27020:27020"
+         - "27024:27024"
 
    shard4:
       image: mongo
-      command: mongod --shardsvr --replSet shard4 --port 27021
+      command: mongod --shardsvr --replSet shard4 --port 27026
       volumes:
          - shard4:/data/shard4
       ports:
-         - "27021:27021"
+         - "27026:27026"
 
    mongos:
       image: mongo
@@ -4832,7 +4802,7 @@ This file sets up an environment for a distributed MongoDB database system in a 
 
 - **Configuration Servers (`configsvr1`, `configsvr2`, `configsvr3`)**: MongoDB configuration servers (`mongod`) form a replica set (`configReplSet`) on ports 27019, 27020, and 27021 respectively. Each has a dedicated volume for persistent storage.
 
-- **Shard Nodes (`shard1`, `shard2`, `shard3`, `shard4`)**: MongoDB shard nodes (`mongod`) are configured as data servers (`--shardsvr`) for four replica sets (`shard1`, `shard2`, `shard3`, `shard4`). Each uses port 27018, 27025, 27024, and 27026 respectively, with separate volumes for data storage.
+- **Shard Nodes (`shard1`, `shard2`, `shard3`, `shard4`)**: MongoDB shard nodes (`mongod`) are configured as data servers (`--shardsvr`) for four replica sets (`shard1`, `shard2`, `shard3`, `shard4`), with separate volumes for data storage.
 
 - **Routing Server (`mongos`)**: MongoDB routing server (`mongos`) routes queries between clients and configuration and shard nodes. It connects to configuration servers (`configsvr1`, `configsvr2`, `configsvr3`) on ports 27019, 27020, and 27021.
 
@@ -4852,7 +4822,7 @@ containers required for a scalable and reliable database system.
     docker-compose up -d
     ```
 
-3. **Initialize Replica Sets and Configuration Servers:** after starting the cluster using `docker-compose`, initialize replica sets for the configuration servers (`configsvr1`, `configsvr2`, `configsvr3`) and shard servers (`shard1`, `shard2`, `shard3`, `shard4`). Replace `<configsvr1-container-id>`, `<configsvr2-container-id>`, and `<configsvr3-container-id>` with the respective container IDs obtained from `docker ps`.
+3. **Initialize Replica Sets and Configuration Servers:** after starting the cluster using `docker-compose`, initialize replica sets for the configuration servers (`configsvr1`, `configsvr2`, `configsvr3`) and shard servers (`shard1`, `shard2`, `shard3`, `shard4`). Replace `<configsvr1-container-id>` with the respective container ID obtained from the `docker ps` command.
 
    ```bash
    docker exec -it <configsvr1-container-id> mongosh --port 27019 --eval 'rs.initiate({_id: "configReplSet", configsvr: true, members: [{ _id: 0, host: "dataarchitecture-configsvr1-1:27019" }, { _id: 1, host: "dataarchitecture-configsvr2-1:27020" }, { _id: 2, host: "dataarchitecture-configsvr3-1:27021" }]})'
@@ -4883,111 +4853,46 @@ containers required for a scalable and reliable database system.
    docker exec -it <mongos-container-id> mongosh --eval 'sh.shardCollection("Airports.airportCollection", { "Country_code": 1 })'
    ```
 
-Deploying MongoDB with Docker provides a scalable and efficient solution for managing databases, especially in scenarios 
-where native MongoDB sharding capabilities are not available. By leveraging Docker Compose, developers and administrators 
-can easily define, deploy, and manage MongoDB clusters with replica sets. This setup ensures high availability, fault 
-tolerance, and optimal performance, making it suitable for various production environments. Understanding and implementing 
-Docker-based MongoDB deployments is essential for maximizing database management efficiency and scalability.
+As we just saw, Docker simplifies the deployment and management of MongoDB clusters. Docker containers can encapsulate 
+MongoDB processes, ensuring consistency across different environments. Using Docker allows for easy scaling and 
+management of services, which is crucial for maintaining a robust sharded cluster. Let's quickly recap the benefits 
+of using Docker in a scenario like the one we just mentioned:
 
+- **Isolation**: Each MongoDB instance runs in its own container, ensuring isolation.
+- **Portability**: Docker images can be easily moved across different environments without compatibility issues.
+- **Scalability**: Adding more shard nodes or configuration servers is straightforward with Docker.
+- **Consistency**: Docker ensures the same environment setup across different deployments.
 
+After having analyzed and implemented the functioning of Docker in favor of the sharding process, it is good to spend a 
+few moments to talk about the error management on large volumes that MongoDB performs by design.
+MongoDB’s sharding architecture is designed to be fault-tolerant. Each shard is a replica set, which means data is 
+replicated across multiple servers within the shard. This replication ensures data availability even if a node fails.
+If a node in a shard fails, the replica set protocol elects a new primary from the remaining members. 
+The system continues to operate with minimal disruption. The following mitigation strategies are suggested to lower
+the risk of failure when using sharding in a MongoDB database:
 
+1. **Replica Sets**: ensure each shard is a replica set with at least three members.
+2. **Regular Backups**: perform regular backups to recover data in case of catastrophic failures.
+3. **Monitoring**: use monitoring tools like MongoDB Atlas, which provides monitoring and alerts for cluster health and performance.
 
+#### Example of Handling Node Failure
 
+Let's now analyze what would happen in the event of failure of one of the nodes. Suppose one of the nodes in `shard1` fails:
 
+1. **Detection**: MongoDB detects the failure and the replica set initiates an election.
+2. **Election**: a new primary is elected from the remaining nodes.
+3. **Recovery**: the failed node is either repaired or replaced and then re-added to the replica set.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+After these considerations, we can deduce that Sharding is a powerful feature in MongoDB that allows for horizontal 
+scaling and efficient management of large datasets. By distributing the "airportCollection" across four nodes using a 
+sharding key, we ensure optimal performance and fault tolerance. Docker further simplifies deployment and management of 
+these clusters. Understanding and implementing these strategies is crucial for handling large volumes of data effectively. 
+By leveraging the connection string provided, users can easily connect to and manage their MongoDB cluster hosted on 
+MongoDB Atlas. The combination of sharding, fault tolerance, and containerization with Docker provides a robust solution 
+for managing large volumes of data in MongoDB.
 
 #### Large Volume Data Management in Cassandra
 _PLACEHOLDER PER FILIPPO_
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ## Conclusions
 
