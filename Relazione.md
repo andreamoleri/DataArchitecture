@@ -4705,6 +4705,24 @@ environments, enhancing reliability and scalability. In the next sections, we wi
 deploying and managing a MongoDB cluster to handle large volumes of data efficiently, focusing on distributing the 
 "airportCollection" across multiple nodes and optimizing performance with sharding based on the `"Country_code"` attribute.
 
+To better explain what this all means, in the context of sharding in MongoDB, shards do not directly contain collection 
+data such as `"airportCollection"`. Instead, the collection data is distributed among the various shards based on the 
+specified sharding key. So, what we will do is shard the `"airportCollection"` collection using the `"Country_code"` field 
+as the sharding key. Therefore, MongoDB will distribute the "airportCollection" documents among the various shards 
+based on the value of the `"Country_code"` field. This means that each shard will contain documents corresponding to 
+specific `"Country_code"` values. For example, suppose we have four shards and that "airportCollection" contains airports 
+from various countries, such as the USA, UK, France, and Italy. MongoDB will distribute documents so that all documents with
+`"Country_code" = "USA"` can end up on one shard, those with `"Country_code" = "UK"` on another shard, and so on. So, 
+each shard will contain airports from different countries. In other words, each Shard will contain different data from 
+the other, in such a way as to correctly distribute the entire database.
+
+A question that may arise spontaneously is wondering how the `"Country_codes` will be distributed, given that we have much 
+more than four countries, but only four nodes. It is good to know that it is completely normal and standard for MongoDB 
+to automatically manage data distribution when using sharding without manually specifying which country codes go on which 
+shards (in other words, in the explanations that follow, there will be no real phase of assigning the individual
+`"Country_codes"` to the individual nodes). MongoDB takes care of this by automatically using chunking and ensuring good 
+data balancing between shard nodes. 
+
 #### Docker Compose Configuration
 
 First of all, we need to ensure Docker is installed on your system. Assuming that Docker is installed, we need to place
