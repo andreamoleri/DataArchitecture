@@ -4637,6 +4637,358 @@ In conclusion, the Java script used to communicate with the database is reported
 
 Devo ancora capire bene cazzo dobbiamo fare qua ma poi anch'esso sarà diviso in Mongo e Cassandra
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Large Volume Data Management 
+#### Large Volume Data Management in MongoDB
+
+In this chapter, we will delve into how it is possible to manage and read large volumes of data in MongoDB, using the
+`"Airports"` database which we already know to be containing a collection called `"airportCollection"`. We will explore how
+to efficiently distribute the database across multiple nodes to optimize performance and ensure fault tolerance.
+Additionally, we will discuss the mechanisms MongoDB employs to handle failures within the cluster and strategies to
+mitigate potential issues. Finally, we will provide detailed instructions on using Docker for deployment and management
+of the MongoDB cluster.
+
+We can't talk about reading large volumes of data in MongoDB without explaining what sharding is first. Even though we
+went over sharding in detail in the Architecture section of this document, we will explain it again here, in a more
+focused way for better reading comprehension. Sharding is a method for distributing data across multiple machines.
+MongoDB uses sharding to support deployments with very large data sets and high throughput operations. This is essential
+for managing large volumes of data by spreading the data across several servers, ensuring that no single server is
+overwhelmed by requests or storage demands.
+
+As an arbitrary number, we will choose to distribute the `"airportCollection"` across four nodes. In order to do this,
+we will need to define a sharding key. The sharding key determines how the data is partitioned and distributed. In our
+case, the ideal sharding key might be the `"Country_code"` attribute since it ensures a relatively even distribution of
+data based on the airports' countries. This approach helps in balancing the load and optimizing query performance.
+To be able to carry out the operations we need, the use of Docker is necessary. Therefore, we show below what it is, 
+how it works, and how to configure it to handle the needs of our application
+
+#### What is Docker?
+
+Docker is a platform and toolset designed to simplify the creation, deployment, and management of applications using 
+containerization technology. Containers allow developers to package an application and its dependencies into a 
+standardized unit for software development, ensuring consistency across different computing environments.
+At its core, Docker utilizes the concept of containers, which are lightweight and portable environments that include 
+everything needed to run an application: code, runtime, system tools, libraries, and settings. Unlike traditional 
+virtual machines, containers share the host operating system kernel and are isolated processes, 
+making them efficient and fast. Docker provides several key components to facilitate container management:
+
+1. **Docker Engine**: the core of Docker, responsible for creating and managing containers on a single host. It includes a server and a command-line interface (CLI) tool (`docker`) for interacting with containers.
+
+2. **Images**: docker images are read-only templates used to create containers. An image includes the application code, runtime, libraries, and dependencies needed for the application to run.
+
+3. **Containers**: running instances of Docker images. Containers can be started, stopped, moved, and deleted using Docker's CLI commands. They encapsulate the application and its environment, ensuring consistency across different environments, from development to production.
+
+4. **Dockerfile**: a text document that contains instructions for building a Docker image. It defines the environment inside the container, including base image, dependencies, environment variables, and commands to run when the container starts.
+
+5. **Docker Compose**: a tool for defining and running multi-container Docker applications. It uses a YAML file (`docker-compose.yml`) to configure the application's services and their dependencies. Docker Compose simplifies the process of defining, managing, and scaling multi-container applications.
+
+#### How Docker Works
+
+Docker containers wrap up a piece of software in a complete filesystem that contains everything it needs to run: code, 
+runtime, system tools, libraries, etc. This ensures that the application runs consistently across different computing 
+environments. Docker uses a client-server architecture. The Docker client talks to the Docker daemon, which does the 
+heavy lifting of building, running, and distributing Docker containers. Containers are built from images, which are 
+essentially snapshots of a container's filesystem. Images are stored in repositories, such as Docker Hub, and can be 
+pulled and pushed between different Docker installations.
+
+### Benefits of Using Docker
+
+- **Portability**: docker containers can run on any machine that has Docker installed, regardless of the underlying operating system. This eliminates the "it works on my machine" problem and streamlines deployment across different environments.
+
+- **Isolation**: containers isolate applications from each other and from the underlying infrastructure, ensuring that changes or updates to one application do not affect others running on the same host.
+
+- **Efficiency**: containers share the host operating system kernel, making them lightweight and efficient compared to traditional virtual machines. Multiple containers can run on the same hardware without significant overhead.
+
+- **Scalability**: docker's architecture allows applications to be quickly deployed and scaled horizontally by adding or removing containers, making it ideal for microservices architectures and distributed applications.
+
+#### Using Docker with MongoDB
+
+In the context of MongoDB, Docker simplifies the deployment and management of MongoDB clusters. By defining MongoDB 
+instances as containers and using Docker Compose to orchestrate them, developers can easily set up replica sets and 
+sharded clusters. This approach ensures consistent database configurations across development, testing, and production 
+environments, enhancing reliability and scalability. In the next sections, we will explore how to leverage Docker for 
+deploying and managing a MongoDB cluster to handle large volumes of data efficiently, focusing on distributing the 
+"airportCollection" across multiple nodes and optimizing performance with sharding based on the `"Country_code"` attribute.
+
+#### Docker Compose Configuration
+
+First of all, we need to ensure Docker is installed on your system. Assuming that Docker is installed, we need to place
+the following `docker-compose.yml` file in the root directory of our project. This location ensures that the Docker 
+commands and configuration are easily accessible and maintainable. The code is as follows
+
+```yaml
+version: '3.8'
+services:
+   configsvr1:
+      image: mongo
+      command: mongod --configsvr --replSet configReplSet --port 27019
+      volumes:
+         - configsvr1:/data/configdb
+      ports:
+         - "27019:27019"
+
+   configsvr2:
+      image: mongo
+      command: mongod --configsvr --replSet configReplSet --port 27020
+      volumes:
+         - configsvr2:/data/configdb
+      ports:
+         - "27020:27020"
+
+   configsvr3:
+      image: mongo
+      command: mongod --configsvr --replSet configReplSet --port 27021
+      volumes:
+         - configsvr3:/data/configdb
+      ports:
+         - "27021:27021"
+
+   shard1:
+      image: mongo
+      command: mongod --shardsvr --replSet shard1 --port 27018
+      volumes:
+         - shard1:/data/shard1
+      ports:
+         - "27018:27018"
+
+   shard2:
+      image: mongo
+      command: mongod --shardsvr --replSet shard2 --port 27018
+      volumes:
+         - shard2:/data/shard2
+      ports:
+         - "27019:27018"
+
+   shard3:
+      image: mongo
+      command: mongod --shardsvr --replSet shard3 --port 27020
+      volumes:
+         - shard3:/data/shard3
+      ports:
+         - "27020:27020"
+
+   shard4:
+      image: mongo
+      command: mongod --shardsvr --replSet shard4 --port 27021
+      volumes:
+         - shard4:/data/shard4
+      ports:
+         - "27021:27021"
+
+   mongos:
+      image: mongo
+      command: mongos --configdb configReplSet/configsvr1:27019,configsvr2:27020,configsvr3:27021 --port 27017
+      ports:
+         - "27017:27017"
+
+volumes:
+   configsvr1:
+   configsvr2:
+   configsvr3:
+   shard1:
+   shard2:
+   shard3:
+   shard4:
+```
+
+A Docker-compose file is a YAML configuration file used to define and manage multi-container applications with Docker. 
+It simplifies the management of Dockerized applications by allowing easy definition of multiple containers, their 
+configurations, networks, and volumes required for them to interact with each other. Regarding the specific 
+`docker-compose.yml` file provided:
+
+This file sets up an environment for a distributed MongoDB database system in a clustered mode. It lists several services (`services`), each representing a specific Docker container:
+
+- **Configuration Servers (`configsvr1`, `configsvr2`, `configsvr3`)**: MongoDB configuration servers (`mongod`) form a replica set (`configReplSet`) on ports 27019, 27020, and 27021 respectively. Each has a dedicated volume for persistent storage.
+
+- **Shard Nodes (`shard1`, `shard2`, `shard3`, `shard4`)**: MongoDB shard nodes (`mongod`) are configured as data servers (`--shardsvr`) for four replica sets (`shard1`, `shard2`, `shard3`, `shard4`). Each uses port 27018, 27025, 27024, and 27026 respectively, with separate volumes for data storage.
+
+- **Routing Server (`mongos`)**: MongoDB routing server (`mongos`) routes queries between clients and configuration and shard nodes. It connects to configuration servers (`configsvr1`, `configsvr2`, `configsvr3`) on ports 27019, 27020, and 27021.
+
+Additionally, the file defines several volumes (`volumes`) to ensure data persistence for each service,
+maintaining data integrity as a consequence, even after container destruction or restart. To recap, this Docker-compose
+file orchestrates a distributed MongoDB environment, managing complex network and volume configurations across multiple
+containers required for a scalable and reliable database system.
+
+#### Deploying the MongoDB Cluster
+
+1. **Create a `docker-compose.yml` file** with the above configuration.
+
+2. **Start the MongoDB Cluster:** you can start the MongoDB cluster by running the following command in the directory containing your `docker-compose.yml` file. This command will start all containers defined in the `docker-compose.yml` file in detached mode (`-d`).
+
+    ```bash
+    docker pull mongo
+    docker-compose up -d
+    ```
+
+3. **Initialize Replica Sets and Configuration Servers:** after starting the cluster using `docker-compose`, initialize replica sets for the configuration servers (`configsvr1`, `configsvr2`, `configsvr3`) and shard servers (`shard1`, `shard2`, `shard3`, `shard4`). Replace `<configsvr1-container-id>`, `<configsvr2-container-id>`, and `<configsvr3-container-id>` with the respective container IDs obtained from `docker ps`.
+
+   ```bash
+   docker exec -it <configsvr1-container-id> mongosh --port 27019 --eval 'rs.initiate({_id: "configReplSet", configsvr: true, members: [{ _id: 0, host: "dataarchitecture-configsvr1-1:27019" }, { _id: 1, host: "dataarchitecture-configsvr2-1:27020" }, { _id: 2, host: "dataarchitecture-configsvr3-1:27021" }]})'
+   ```
+   
+4. **Initialize Shard Servers:** replace `<shard1-container-id>`, `<shard2-container-id>`, `<shard3-container-id>`, and `<shard4-container-id>` with the respective container IDs obtained from `docker ps`.
+
+   ```bash
+   docker exec -it <shard1-container-id> mongosh --port 27018 --eval 'rs.initiate({_id: "shard1", members: [{ _id: 0, host: "dataarchitecture-shard1-1:27018" }]})'
+   docker exec -it <shard2-container-id> mongosh --port 27025 --eval 'rs.initiate({_id: "shard2", members: [{ _id: 0, host: "dataarchitecture-shard2-1:27025" }]})'
+   docker exec -it <shard3-container-id> mongosh --port 27024 --eval 'rs.initiate({_id: "shard3", members: [{ _id: 0, host: "dataarchitecture-shard3-1:27024" }]})'
+   docker exec -it <shard4-container-id> mongosh --port 27026 --eval 'rs.initiate({_id: "shard4", members: [{ _id: 0, host: "dataarchitecture-shard4-1:27026" }]})'
+   ```
+
+5. **Add Shards to the Cluster:** once replica sets are initialized, add the shard servers to the `mongos` instance. Replace `<mongos-container-id>` with the `mongos` container ID obtained from `docker ps`.
+
+   ```bash
+   docker exec -it <mongos-container-id> mongosh --eval 'sh.addShard("shard1/dataarchitecture-shard1-1:27018")'
+   docker exec -it <mongos-container-id> mongosh --eval 'sh.addShard("shard2/dataarchitecture-shard2-1:27025")'
+   docker exec -it <mongos-container-id> mongosh --eval 'sh.addShard("shard3/dataarchitecture-shard3-1:27024")'
+   docker exec -it <mongos-container-id> mongosh --eval 'sh.addShard("shard4/dataarchitecture-shard4-1:27026")'
+   ```
+
+6. **Enable Sharding on the Database and Collection:** finally, enable sharding on your desired database and collection. Replace `"Airports"` with your actual database name and `"airportCollection"` with your actual collection name. You can also specify a different sharding key if needed. Ensure to replace all placeholders with actual values obtained from your Docker setup. This should resolve the issue and allow you to successfully configure the MongoDB sharded cluster.
+
+   ```bash
+   docker exec -it <mongos-container-id> mongosh --eval 'sh.enableSharding("Airports")'
+   docker exec -it <mongos-container-id> mongosh --eval 'sh.shardCollection("Airports.airportCollection", { "Country_code": 1 })'
+   ```
+
+Deploying MongoDB with Docker provides a scalable and efficient solution for managing databases, especially in scenarios 
+where native MongoDB sharding capabilities are not available. By leveraging Docker Compose, developers and administrators 
+can easily define, deploy, and manage MongoDB clusters with replica sets. This setup ensures high availability, fault 
+tolerance, and optimal performance, making it suitable for various production environments. Understanding and implementing 
+Docker-based MongoDB deployments is essential for maximizing database management efficiency and scalability.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### Large Volume Data Management in Cassandra
+_PLACEHOLDER PER FILIPPO_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Conclusions
 
 MongoDB and Apache Cassandra are two of the most popular NoSQL databases, each with unique characteristics and 

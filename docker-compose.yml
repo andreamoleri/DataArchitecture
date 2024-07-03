@@ -1,0 +1,72 @@
+version: '3.8'
+services:
+  configsvr1:
+    image: mongo
+    command: mongod --configsvr --replSet configReplSet --port 27019
+    volumes:
+      - configsvr1:/data/configdb
+    ports:
+      - "27019:27019"
+
+  configsvr2:
+    image: mongo
+    command: mongod --configsvr --replSet configReplSet --port 27020
+    volumes:
+      - configsvr2:/data/configdb
+    ports:
+      - "27020:27020"
+
+  configsvr3:
+    image: mongo
+    command: mongod --configsvr --replSet configReplSet --port 27021
+    volumes:
+      - configsvr3:/data/configdb
+    ports:
+      - "27021:27021"
+
+  shard1:
+    image: mongo
+    command: mongod --shardsvr --replSet shard1 --port 27018
+    volumes:
+      - shard1:/data/shard1
+    ports:
+      - "27018:27018"
+
+  shard2:
+    image: mongo
+    command: mongod --shardsvr --replSet shard2 --port 27025
+    volumes:
+      - shard2:/data/shard2
+    ports:
+      - "27025:27025"
+
+  shard3:
+    image: mongo
+    command: mongod --shardsvr --replSet shard3 --port 27024
+    volumes:
+      - shard3:/data/shard3
+    ports:
+      - "27024:27024"
+
+  shard4:
+    image: mongo
+    command: mongod --shardsvr --replSet shard4 --port 27026
+    volumes:
+      - shard4:/data/shard4
+    ports:
+      - "27026:27026"
+
+  mongos:
+    image: mongo
+    command: mongos --configdb configReplSet/configsvr1:27019,configsvr2:27020,configsvr3:27021 --port 27017
+    ports:
+      - "27017:27017"
+
+volumes:
+  configsvr1:
+  configsvr2:
+  configsvr3:
+  shard1:
+  shard2:
+  shard3:
+  shard4:
