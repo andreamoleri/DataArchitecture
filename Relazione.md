@@ -4881,6 +4881,8 @@ of using Docker in a scenario like the one we just mentioned:
 - **Scalability**: Adding more shard nodes or configuration servers is straightforward with Docker.
 - **Consistency**: Docker ensures the same environment setup across different deployments.
 
+#### Handling Node Failure
+
 After having analyzed and implemented the functioning of Docker in favor of the sharding process, it is good to spend a 
 few moments to talk about the error management on large volumes that MongoDB performs by design.
 MongoDB’s sharding architecture is designed to be fault-tolerant. Each shard is a replica set, which means data is 
@@ -4892,8 +4894,6 @@ the risk of failure when using sharding in a MongoDB database:
 1. **Replica Sets**: ensure each shard is a replica set with at least three members.
 2. **Regular Backups**: perform regular backups to recover data in case of catastrophic failures.
 3. **Monitoring**: use monitoring tools like MongoDB Atlas, which provides monitoring and alerts for cluster health and performance.
-
-#### Example of Handling Node Failure
 
 Let's now analyze what would happen in the event of failure of one of the nodes. Suppose one of the nodes in `shard1` fails:
 
