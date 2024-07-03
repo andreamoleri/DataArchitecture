@@ -1212,6 +1212,9 @@ public class Connection {
 ```
 
 ### Connecting to a Cassandra Database
+To make the most of the Cassandra database in this first phase of the relationship it was chosen to use Amazon Web Services as a hosting service. In the chapter relating to large volume management, Docker services will be used to better study the behavior of some nodes.
+
+#### Connection AWS
 Amazon Keyspaces requires the use of Transport Layer Security (TLS) to protect client connections. TLS is an encryption protocol that ensures the security and privacy of data exchanged between client and server applications. Here’s how to configure the connection:
 
 1. Download the Starfield digital certificate using the following command and save it as `sf-class2-root.crt` in your local directory or home directory:
@@ -1269,40 +1272,59 @@ The SigV4 authentication plugin enables the use of IAM credentials for users and
 7. Identify the endpoint of the keyspace you want to connect to. A keyspace endpoint has the following format:
 
 ```plaintext
-cassandra.<region>.amazonaws.com:9142
+cassandra.<region>.amazonaws.com:portNumber
 ```
 
-8. Configure your application's main method to create a pool of connections to Amazon Keyspaces. Typically, the connection is confirmed by running a simple query:
+8. Configure your application's main method to create a pool of connections to Amazon Keyspaces. To do this it is necessary to instantiate a Session object to which a Cluster.Builder object is assigned, which follows the following scheme:
 
 ```java
+Session session = Cluster.builder()
+                        .addContactPoint("cassandra.<region>.amazonaws.com")
+                        .withPort("portNumber")
+                        .withAuthProvider(new SigV4AuthProvider("<region>"))
+                        .withSSL()
+                        .build()
+                        .connect();
+```
+
+where:
+- ```.addContactPoint("cassandra.<region>.amazonaws.com")```: Adds a contact point to the cluster. endPoint is the address of the coordinator node.
+- ```.withPort(portNumber)```: Specifies the port on which the node listens and on which the Cassandra server accepts connections.
+- ```.withAuthProvider(new SigV4AuthProvider("<region>"))```: Configure the authentication provider using AWS SigV4.
+- ```.withSSL()```: Enables SSL for the connection, ensuring that all data transmitted between the client and the Cassandra server is encrypted.
+- ```.build()```: Builds the cluster instance with all specified configurations.
+- ```.connect()```: Initiates a connection to the Cassandra cluster and returns a session through which database queries can be performed.
+
+This configuration ensures that connections to your Amazon Keyspaces keyspace are secure and authenticated using TLS and IAM credentials.
+
+In conclusion to this paragraph we report the App.java class which will contain the script used to work with the data model. For now the script only allows you to connect to the database.
+
+```java
+package com.example.cassandra;
+
+import com.datastax.driver.core.*;
 import software.aws.mcs.auth.SigV4AuthProvider;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 
-public class App 
+public class App
 {
-    public static void main(String[] args)
-    {
-        String endPoint = "cassandra.<region>.amazonaws.com";
-        int portNumber = 9142;
-        Session session = Cluster.builder()
-                                 .addContactPoint(endPoint)
-                                 .withPort(portNumber)
-                                 .withAuthProvider(new SigV4AuthProvider("<region>"))
-                                 .withSSL()
-                                 .build()
-                                 .connect();
+    static Session session = null;
 
-        ResultSet rs = session.execute("select * from system_schema.keyspaces");
-        Row row = rs.one();
-        System.out.println(row.getString("keyspace_name"));
+    public static void main( String[] args ) {
+        String endPoint = "cassandra.eu-north-1.amazonaws.com";
+        int portNumber = 9142;
+
+        session = Cluster.builder()
+                .addContactPoint(endPoint)
+                .withPort(portNumber)
+                .withAuthProvider(new SigV4AuthProvider("eu-north-1"))
+                .withSSL()
+                .build()
+                .connect();
+
+        System.out.println("Connected to Cassandra!");
     }
 }
 ```
-
-This configuration ensures that connections to your Amazon Keyspaces keyspace are secure and authenticated using TLS and IAM credentials.
 
 ## Syntax
 ### MongoDB Syntax
@@ -2449,6 +2471,7 @@ CREATE MATERIALIZED VIEW name_m_view AS
 QUERY
 PRIMARY KEY (name_key1, ...);
 ```
+- **Configurable consistency levels**: determine the number of replicas that must agree on the response before an operation is considered complete. Common consistency levels include ONE (completed when at least one replica responds), QUORUM (completed when a majority of replicas respond), ALL, EACH_QUORUM, etc.
 - **Batch statements**: they in Cassandra allow executing multiple write or modification operations in a single atomic transaction, ensuring that either all operations are executed or none. They can involve one or more tables and can be configured as "unlogged" (write operations are not logged in the commit log, posing higher risks in case of data loss) or "logged" (all write operations are logged in the commit log before being applied to the actual data on disk), with significant differences in performance and data durability. Batches are useful for reducing the number of network calls and improving overall system performance, but it's important to balance data consistency and scalability needs when deciding to use them.
 ```cql
 BEGIN [UNLOGGED | LOGGED] BATCH
@@ -2458,9 +2481,8 @@ BEGIN [UNLOGGED | LOGGED] BATCH
 APPLY BATCH;
 ```
 - **LWT**: they can be used for operations that require strong consistency. You perform an LTW when using the IF command for conditionals and CAS (Compare and Set). These commands are primarily added to INSERT and SELECT operations. LWTs guarantee serializable isolation but can have a performance cost.
-- **Configurable consistency levels**: determine the number of replicas that must agree on the response before an operation is considered complete. Common consistency levels include ONE (completed when at least one replica responds), QUORUM (completed when a majority of replicas respond), ALL, EACH_QUORUM, etc.
 
-Especially the last 3 structures/operations will be explored in depth in the specific chapter.
+Especially the last 2 structures/operations will be explored in depth in the specific chapter.
 
 ## Transactions and Aggregations
 ### MongoDB Transactions and Aggregations
@@ -2875,7 +2897,7 @@ When the batch involves operations on multiple partitions, complete atomicity is
 
 In the context of transaction and concurrency management, batch operations help coordinate multiple writes in a single request. This can reduce concurrency issues as operations are applied in a coherent unit. However, since Cassandra is a distributed system designed for scalability, its consistency model is eventual, meaning that without additional control mechanisms, batch operations cannot guarantee that all nodes will immediately see the same data version.
 
-##### Lightweight Transactions (LWT) in Cassandra
+#### Lightweight Transactions (LWT) in Cassandra
 
 Lightweight Transactions (LWT) in Cassandra are a mechanism for performing write operations with consensus control that ensures consistency in the presence of concurrency. LWTs use a Paxos-based protocol to achieve consensus among cluster nodes before applying the write. The syntax of an LWT includes the `IF` clause that checks a condition before performing an insert, delete, or update operation. Some examples are:
 ```cql
@@ -2898,6 +2920,400 @@ When a client sends an LWT to the coordinator node, a Paxos-based protocol is ap
 In the context of transaction and concurrency management, LWTs offer a strong consistency mechanism. Through the use of the protocol, an LWT ensures that only one consistent version of the data is written and made visible to all nodes in the cluster. This is crucial in applications where data integrity must be ensured, such as in a user registration system where each username must be unique.
 
 However, LWTs come with a performance cost. The consensus process requires a series of information exchanges between nodes to reach an agreement, which slows down the operation compared to normal writes.
+
+#### Application to the data model
+In the context of a flight booking system, poor concurrency management can cause numerous problems. A particularly serious case can occur when, for example, on a sold-out flight (all seats have been purchased), two people book the same seat due to a system error. To avoid such issues, it has been decided to use Lightweight Transactions (LWT) in the system.
+
+In the implemented model, the crucial operation that requires concurrency control is: "Given a flight code, a seat code, and user information, insert the user data and change the seat status from 'Vacant' to 'Occupied'." In CQL language, this operation translates to:
+
+```cql
+UPDATE seat SET status = 'Occupied', balance = 'v1', date_of_birth = 'v2', document_info = 'v3', name = 'v4', surname = 'v5' WHERE flight = 'v6' AND id = 'v7';
+```
+
+Since a seat must be vacant before it can be occupied, we can update the operation using LWT by adding a clause that verifies the seat status is 'Vacant' before performing the operation. The CQL query will therefore be:
+
+```cql
+UPDATE seat SET status = 'Occupied', balance = 'v1', date_of_birth = 'v2', document_info = 'v3', name = 'v4', surname = 'v5' WHERE flight = 'v6' AND id = 'v7' IF status = 'Vacant';
+```
+
+In this way, it ensures that two people cannot book the same seat on the same flight.
+
+In the Java code related to the implemented model, all simple checks, such as seat availability and user balance, are handled by the application. This approach improves performance. Specifically, in the updated code below, three methods have been added:
+
+- ```transaction```: Given the departure and arrival airports, it executes a query to find available flights on that route, selects one (the first), checks if there are available seats on that flight, selects one if available, and calls execute to book the seat with the user data provided as input.
+- ```parallelTransaction```: This is a test method that essentially performs the same function as transaction but ensures that two people are simultaneously attempting to book the same seat on the same flight.
+- ```execute```: This method starts by checking the user's available balance. If the balance is sufficient, it proceeds with booking the flight. After sending the UPDATE operation, it checks if it was applied and informs the caller of the outcome. When called by parallelTransaction, it is expected that one booking will succeed while the other will not.
+
+```java
+package com.example.cassandra;
+
+// Import necessary classes from DataStax driver and AWS MCS for authentication
+import com.datastax.driver.core.*;
+import software.aws.mcs.auth.SigV4AuthProvider;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class App
+{
+static Session session = null;
+
+    // Method to get flights from a specific airport
+    public static List<Flight> getFlightsFromAirport(String airportCode){
+        // Create a query to select all flights from a specific departure airport
+        SimpleStatement query = new SimpleStatement("SELECT * FROM flight WHERE departure='" + airportCode + "';");
+        return getFlights(query);
+    }
+
+    // Helper method to execute a query and return a list of Flight objects
+    private static List<Flight> getFlights(SimpleStatement query) {
+        ResultSet rs = session.execute(query);
+        List<Flight> flightList = new ArrayList<>();
+
+        // Iterate through the result set and create Flight objects
+        for (Row row : rs) {
+            String departure = row.getString("departure");
+            String day = "" + row.getDate("day");
+            String destination = row.getString("destination");
+            String hour = "" + row.getTime("hour");
+            String id = row.getString("id");
+            String duration = row.getString("duration");
+            int number_of_seats = row.getInt("number_of_seats");
+            String operator = row.getString("operator");
+            float price_per_person = row.getFloat("price_per_person");
+
+            Flight flight = new Flight(departure, day, destination, hour, id, duration, number_of_seats, operator, price_per_person);
+            flightList.add(flight);
+        }
+
+        return flightList;
+    }
+
+    // Method to get flights based on departure and destination airports
+    public static List<Flight> getFlightsFromDepartureAndDestination(String departureCode, String destinationCode) {
+        // Create a query to select flights based on departure and destination
+        SimpleStatement query = new SimpleStatement("SELECT * FROM flight WHERE departure='" + departureCode + "' AND destination='" + destinationCode + "';");
+        return getFlights(query);
+    }
+
+    // Method to get airport details based on IATA code
+    public static Airport getAirportFromIATA(String airportCode) {
+        // Create a query to select an airport based on its IATA code
+        SimpleStatement query = new SimpleStatement("SELECT * FROM airport WHERE IATA_code='" + airportCode + "';");
+        ResultSet rs = session.execute(query);
+
+        Row row = rs.one();
+        Airport airport = null;
+        // From result set to Airport
+        if (row != null) {
+            String iata_code = row.getString("iata_code");
+            String country = row.getString("country");
+            String country_code = row.getString("country_code");
+            String geo_point = row.getString("geo_point");
+            String icao_code = row.getString("icao_code");
+            String name = row.getString("name");
+            String name_en = row.getString("name_en");
+            String name_fr = row.getString("name_fr");
+            String operator = row.getString("operator");
+            String phone = row.getString("phone");
+            int size = row.getInt("size");
+            String website= row.getString("website");
+
+            airport = new Airport(iata_code, country, country_code, geo_point, icao_code, name, name_en, name_fr, operator, phone, size, website);
+        }
+
+        return airport;
+    }
+
+    // Method to get seats for a specific flight
+    public static List<Seat> getSeats(String flightCode) {
+        // Create a query to select all seats for a specific flight
+        SimpleStatement query = new SimpleStatement("SELECT * FROM seat WHERE flight='" + flightCode + "';");
+        ResultSet rs = session.execute(query);
+
+        List<Seat> seatList = new ArrayList<>();
+
+        // Iterate through the result set and create Seat objects
+        for (Row row : rs) {
+            String flight = row.getString("flight");
+            String id = row.getString("id");
+            float balance = row.getFloat("balance");
+            String date_of_birth = "" + row.getDate("date_of_birth");
+            String document_info = row.getString("document_info");
+            String name = row.getString("name");
+            String status = row.getString("status");
+            String surname = row.getString("surname");
+
+            Seat seat = new Seat(flight, id, balance, date_of_birth, document_info, name, status, surname);
+            seatList.add(seat);
+        }
+
+        return seatList;
+    }
+
+    // Method to get available (vacant) seats for a specific flight
+    public static List<Seat> getAvailableSeats(String flightCode) {
+        List<Seat> seats = getSeats(flightCode);
+        List<Seat> availableSeats = new ArrayList<>();
+
+        // Filter seats to only include those that are vacant
+        for (Seat seat : seats) {
+            if(seat.getStatus().equals("Vacant")) {
+                availableSeats.add(seat);
+            }
+        }
+
+        return availableSeats;
+    }
+
+    // Method to get the status of a specific seat on a flight
+    public static String getSeatStatus(String flightCode, String idSeat) throws Exception {
+        // Create a query to select a seat based on flight and seat ID
+        SimpleStatement query = new SimpleStatement("SELECT * FROM seat WHERE flight='" + flightCode + "' AND id='"+ idSeat +"';");
+        ResultSet rs = session.execute(query);
+
+        Row row = rs.one();
+
+        if (row != null) {
+            return row.getString("status");
+        }
+
+        throw new Exception("This seat does not exist");
+    }
+
+    // Method to get the first available flight based on departure and destination airports
+    public static Flight getFirstAvailableFlight(String departureCode, String destinationCode) throws Exception{
+        List<Flight> flights = getFlightsFromDepartureAndDestination(departureCode, destinationCode);
+
+        if (flights.isEmpty()) {
+            throw new Exception("No flights found");
+        }
+
+        return flights.get(0);
+    }
+
+    // Method to get the first available seat on a specific flight
+    public static Seat getFirstAvailableSeat(String flightCode) throws Exception {
+        List<Seat> seats = getAvailableSeats(flightCode);
+
+        if (seats.isEmpty()) {
+            throw new Exception("No seats available");
+        }
+
+        return seats.get(0);
+    }
+
+    // Method to perform a transaction to book a flight and a seat for a user
+    public static void transaction(User user, String departureCode, String destinationCode) {
+        Flight flight;
+        Seat seat;
+        try {
+            flight = getFirstAvailableFlight(departureCode, destinationCode);
+            seat = getFirstAvailableSeat(flight.getId());
+            System.out.println(execute(user, flight, seat));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    // Method to perform parallel transactions for two users
+    public static void parrallelTransaction(User user1, User user2, String departureCode, String destinationCode) {
+        Flight flight;
+        Seat seat;
+        try {
+            flight = getFirstAvailableFlight(departureCode, destinationCode);
+            seat = getFirstAvailableSeat(flight.getId());
+
+            // Create threads to execute transactions for both users in parallel
+            Thread thread1 = new Thread(() -> { System.out.println(execute(user1, flight, seat)); });
+            Thread thread2 = new Thread(() -> { System.out.println(execute(user2, flight, seat)); });
+
+            thread1.start();
+            thread2.start();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+    }
+
+    // Method to execute the booking of a seat for a user
+    public static String execute(User user, Flight flight, Seat seat) {
+        if (flight.getPrice_per_person() > user.getBalance()) {
+            return "Insufficient balance";
+        }
+
+        user.setBalance(user.getBalance() - flight.getPrice_per_person());
+
+        String updateQuery = "UPDATE seat SET status = 'Occupied', balance = ?, date_of_birth = ?, document_info = ?, name = ?, surname = ? WHERE flight = ? AND id = ? IF status = 'Vacant'";
+        PreparedStatement updateStmt = session.prepare(updateQuery);
+        updateStmt.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+
+        LocalDate birthDate = LocalDate.fromYearMonthDay(
+                Integer.parseInt(user.getDate_of_birth().substring(0, 4)),
+                Integer.parseInt(user.getDate_of_birth().substring(5, 7)),
+                Integer.parseInt(user.getDate_of_birth().substring(8, 10))
+        );
+
+        ResultSet resultSet = session.execute(updateStmt.bind(user.getBalance(), birthDate, user.getDocument_info(), user.getName(), user.getSurname(), seat.getFlight(), seat.getId()));
+
+        if (!resultSet.wasApplied()) {
+            return user.getName() + " " + user.getSurname() + ": seat reservation " + seat.getId() + " failed. It might already be 'Occupied'.";
+        }
+
+        return user.getName() + " " + user.getSurname() + ": seat " + seat.getId() + " successfully booked up.";
+    }
+
+    // Method to insert data into tables from text files
+    public static void insert(String table) {
+        List<List<String>> dati = new ArrayList<>();
+
+        String[] fileName = {"airport.txt", "flights.txt", "seats.txt"};
+
+        for (String s: fileName) {
+            try (BufferedReader br = new BufferedReader(new FileReader(s))) {
+                String line;
+                List<String> list = new ArrayList<>();
+
+                // Read data from the text file and add it to the list
+                while ((line = br.readLine()) != null) {
+                    list.add(line.trim());
+                }
+
+                dati.add(list);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Insert data into the specified table
+        if(table.equals("airport")) {
+            System.out.println("Insert Airport");
+            for (String l1: dati.get(0)) {
+                SimpleStatement query = new SimpleStatement("INSERT INTO airport (Size, Country, Country_code, Geo_Point, IATA_code, ICAO_code, Name, Name_en, Name_fr, Operator, Phone, Website) VALUES " + l1 + ";");
+                session.execute(query);
+            }
+        } else {
+            if(table.equals("flight")) {
+                System.out.println("Insert Flight");
+                for (String l2: dati.get(1)) {
+                    SimpleStatement query = new SimpleStatement("INSERT INTO flight (ID, Departure, Destination, Number_of_Seats, Day, Hour, Operator, Duration, Price_per_Person) VALUES " + l2 + ";");
+                    session.execute(query);
+                }
+            } else {
+                System.out.println("Insert Seat");
+                for (String l3: dati.get(2)) {
+                    SimpleStatement query = new SimpleStatement("INSERT INTO seat (Flight, ID, Status, Name, Surname, Document_Info, Date_of_Birth, Balance) VALUES " + l3 + ";");
+                    session.execute(query);
+                }
+            }
+        }
+    }
+
+    // Main method to initialize the Cassandra session and perform setup tasks
+    public static void main( String[] args ) {
+        String endPoint = "cassandra.eu-north-1.amazonaws.com";
+        int portNumber = 9142;
+
+        try {
+            // Initialize Cassandra session with AWS MCS authentication
+            session = Cluster.builder()
+                    .addContactPoint(endPoint)
+                    .withPort(portNumber)
+                    .withAuthProvider(new SigV4AuthProvider("eu-north-1"))
+                    .withSSL()
+                    .build()
+                    .connect();
+
+            System.out.println("Connected to Cassandra!");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Create keyspace and use it
+        session.execute("CREATE KEYSPACE IF NOT EXISTS my_airport WITH replication = "
+                + "{'class':'SimpleStrategy','replication_factor':3};");
+
+        session.execute("USE my_airport;");
+
+        // Get list of existing tables before creating new ones
+        ResultSet rs = session.execute("SELECT table_name FROM system_schema.tables " +
+                "WHERE keyspace_name = 'my_airport' ");
+
+        List<String> list_before = new ArrayList<>();
+        for (Row row : rs) {
+            list_before.add(row.getString("table_name"));
+        }
+
+        // Create necessary tables if they don't exist
+        session.execute("CREATE TABLE IF NOT EXISTS airport (Name_en text, Country text, Website text, Geo_Point text, ICAO_code text, Country_code text, Phone text, Name_fr text, Name text, IATA_code text, Size int, Operator text, PRIMARY KEY (IATA_code));");
+        session.execute("CREATE TABLE IF NOT EXISTS flight (ID text, Number_of_Seats int, Day date, Hour time, Operator text, Duration text, Price_per_Person float, Destination text, Departure text, PRIMARY KEY ((Departure), Destination, Day, Hour, id));");
+        session.execute("CREATE TABLE IF NOT EXISTS seat (Flight text, Status text, ID text, Name text, Surname text, Document_Info text, Date_of_Birth date, Balance float, PRIMARY KEY ((Flight), ID));");
+
+        // Get list of tables after creation
+        rs = session.execute("SELECT table_name FROM system_schema.tables " +
+                "WHERE keyspace_name = 'my_airport' ");
+
+        List<String> list_after = new ArrayList<>();
+        for (Row row : rs) {
+            list_after.add(row.getString("table_name"));
+        }
+
+        // Insert data into newly created tables
+        if (list_before.size() != list_after.size()) {
+            for (String s : list_after) {
+                if (!list_before.contains(s)) {
+                    insert(s);
+                }
+            }
+        }
+
+        // Test various queries and transactions
+        // Test Query getFlightsFromAirport
+        System.out.println("getFlightsFromAirport");
+        System.out.println(getFlightsFromAirport("BGY"));
+
+        // Test Query getAirportFromIATA
+        System.out.println("getAirportFromIATA");
+        System.out.println(getAirportFromIATA("BGY"));
+
+        // Test Query getFlightsFromDepartureAndDestination
+        System.out.println("getFlightsFromDepartureAndDestination");
+        System.out.println(getFlightsFromDepartureAndDestination("BGY", "AAL"));
+
+        // Test Query getAvailableSeats
+        System.out.println("getAvailableSeats");
+        System.out.println(getAvailableSeats("6677f9a27acf35542d8ef4df"));
+
+        // Test Query getSeatStatus
+        System.out.println("getSeatStatus");
+        try {
+            System.out.println(getSeatStatus("6677f9a27acf35542d8ef4df", "10B"));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        User user1 = new User(200, "2001-11-14", "CA11111XT", "Mario", "Verdi");
+
+        // Test Simple Transaction
+        System.out.println("transaction");
+        transaction(user1, "BGY", "AAL");
+
+        // Test Failed Transaction
+        System.out.println("transaction with no balance");
+        user1.setBalance(0);
+        transaction(user1, "BGY", "AAL");
+
+        // Test Parallel Transaction
+        user1.setBalance(300);
+        User user2 = new User(300, "2000-12-01", "CAAAAAAAA", "Luca", "Rossi");
+        System.out.println("parrallelTransaction");
+        parrallelTransaction(user1, user2, "BGY", "AAL");
+    }
+}
+```
 
 ## Optimization
 ### MongoDB Optimization With Indexes
@@ -3098,7 +3514,17 @@ management—including periodic review, deletion of redundant indexes, and caref
 implications—is essential to maintain optimal database performance and efficiency.
 
 ### Cassandra Optimization
-_PLACEHOLDER PER FILIPPO_
+Cassandra, unlike MongoDB, does not require specific operations to optimize certain queries. This is because Cassandra assumes that the data model has already been designed optimally to ensure maximum performance. As explained in previous chapters, Cassandra’s architecture is based on the distribution of data across multiple nodes and on a data model that favors rapid writes and scalable reads. In this context, performance optimization mainly depends on the initial design of the data model.
+
+In Cassandra, the focus is on data denormalization and creating tables in such a way that the main queries can be executed with maximum efficiency. This approach translates into:
+
+1. **Table design**: Tables should be designed with the queries that will be executed in mind, rather than focusing on data normalization. This implies that related data is often stored together in the same table to minimize join operations.
+
+2. **Partition keys and clustering**: The choice of partition keys is crucial for evenly distributing data across cluster nodes and ensuring that queries are efficient. Clustering keys are used to order the data within a partition, facilitating quick access to ordered data.
+
+3. **Scalability and replication**: Cassandra is designed to be highly scalable, with write and read capacity distributed across multiple nodes. Data is replicated on different nodes to ensure availability and fault tolerance. The configuration of replicas can affect query performance in terms of latency and throughput.
+
+Therefore, while MongoDB offers various query optimization techniques, such as the use of indexes and the optimization of aggregation pipelines, Cassandra relies on an initial data model design that considers query needs from the outset. This makes careful planning during the database design phase essential to achieve maximum performance in Cassandra. In practice, if a Cassandra data model needs optimization, it was likely poorly designed and needs to be redone.
 
 ## Data Modeling and Transactions
 
@@ -4631,9 +5057,344 @@ SELECT status FROM seat WHERE flight = ‘v1’ AND id = ‘v2’;
 UPDATE seat SET status = 'Occupied', balance = ‘v1’, date_of_birth = ‘v2’, document_info = ‘v3’, name = ‘v4’, surname = ‘v5’ WHERE flight = ‘v6’ AND id = ‘v7’
 ```
 
-In conclusion, the Java script used to communicate with the database is reported (the UPDATE operation is not included as it will be addressed in the appropriate chapter). To load the database so that the data matches those of MongoDB, the latter was exported to a json file and the various fields were extracted from it.
+In conclusion, the Java script used to communicate with the database has been updated (the `UPDATE` operation will be covered in the relevant chapter). Specifically, in the main method, after establishing the connection, a query is executed to obtain the list of tables. Subsequently, the three previously described operations to create the tables are executed. Once the tables have been created, the initial query is executed again to obtain the updated list of tables. By comparing the results of the two queries, it is possible to determine which tables have been created. For each created table, the `INSERT` method is called to populate it. The `INSERT` method reads data from a `.txt` file having the same name as the table to be populated, where each row of the file corresponds to a row in the Cassandra table, and loads them into the database using the `INSERT` operation. Each row is a list of data that follows the order of fields as specified in the columns section of the `INSERT`. This method was designed to maintain consistency with the data created during the MongoDB phase; in fact, the Mongo database was previously exported to `JSON` files and processed to obtain the three distinct files (one for each table). The data is structured into classes: `Seat`, `Flight`, and `Airport`. Each class simply contains the various columns that define the respective table, getter and setter methods, and the toString method.
 
-### Large Volume Data Management 
+Then, various query tests are performed. Specifically, the methods:
+- `getFlightsFromAirport`: This method retrieves a list of flights departing from a specific airport. It uses the airport code as a filter in the Cassandra query.
+   - Creates a `SimpleStatement` query to select all flights from the `flight` table where the `departure` column is equal to the provided airport code.
+   - Calls the `getFlights` method to execute the query and return the results as a list of `Flight` objects.
+- `getAirportFromIATA`: This method retrieves information about an airport given its IATA code.
+   - Creates a `SimpleStatement` query to select all airport details from the `airport` table where the `IATA_code` column is equal to the provided IATA code.
+   - Executes the query and retrieves the first row of the results.
+   - Extracts the airport details from the row and creates an `Airport` object.
+   - Returns the `Airport` object.
+- `getFlightsFromDepartureAndDestination`: This method retrieves a list of flights departing from a specific airport and arriving at a specific airport.
+   - Creates a `SimpleStatement` query to select all flights from the `flight` table where the `departure` and `destination` columns match the provided codes.
+   - Calls the `getFlights` method to execute the query and return the results as a list of `Flight` objects.
+- `getFlights`: This method executes a Cassandra query to retrieve a list of flights and maps the results to `Flight` objects.
+   - Executes the query.
+   - Iterates over the results and for each row, creates a `Flight` object with the flight details.
+   - Adds the `Flight` object to the list of flights.
+   - Returns the list of flights.
+- `getSeats`: This method retrieves a list of seats for a given flight.
+   - Creates a `SimpleStatement` query to select all seats from the `seat` table where the `flight` column is equal to the provided flight code.
+   - Executes the query.
+   - Iterates over the results and for each row, creates a `Seat` object with the seat details.
+   - Adds the `Seat` object to the list of seats.
+   - Returns the list of seats.
+- `getAvailableSeats`: This method retrieves a list of available seats for a given flight.
+   - Calls the `getSeats` method to get all seats for the specified flight.
+   - Filters the seats to include only those with the status `Vacant`.
+   - Returns the list of available seats.
+- `getSeatStatus`: This method retrieves the status of a specific seat for a specific flight.
+   - Creates a `SimpleStatement` query to select the seat status from the `seat` table where the `flight` and `id` columns match the provided values.
+   - Executes the query and retrieves the first row of the results.
+   - If the row exists, returns the seat status.
+   - If the row does not exist, throws an exception.
+- `getFirstAvailableFlight`: This method retrieves the first available flight from a departure airport to a destination airport.
+   - Calls the `getFlightsFromDepartureAndDestination` method to get all matching flights.
+   - If no flights are found, throws an exception.
+   - Returns the first flight from the list of flights.
+- `getFirstAvailableSeat`: This method retrieves the first available seat for a given flight.
+   - Calls the `getAvailableSeats` method to get all available seats for the specified flight.
+   - If no seats are available, throws an exception.
+   - Returns the first available seat from the list of seats.
+
+```java
+package com.example.cassandra;
+
+// Import necessary classes from DataStax driver and AWS MCS for authentication
+import com.datastax.driver.core.*;
+import software.aws.mcs.auth.SigV4AuthProvider;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class App
+{
+static Session session = null;
+
+    // Method to get flights from a specific airport
+    public static List<Flight> getFlightsFromAirport(String airportCode){
+        // Create a query to select all flights from a specific departure airport
+        SimpleStatement query = new SimpleStatement("SELECT * FROM flight WHERE departure='" + airportCode + "';");
+        return getFlights(query);
+    }
+
+    // Helper method to execute a query and return a list of Flight objects
+    private static List<Flight> getFlights(SimpleStatement query) {
+        ResultSet rs = session.execute(query);
+        List<Flight> flightList = new ArrayList<>();
+
+        // Iterate through the result set and create Flight objects
+        for (Row row : rs) {
+            String departure = row.getString("departure");
+            String day = "" + row.getDate("day");
+            String destination = row.getString("destination");
+            String hour = "" + row.getTime("hour");
+            String id = row.getString("id");
+            String duration = row.getString("duration");
+            int number_of_seats = row.getInt("number_of_seats");
+            String operator = row.getString("operator");
+            float price_per_person = row.getFloat("price_per_person");
+
+            Flight flight = new Flight(departure, day, destination, hour, id, duration, number_of_seats, operator, price_per_person);
+            flightList.add(flight);
+        }
+
+        return flightList;
+    }
+
+    // Method to get flights based on departure and destination airports
+    public static List<Flight> getFlightsFromDepartureAndDestination(String departureCode, String destinationCode) {
+        // Create a query to select flights based on departure and destination
+        SimpleStatement query = new SimpleStatement("SELECT * FROM flight WHERE departure='" + departureCode + "' AND destination='" + destinationCode + "';");
+        return getFlights(query);
+    }
+
+    // Method to get airport details based on IATA code
+    public static Airport getAirportFromIATA(String airportCode) {
+        // Create a query to select an airport based on its IATA code
+        SimpleStatement query = new SimpleStatement("SELECT * FROM airport WHERE IATA_code='" + airportCode + "';");
+        ResultSet rs = session.execute(query);
+
+        Row row = rs.one();
+        Airport airport = null;
+        // From result set to Airport
+        if (row != null) {
+            String iata_code = row.getString("iata_code");
+            String country = row.getString("country");
+            String country_code = row.getString("country_code");
+            String geo_point = row.getString("geo_point");
+            String icao_code = row.getString("icao_code");
+            String name = row.getString("name");
+            String name_en = row.getString("name_en");
+            String name_fr = row.getString("name_fr");
+            String operator = row.getString("operator");
+            String phone = row.getString("phone");
+            int size = row.getInt("size");
+            String website= row.getString("website");
+
+            airport = new Airport(iata_code, country, country_code, geo_point, icao_code, name, name_en, name_fr, operator, phone, size, website);
+        }
+
+        return airport;
+    }
+
+    // Method to get seats for a specific flight
+    public static List<Seat> getSeats(String flightCode) {
+        // Create a query to select all seats for a specific flight
+        SimpleStatement query = new SimpleStatement("SELECT * FROM seat WHERE flight='" + flightCode + "';");
+        ResultSet rs = session.execute(query);
+
+        List<Seat> seatList = new ArrayList<>();
+
+        // Iterate through the result set and create Seat objects
+        for (Row row : rs) {
+            String flight = row.getString("flight");
+            String id = row.getString("id");
+            float balance = row.getFloat("balance");
+            String date_of_birth = "" + row.getDate("date_of_birth");
+            String document_info = row.getString("document_info");
+            String name = row.getString("name");
+            String status = row.getString("status");
+            String surname = row.getString("surname");
+
+            Seat seat = new Seat(flight, id, balance, date_of_birth, document_info, name, status, surname);
+            seatList.add(seat);
+        }
+
+        return seatList;
+    }
+
+    // Method to get available (vacant) seats for a specific flight
+    public static List<Seat> getAvailableSeats(String flightCode) {
+        List<Seat> seats = getSeats(flightCode);
+        List<Seat> availableSeats = new ArrayList<>();
+
+        // Filter seats to only include those that are vacant
+        for (Seat seat : seats) {
+            if(seat.getStatus().equals("Vacant")) {
+                availableSeats.add(seat);
+            }
+        }
+
+        return availableSeats;
+    }
+
+    // Method to get the status of a specific seat on a flight
+    public static String getSeatStatus(String flightCode, String idSeat) throws Exception {
+        // Create a query to select a seat based on flight and seat ID
+        SimpleStatement query = new SimpleStatement("SELECT * FROM seat WHERE flight='" + flightCode + "' AND id='"+ idSeat +"';");
+        ResultSet rs = session.execute(query);
+
+        Row row = rs.one();
+
+        if (row != null) {
+            return row.getString("status");
+        }
+
+        throw new Exception("This seat does not exist");
+    }
+
+    // Method to get the first available flight based on departure and destination airports
+    public static Flight getFirstAvailableFlight(String departureCode, String destinationCode) throws Exception{
+        List<Flight> flights = getFlightsFromDepartureAndDestination(departureCode, destinationCode);
+
+        if (flights.isEmpty()) {
+            throw new Exception("No flights found");
+        }
+
+        return flights.get(0);
+    }
+
+    // Method to get the first available seat on a specific flight
+    public static Seat getFirstAvailableSeat(String flightCode) throws Exception {
+        List<Seat> seats = getAvailableSeats(flightCode);
+
+        if (seats.isEmpty()) {
+            throw new Exception("No seats available");
+        }
+
+        return seats.get(0);
+    }
+
+    // Method to insert data into tables from text files
+    public static void insert(String table) {
+        List<List<String>> dati = new ArrayList<>();
+
+        String[] fileName = {"airport.txt", "flights.txt", "seats.txt"};
+
+        for (String s: fileName) {
+            try (BufferedReader br = new BufferedReader(new FileReader(s))) {
+                String line;
+                List<String> list = new ArrayList<>();
+
+                // Read data from the text file and add it to the list
+                while ((line = br.readLine()) != null) {
+                    list.add(line.trim());
+                }
+
+                dati.add(list);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Insert data into the specified table
+        if(table.equals("airport")) {
+            System.out.println("Insert Airport");
+            for (String l1: dati.get(0)) {
+                SimpleStatement query = new SimpleStatement("INSERT INTO airport (Size, Country, Country_code, Geo_Point, IATA_code, ICAO_code, Name, Name_en, Name_fr, Operator, Phone, Website) VALUES " + l1 + ";");
+                session.execute(query);
+            }
+        } else {
+            if(table.equals("flight")) {
+                System.out.println("Insert Flight");
+                for (String l2: dati.get(1)) {
+                    SimpleStatement query = new SimpleStatement("INSERT INTO flight (ID, Departure, Destination, Number_of_Seats, Day, Hour, Operator, Duration, Price_per_Person) VALUES " + l2 + ";");
+                    session.execute(query);
+                }
+            } else {
+                System.out.println("Insert Seat");
+                for (String l3: dati.get(2)) {
+                    SimpleStatement query = new SimpleStatement("INSERT INTO seat (Flight, ID, Status, Name, Surname, Document_Info, Date_of_Birth, Balance) VALUES " + l3 + ";");
+                    session.execute(query);
+                }
+            }
+        }
+    }
+
+    // Main method to initialize the Cassandra session and perform setup tasks
+    public static void main( String[] args ) {
+        String endPoint = "cassandra.eu-north-1.amazonaws.com";
+        int portNumber = 9142;
+
+        try {
+            // Initialize Cassandra session with AWS MCS authentication
+            session = Cluster.builder()
+                    .addContactPoint(endPoint)
+                    .withPort(portNumber)
+                    .withAuthProvider(new SigV4AuthProvider("eu-north-1"))
+                    .withSSL()
+                    .build()
+                    .connect();
+
+            System.out.println("Connected to Cassandra!");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Create keyspace and use it
+        session.execute("CREATE KEYSPACE IF NOT EXISTS my_airport WITH replication = "
+                + "{'class':'SimpleStrategy','replication_factor':3};");
+
+        session.execute("USE my_airport;");
+
+        // Get list of existing tables before creating new ones
+        ResultSet rs = session.execute("SELECT table_name FROM system_schema.tables " +
+                "WHERE keyspace_name = 'my_airport' ");
+
+        List<String> list_before = new ArrayList<>();
+        for (Row row : rs) {
+            list_before.add(row.getString("table_name"));
+        }
+
+        // Create necessary tables if they don't exist
+        session.execute("CREATE TABLE IF NOT EXISTS airport (Name_en text, Country text, Website text, Geo_Point text, ICAO_code text, Country_code text, Phone text, Name_fr text, Name text, IATA_code text, Size int, Operator text, PRIMARY KEY (IATA_code));");
+        session.execute("CREATE TABLE IF NOT EXISTS flight (ID text, Number_of_Seats int, Day date, Hour time, Operator text, Duration text, Price_per_Person int, Destination text, Departure text, PRIMARY KEY ((Departure), Destination, Day, Hour, id));");
+        session.execute("CREATE TABLE IF NOT EXISTS seat (Flight text, Status text, ID text, Name text, Surname text, Document_Info text, Date_of_Birth date, Balance int, PRIMARY KEY ((Flight), ID));");
+
+        // Get list of tables after creation
+        rs = session.execute("SELECT table_name FROM system_schema.tables " +
+                "WHERE keyspace_name = 'my_airport' ");
+
+        List<String> list_after = new ArrayList<>();
+        for (Row row : rs) {
+            list_after.add(row.getString("table_name"));
+        }
+
+        // Insert data into newly created tables
+        if (list_before.size() != list_after.size()) {
+            for (String s : list_after) {
+                if (!list_before.contains(s)) {
+                    insert(s);
+                }
+            }
+        }
+
+        // Test various queries and transactions
+        // Test Query getFlightsFromAirport
+        System.out.println("getFlightsFromAirport");
+        System.out.println(getFlightsFromAirport("BGY"));
+
+        // Test Query getAirportFromIATA
+        System.out.println("getAirportFromIATA");
+        System.out.println(getAirportFromIATA("BGY"));
+
+        // Test Query getFlightsFromDepartureAndDestination
+        System.out.println("getFlightsFromDepartureAndDestination");
+        System.out.println(getFlightsFromDepartureAndDestination("BGY", "AAL"));
+
+        // Test Query getAvailableSeats
+        System.out.println("getAvailableSeats");
+        System.out.println(getAvailableSeats("6677f9a27acf35542d8ef4df"));
+
+        // Test Query getSeatStatus
+        System.out.println("getSeatStatus");
+        try {
+            System.out.println(getSeatStatus("6677f9a27acf35542d8ef4df", "10B"));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+```
+
+## Large Volume Data Management 
 #### Large Volume Data Management in MongoDB
 
 In this chapter, we will delve into how it is possible to manage and read large volumes of data in MongoDB, using the
