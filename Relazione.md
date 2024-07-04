@@ -5498,74 +5498,67 @@ manner. Nobody forbids the re-elaboration of the following YAML document by choo
 be done provided that the ports that the developer wants to use are free. The code is as follows
 
 ```yaml
-version: '3.8'
 services:
-   configsvr1:
-      image: mongo
-      command: mongod --configsvr --replSet configReplSet --port 27019
-      volumes:
-         - configsvr1:/data/configdb
+   configsvr:
+      image: mongo:4.4.0-bionic
+      container_name: configsvr
+      command: ["mongod", "--configsvr", "--replSet", "rsConfig", "--port", "27019"]
       ports:
-         - "27019:27019"
-
-   configsvr2:
-      image: mongo
-      command: mongod --configsvr --replSet configReplSet --port 27020
+         - 27019:27019
       volumes:
-         - configsvr2:/data/configdb
-      ports:
-         - "27020:27020"
-
-   configsvr3:
-      image: mongo
-      command: mongod --configsvr --replSet configReplSet --port 27021
-      volumes:
-         - configsvr3:/data/configdb
-      ports:
-         - "27021:27021"
+         - configsvr:/data/db
 
    shard1:
-      image: mongo
-      command: mongod --shardsvr --replSet shard1 --port 27018
-      volumes:
-         - shard1:/data/shard1
+      image: mongo:4.4.0-bionic
+      container_name: shard1
+      command: ["mongod", "--shardsvr", "--replSet", "rsShard1", "--port", "27018"]
       ports:
-         - "27018:27018"
+         - 27018:27018
+      volumes:
+         - shard1:/data/db
 
    shard2:
-      image: mongo
-      command: mongod --shardsvr --replSet shard2 --port 27025
-      volumes:
-         - shard2:/data/shard2
+      image: mongo:4.4.0-bionic
+      container_name: shard2
+      command: ["mongod", "--shardsvr", "--replSet", "rsShard2", "--port", "27018"]
       ports:
-         - "27025:27025"
+         - 27020:27018
+      volumes:
+         - shard2:/data/db
 
    shard3:
-      image: mongo
-      command: mongod --shardsvr --replSet shard3 --port 27024
-      volumes:
-         - shard3:/data/shard3
+      image: mongo:4.4.0-bionic
+      container_name: shard3
+      command: ["mongod", "--shardsvr", "--replSet", "rsShard3", "--port", "27018"]
       ports:
-         - "27024:27024"
+         - 27021:27018
+      volumes:
+         - shard3:/data/db
 
    shard4:
-      image: mongo
-      command: mongod --shardsvr --replSet shard4 --port 27026
-      volumes:
-         - shard4:/data/shard4
+      image: mongo:4.4.0-bionic
+      container_name: shard4
+      command: ["mongod", "--shardsvr", "--replSet", "rsShard4", "--port", "27018"]
       ports:
-         - "27026:27026"
+         - 27022:27018
+      volumes:
+         - shard4:/data/db
 
    mongos:
-      image: mongo
-      command: mongos --configdb configReplSet/configsvr1:27019,configsvr2:27020,configsvr3:27021 --port 27017
+      image: mongo:4.4.0-bionic
+      container_name: mongos
+      command: ["mongos", "--configdb", "rsConfig/configsvr:27019", "--port", "27017"]
       ports:
-         - "27017:27017"
+         - 27017:27017
+      depends_on:
+         - configsvr
+         - shard1
+         - shard2
+         - shard3
+         - shard4
 
 volumes:
-   configsvr1:
-   configsvr2:
-   configsvr3:
+   configsvr:
    shard1:
    shard2:
    shard3:
@@ -5577,60 +5570,85 @@ It simplifies the management of Dockerized applications by allowing easy definit
 configurations, networks, and volumes required for them to interact with each other. Regarding the specific 
 `docker-compose.yml` file provided:
 
-This file sets up an environment for a distributed MongoDB database system in a clustered mode. It lists several services (`services`), each representing a specific Docker container:
+This file sets up an environment for a distributed MongoDB database system in a clustered mode. It lists several 
+services (`services`), each representing a specific Docker container:
 
-- **Configuration Servers (`configsvr1`, `configsvr2`, `configsvr3`)**: MongoDB configuration servers (`mongod`) form a replica set (`configReplSet`) on ports 27019, 27020, and 27021 respectively. Each has a dedicated volume for persistent storage.
+- **Configuration Server (`configsvr`)**: a MongoDB configuration server (`mongod`) running in configuration server mode (`--configsvr`). It is part of a replica set named `rsConfig` and listens on port 27019. It has a dedicated volume (`configsvr`) for persistent storage.
 
-- **Shard Nodes (`shard1`, `shard2`, `shard3`, `shard4`)**: MongoDB shard nodes (`mongod`) are configured as data servers (`--shardsvr`) for four replica sets (`shard1`, `shard2`, `shard3`, `shard4`), with separate volumes for data storage.
+- **Shard Nodes (`shard1`, `shard2`, `shard3`, `shard4`)**: four MongoDB shard nodes (`mongod`), each configured as a shard server (`--shardsvr`) and part of their respective replica sets (`rsShard1`, `rsShard2`, `rsShard3`, `rsShard4`). They all listen on port 27018 internally, but are exposed on different host ports (27018, 27020, 27021, 27022). Each shard has a dedicated volume for data storage.
 
-- **Routing Server (`mongos`)**: MongoDB routing server (`mongos`) routes queries between clients and configuration and shard nodes. It connects to configuration servers (`configsvr1`, `configsvr2`, `configsvr3`) on ports 27019, 27020, and 27021.
+- **Routing Server (`mongos`)**: a MongoDB routing server (`mongos`) that routes queries between clients and the shard nodes. It connects to the configuration server (`configsvr`) on port 27019 and listens on port 27017. It depends on the configuration server and all shard nodes to be up and running.
 
-Additionally, the file defines several volumes (`volumes`) to ensure data persistence for each service,
-maintaining data integrity as a consequence, even after container destruction or restart. To recap, this Docker-compose
-file orchestrates a distributed MongoDB environment, managing complex network and volume configurations across multiple
-containers required for a scalable and reliable database system.
+Additionally, the file defines several volumes (`volumes`) to ensure data persistence for each service, maintaining data 
+integrity even after container destruction or restart. To recap, this Docker-compose file orchestrates a distributed 
+MongoDB environment, managing complex network and volume configurations across multiple containers required for a 
+scalable and reliable database system.
 
 #### Deploying the MongoDB Cluster
 
-1. **Create a `docker-compose.yml` file** with the above configuration.
-
-2. **Start the MongoDB Cluster:** you can start the MongoDB cluster by running the following command in the directory containing your `docker-compose.yml` file. This command will start all containers defined in the `docker-compose.yml` file in detached mode (`-d`).
+1. **Start the MongoDB Cluster:**
+   Create a `docker-compose.yml` file with your desired configuration, then start the cluster using the following command. 
+2. This will start all containers defined in the `docker-compose.yml` file in detached mode (`-d`).
 
     ```bash
-    docker pull mongo
     docker-compose up -d
     ```
 
-3. **Initialize Replica Sets and Configuration Servers:** after starting the cluster using `docker-compose`, initialize replica sets for the configuration servers (`configsvr1`, `configsvr2`, `configsvr3`) and shard servers (`shard1`, `shard2`, `shard3`, `shard4`). Replace `<configsvr1-container-id>` with the respective container ID obtained from the `docker ps` command.
+2. **Initialize the Configuration Server:**
+   Connect to the configuration server container and initiate the replica set.
 
-   ```bash
-   docker exec -it <configsvr1-container-id> mongosh --port 27019 --eval 'rs.initiate({_id: "configReplSet", configsvr: true, members: [{ _id: 0, host: "dataarchitecture-configsvr1-1:27019" }, { _id: 1, host: "dataarchitecture-configsvr2-1:27020" }, { _id: 2, host: "dataarchitecture-configsvr3-1:27021" }]})'
-   ```
-   
-4. **Initialize Shard Servers:** replace `<shard1-container-id>`, `<shard2-container-id>`, `<shard3-container-id>`, and `<shard4-container-id>` with the respective container IDs obtained from `docker ps`.
+    ```bash
+    docker exec -it configsvr bash
+    mongo --port 27019 --eval 'rs.initiate({_id: "rsConfig", configsvr: true, members: [{ _id : 0, host : "configsvr:27019" }]})'
+    exit
+    ```
 
-   ```bash
-   docker exec -it <shard1-container-id> mongosh --port 27018 --eval 'rs.initiate({_id: "shard1", members: [{ _id: 0, host: "dataarchitecture-shard1-1:27018" }]})'
-   docker exec -it <shard2-container-id> mongosh --port 27025 --eval 'rs.initiate({_id: "shard2", members: [{ _id: 0, host: "dataarchitecture-shard2-1:27025" }]})'
-   docker exec -it <shard3-container-id> mongosh --port 27024 --eval 'rs.initiate({_id: "shard3", members: [{ _id: 0, host: "dataarchitecture-shard3-1:27024" }]})'
-   docker exec -it <shard4-container-id> mongosh --port 27026 --eval 'rs.initiate({_id: "shard4", members: [{ _id: 0, host: "dataarchitecture-shard4-1:27026" }]})'
-   ```
+3. **Initialize Shard Servers:**
+   Connect to each shard container and initiate the replica sets. Repeat the following steps for each shard (shard1, shard2, shard3, shard4):
 
-5. **Add Shards to the Cluster:** once replica sets are initialized, add the shard servers to the `mongos` instance. Replace `<mongos-container-id>` with the `mongos` container ID obtained from `docker ps`.
+    ```bash
+    docker exec -it shard1 bash
+    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard1", members: [{ _id : 0, host : "shard1:27018" }]})'
+    exit
+    ```
 
-   ```bash
-   docker exec -it <mongos-container-id> mongosh --eval 'sh.addShard("shard1/dataarchitecture-shard1-1:27018")'
-   docker exec -it <mongos-container-id> mongosh --eval 'sh.addShard("shard2/dataarchitecture-shard2-1:27025")'
-   docker exec -it <mongos-container-id> mongosh --eval 'sh.addShard("shard3/dataarchitecture-shard3-1:27024")'
-   docker exec -it <mongos-container-id> mongosh --eval 'sh.addShard("shard4/dataarchitecture-shard4-1:27026")'
-   ```
+    ```bash
+    docker exec -it shard2 bash
+    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard2", members: [{ _id : 0, host : "shard2:27018" }]})'
+    exit
+    ```
 
-6. **Enable Sharding on the Database and Collection:** finally, enable sharding on your desired database and collection. Replace `"Airports"` with your actual database name and `"airportCollection"` with your actual collection name. You can also specify a different sharding key if needed. Ensure to replace all placeholders with actual values obtained from your Docker setup. This should resolve the issue and allow you to successfully configure the MongoDB sharded cluster.
+    ```bash
+    docker exec -it shard3 bash
+    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard3", members: [{ _id : 0, host : "shard3:27018" }]})'
+    exit
+    ```
 
-   ```bash
-   docker exec -it <mongos-container-id> mongosh --eval 'sh.enableSharding("Airports")'
-   docker exec -it <mongos-container-id> mongosh --eval 'sh.shardCollection("Airports.airportCollection", { "Country_code": 1 })'
-   ```
+    ```bash
+    docker exec -it shard4 bash
+    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard4", members: [{ _id : 0, host : "shard4:27018" }]})'
+    exit
+    ```
+
+4. **Configure the MongoS Router:**
+   Connect to the `mongos` container and add the shards to the cluster.
+
+    ```bash
+    docker exec -it mongos bash
+     mongo --port 27017 --eval 'sh.addShard("rsShard1/shard1:27018")'
+    mongo --port 27017 --eval 'sh.addShard("rsShard2/shard2:27018")'
+    mongo --port 27017 --eval 'sh.addShard("rsShard3/shard3:27018")'
+    mongo --port 27017 --eval 'sh.addShard("rsShard4/shard4:27018")'
+    ```
+
+5. **Enable Sharding on the Database and Collection:**
+   Enable sharding on your desired database (`myDatabase`) and collection (`myCollection`), specifying the sharding key.
+
+    ```bash
+    docker exec -it mongos bash
+    mongo --port 27017 --eval 'sh.enableSharding("myDatabase")'
+    mongo --port 27017 --eval 'sh.shardCollection("myDatabase.myCollection", { "Country_code": 1 })'
+    ```
 
 As we just saw, Docker simplifies the deployment and management of MongoDB clusters. Docker containers can encapsulate 
 MongoDB processes, ensuring consistency across different environments. Using Docker allows for easy scaling and 
@@ -5685,6 +5703,161 @@ The reason why the report was based on the docker counterpart is that the MongoD
 not available for the M0 free cluster tier. Therefore, to make the opportunity to use sharding accessible to anyone, 
 the Docker version was shown instead. In addition to this, the Docker version brings with it numerous advantages, which 
 we have already had the opportunity to mention in the previous subchapters.
+
+For the purpose of testing the functionality of the newly built Docker nodes, the MongoDBShardedConnection class was 
+written. The class code is described as follows. Reference note: the class relies on other auxiliary classes called 
+Airport, Flight and Seat, which are used to convert the data contained on the Atlas server into a format ready to be 
+assimilated by the main class, and consequently by the structure we just created on Docker. For simplicity and brevity, 
+auxiliary classes will not be listed below. However, the MongoDBShardedConnection code will be present below, and 
+commented in a clear and exhaustive manner.
+
+```java
+package org.example;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
+import org.bson.Document;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+* The {@code MongoDBShardedConnection} class provides methods for reading airport data from a JSON file and
+* inserting it into a MongoDB collection. This class demonstrates the process of parsing complex JSON data,
+* constructing MongoDB documents, and managing connections to a MongoDB sharded cluster.
+* <p>
+* The primary functionalities include:
+* </p>
+* Reading and parsing a JSON file containing airport data.
+* Constructing MongoDB documents from the parsed JSON data.
+* Connecting to a MongoDB database and inserting the documents into a specified collection.
+*
+* <p>The JSON structure includes nested arrays representing flights and seats, which are also parsed and included 
+* in the corresponding MongoDB documents.
+*
+*/
+public class MongoDBShardedConnection {
+
+    /**
+     * Reads airport data from a JSON file and constructs a list of MongoDB documents.
+     * The JSON file is expected to contain an array of airport objects, each of which may
+     * contain nested arrays for flights and seats.
+     * 
+     * @return a list of {@link Document} objects representing the airport data.
+     */
+    public static List<Document> getData() {
+        List<Document> airportDocuments = new ArrayList<>();
+
+        try (FileReader reader = new FileReader("Airports Modeling Export.json")) {
+            // Create a JSONTokener from the FileReader
+            JSONTokener tokener = new JSONTokener(reader);
+
+            // Create a JSONArray from the tokener
+            JSONArray jsonArray = new JSONArray(tokener);
+
+            // Iterate through the JSON array elements
+            for (int i = 0; i < jsonArray.length(); i++) {
+                // Get the current JSON object
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+
+                // Extract desired fields for the airport document
+                String geoPoint = jsonObject.optString("Geo_Point", "");
+                String name = jsonObject.optString("Name", "");
+                String nameEn = jsonObject.optString("Name_(en)", "");
+                String nameFr = jsonObject.optString("Name_(fr)", "");
+                String iataCode = jsonObject.optString("IATA_code", "");
+                String icaoCode = jsonObject.optString("ICAO_code", "");
+                String operator = jsonObject.optString("Operator", "");
+                String country = jsonObject.optString("Country", "");
+                String countryCode = jsonObject.optString("Country_code", "");
+                int size = jsonObject.optInt("Size", 0);
+
+                // Extract the array of flights for the airport
+                JSONArray flightsArray = jsonObject.getJSONArray("Flights");
+                List<Flight> flights = new ArrayList<>();
+
+                // Iterate through the flights array elements
+                for (int j = 0; j < flightsArray.length(); j++) {
+                    JSONObject flightObject = flightsArray.getJSONObject(j);
+
+                    // Extract desired fields for the flight
+                    String flightId = flightObject.optString("ID", "");
+                    int numberOfSeats = flightObject.optInt("Number_of_Seats", 0);
+                    String day = flightObject.optString("Day", "");
+                    String hour = flightObject.optString("Hour", "");
+                    String flightOperator = flightObject.optString("Operator", "");
+                    String duration = flightObject.optString("Duration", "");
+                    int pricePerPerson = flightObject.optInt("Price_per_Person", 0);
+
+                    // Extract the array of seats for the flight
+                    JSONArray seatsArray = flightObject.getJSONArray("Seats");
+                    List<Seat> seats = new ArrayList<>();
+
+                    // Iterate through the seats array elements
+                    for (int k = 0; k < seatsArray.length(); k++) {
+                        JSONObject seatObject = seatsArray.getJSONObject(k);
+
+                        // Extract desired fields for the seat
+                        String status = seatObject.optString("Status", "");
+                        String seatId = seatObject.optString("ID", "");
+                        String nameOnTicket = seatObject.optString("Name", "");
+                        String surnameOnTicket = seatObject.optString("Surname", "");
+                        String documentInfo = seatObject.optString("Document_Info", "");
+                        String dateOfBirth = seatObject.optString("Date_of_Birth", "");
+                        int balance = seatObject.optInt("Balance", 0);
+
+                        // Create a Seat object and add it to the list of seats
+                        Seat seat = new Seat(status, seatId, nameOnTicket, surnameOnTicket, documentInfo, dateOfBirth, balance);
+                        seats.add(seat);
+                    }
+
+                    // Create a Flight object and add it to the list of flights
+                    Flight flight = new Flight(flightId, numberOfSeats, day, hour, flightOperator, duration, pricePerPerson, seats);
+                    flights.add(flight);
+                }
+
+                // Create an Airport object and add it to the list of documents
+                Airport document = new Airport(geoPoint, name, nameEn, nameFr, iataCode, icaoCode, operator, country, countryCode, size, flights);
+                airportDocuments.add(document.toDocument());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return airportDocuments;
+    }
+
+    /**
+     * Main method to establish a connection to the MongoDB sharded cluster, retrieve airport data, 
+     * and insert it into a specified MongoDB collection.
+     * 
+     * @param args the command-line arguments (not used).
+     */
+    public static void main(String[] args) {
+        // Connection to the mongos router
+        String connectionString = "mongodb://localhost:27017";
+        try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+            MongoDatabase database = mongoClient.getDatabase("myDatabase");
+            System.out.println("Connected to database: " + database.getName());
+
+            MongoCollection<Document> collection = database.getCollection("myCollection");
+            List<Document> airports = getData();
+            collection.insertMany(airports);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
 
 #### Large Volume Data Management in Cassandra
 _PLACEHOLDER PER FILIPPO_

@@ -6,29 +6,29 @@
 ├─ TESTING SEATS RETRIEVAL
 │---├─ The user chose to depart from MXP to PMV
 │---├─ Retrieving available seats for the specified flight (MXP -> PMV)
-│---├─ Number of available seats: 9
-│---├─ Available seats are: [1F, 4F, 5A, 5D, 9A, 9C, 10B, 13B, 13F]
+│---├─ Number of available seats: 5
+│---├─ Available seats are: [5A, 9C, 10B, 13B, 13F]
 
 ├─ TESTING CONCURRENT TRANSACTIONS
-│---├─ Testing concurrent booking for the same seat (4F) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
+│---├─ Testing concurrent booking for the same seat (5A) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
 │---├─ Booking result for person 1: true
 │---├─ Booking result for person 2: false
-│---├─ Person 1 booked the seat first and successfully: Person{name='Tiziana', surname='Martini', documentInfo='V1CX7NY', dateOfBirth='1993-11-20', balance=32255.32}
-│---├─ Person 2 consequently failed to book the same seat: Person{name='Tommaso', surname='D'Agostino', documentInfo='TVQA4BO', dateOfBirth='2001-03-30', balance=34112.71}
-│---├─ The balance of Tiziana Martini before booking the flight was 32617.32$
+│---├─ Person 1 booked the seat first and successfully: Person{name='Francesca', surname='Ferrari', documentInfo='3GN5Z56', dateOfBirth='1937-02-14', balance=62246.0}
+│---├─ Person 2 consequently failed to book the same seat: Person{name='Pietro', surname='Gallo', documentInfo='HKIAGB9', dateOfBirth='1960-12-19', balance=12399.08}
+│---├─ The balance of Francesca Ferrari before booking the flight was 62608.00$
 │---├─ The cost of the flight was 362.00$
-│---├─ This means the new balance of Tiziana Martini is 32255.32$
+│---├─ This means the new balance of Francesca Ferrari is 62246.00$
 
 ├─ TESTING NON-CONCURRENT TRANSACTION
-│---├─ A new user chose to book the 5D seat, without any concurrency from other users
+│---├─ A new user chose to book the 10B seat, without any concurrency from other users
 │---├─ Booking result for new person: true
-│---├─ New person booked the seat successfully: Person{name='Sara', surname='Pagano', documentInfo='BEKOMUT', dateOfBirth='1942-06-05', balance=99079.97}
-│---├─ The balance of Sara Pagano before booking the flight was 99441.97$
+│---├─ New person booked the seat successfully: Person{name='Federico', surname='Basili', documentInfo='O816X6P', dateOfBirth='1967-03-22', balance=69993.39}
+│---├─ The balance of Federico Basili before booking the flight was 70355.39$
 │---├─ The cost of the flight was 362.00$
-│---├─ This means the new balance of Sara Pagano is 99079.97$
+│---├─ This means the new balance of Federico Basili is 69993.39$
 
 ├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR
-│---├─ Alberto Romano with balance 10.0$ is attempting to book seat 5A
+│---├─ Maria Conti with balance 10.0$ is attempting to book seat 13B
 │---├─ Booking result for person with insufficient funds: false
 │---├─ The booking failed due to insufficient balance to complete the transaction
 
