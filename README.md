@@ -2921,7 +2921,7 @@ In the context of transaction and concurrency management, LWTs offer a strong co
 
 However, LWTs come with a performance cost. The consensus process requires a series of information exchanges between nodes to reach an agreement, which slows down the operation compared to normal writes.
 
-#### Application to the data model
+#### Application to data model
 In the context of a flight booking system, poor concurrency management can cause numerous problems. A particularly serious case can occur when, for example, on a sold-out flight (all seats have been purchased), two people book the same seat due to a system error. To avoid such issues, it has been decided to use Lightweight Transactions (LWT) in the system.
 
 In the implemented model, the crucial operation that requires concurrency control is: "Given a flight code, a seat code, and user information, insert the user data and change the seat status from 'Vacant' to 'Occupied'." In CQL language, this operation translates to:
@@ -3313,6 +3313,66 @@ static Session session = null;
         parrallelTransaction(user1, user2, "BGY", "AAL");
     }
 }
+```
+
+An example of query execution with concurrent LWTs can be:
+
+```plaintext
+Trace ID: c1512810-3a2f-11ef-9bb1-0f67a87d0426
+/2 Preparing c1587b12-3a2f-11ef-da45-6843ca902dd1 47694ms
+/2 Promising ballot c1587b12-3a2f-11ef-da45-6843ca902dd1 65716ms
+/2 Appending to commitlog 66332ms
+/2 Adding to paxos memtable 66706ms
+/2 Reading existing values for CAS precondition 69460ms
+/2 Executing single-partition query on seat 71186ms
+/2 Acquiring sstable references 71351ms
+/2 Merging memtable contents 71474ms
+/2 Read 1 live rows and 0 tombstone cells 72472ms
+/2 CAS precondition is met; proposing client-requested updates for c1587b12-3a2f-11ef-da45-6843ca902dd1 85767ms
+/2 Accepting proposal Accepted(139394090253450002:c1587b12-3a2f-11ef-da45-6843ca902dd1, 1720116225345000:key=6677f9a27acf35542d8ef4df
+Row: id=11E | balance=74, date_of_birth=2001-11-14, document_info=CA11111XT, name=Mario, status=Occupied, surname=Verdi) 88749ms
+/2 Appending to commitlog 91469ms
+/2 Adding to paxos memtable 91883ms
+/2 Committing proposal Committed(139394090253450002:c1587b12-3a2f-11ef-da45-6843ca902dd1, 1720116225345000:key=6677f9a27acf35542d8ef4df
+Row: id=11E | balance=74, date_of_birth=2001-11-14, document_info=CA11111XT, name=Mario, status=Occupied, surname=Verdi) 99883ms
+/2 Appending to commitlog 100387ms
+/2 Adding to seat memtable 101132ms
+/2 Appending to commitlog 108416ms
+/2 Adding to paxos memtable 108859ms
+/2 CAS applied successfully 110613ms
+```
+
+```plaintext
+Trace ID: c151281a-3a2f-11ef-9bb1-0f67a87d0426
+/2 Preparing c156f472-3a2f-11ef-c9d4-a4b8589ef39a 41340ms
+/2 Promising ballot c156f472-3a2f-11ef-c9d4-a4b8589ef39a 54533ms
+/2 Appending to commitlog 60670ms
+/2 Adding to paxos memtable 61286ms
+/2 Reading existing values for CAS precondition 68610ms
+/2 Executing single-partition query on seat 70832ms
+/2 Acquiring sstable references 71145ms
+/2 Merging memtable contents 71372ms
+/2 Read 1 live rows and 0 tombstone cells 72515ms
+/2 CAS precondition is met; proposing client-requested updates for c156f472-3a2f-11ef-c9d4-a4b8589ef39a 87881ms
+/2 Rejecting proposal for Accepted(139394090253350002:c156f472-3a2f-11ef-c9d4-a4b8589ef39a, 1720116225335000:key=6677f9a27acf35542d8ef4df
+Row: id=11E | balance=174, date_of_birth=2000-12-01, document_info=CAAAAAAAA, name=Luca, status=Occupied, surname=Rossi) because inProgress is now c1587b12-3a2f-11ef-da45-6843ca902dd1 94375ms
+/2 Paxos proposal not accepted (pre-empted by a higher ballot) 95414ms
+/2 Preparing c1621802-3a2f-11ef-110e-7f625f30ee43 110763ms
+/2 Promising ballot c1621802-3a2f-11ef-110e-7f625f30ee43 112032ms
+/2 Appending to commitlog 112670ms
+/2 Adding to paxos memtable 112945ms
+/2 Reading existing values for CAS precondition 114621ms
+/2 Executing single-partition query on seat 115328ms
+/2 Acquiring sstable references 115805ms
+/2 Merging memtable contents 116994ms
+/2 Read 1 live rows and 0 tombstone cells 118135ms
+/2 CAS precondition does not match current values [my_airport.seat] key=6677f9a27acf35542d8ef4df partition_deletion=deletedAt=-9223372036854775808, localDeletion=2147483647 columns=[[] | [balance date_of_birth document_info name status surname]]
+Row[info=[ts=1720115220302524] ]: id=11E | [balance=74 ts=1720116225345000], [date_of_birth=2001-11-14 ts=1720116225345000], [document_info=CA11111XT ts=1720116225345000], [name=Mario ts=1720116225345000], [status=Occupied ts=1720116225345000], [surname=Verdi ts=1720116225345000] 128739ms
+/2 CAS precondition is met; proposing client-requested updates for c1621802-3a2f-11ef-110e-7f625f30ee43 129063ms
+/2 Accepting proposal Accepted(139394090254080002:c1621802-3a2f-11ef-110e-7f625f30ee43, 1442880000000000:key=6677f9a27acf35542d8ef4df) 130634ms
+/2 Appending to commitlog 131213ms
+/2 Adding to paxos memtable 131646ms
+/2 CAS did not apply 138740ms
 ```
 
 ## Optimization
@@ -5859,8 +5919,71 @@ public class MongoDBShardedConnection {
 }
 ```
 
-#### Large Volume Data Management in Cassandra
-_PLACEHOLDER PER FILIPPO_
+#### Large Volume Data Management in Cassandr
+
+Managing large volumes of data in Cassandra involves a combination of distribution, replication, load balancing, partitioning, and sharding techniques.
+
+##### Peer-to-Peer Architecture
+Cassandra uses a masterless peer-to-peer architecture where every node in the cluster is equally important. This avoids bottlenecks and single points of failure, enhancing scalability and reliability.
+
+##### Data Distribution, Partitioning, and Sharding
+In Cassandra, data is partitioned and distributed among the nodes in the cluster using a partitioning hash. The partition key is processed by a hash function that determines the storage node, ensuring uniform data distribution and quick access. This process, known as sharding, divides the data into smaller segments called shards, improving system scalability and load balancing since each node manages only a portion of the total data, reducing the load on each node and allowing the system to grow linearly by adding new nodes.
+
+##### Data Replication
+Cassandra offers strong fault tolerance through data replication. Each piece of data is replicated across multiple nodes based on the configured replication factor. Data replicas not only provide fault tolerance but also improve system availability and resilience. When a node fails, replicas on other nodes ensure data accessibility. Cassandra also allows configuring replicas to be distributed across different data centers, further enhancing resilience against large-scale failures like power outages or natural disasters in a single data center.
+
+##### Eventual Consistency
+Cassandra uses an eventual consistency model, allowing greater flexibility in managing distributed data. Writes are quickly distributed among nodes, and synchronization happens later, enabling high availability and low latency. Users can configure the required consistency level for read and write operations based on the specific needs of the application.
+
+##### Data Compaction
+Cassandra uses a technique called "compaction" to manage storage and optimize performance. During compaction, data is organized and consolidated into larger files, eliminating obsolete data and reducing disk fragmentation. This process improves read efficiency and reduces disk space usage.
+
+##### Load Balancing
+Cassandra automatically balances the load among the nodes in the cluster. When new nodes are added, existing data is redistributed to take advantage of the new capacity. This allows horizontal scaling of the cluster without significant service disruptions.
+
+##### Performance Optimization
+Cassandra is optimized for handling high read and write throughput. It uses an append-only write model, where data is always added to the end of existing files, reducing write time. Reads are managed using in-memory indexes, allowing quick access to the requested data.
+
+##### Monitoring and Optimization
+To effectively manage large data volumes, it is essential to continuously monitor cluster performance. Cassandra provides various tools and metrics to monitor cluster status, resource usage, and query performance. Additionally, configurations can be optimized based on specific workloads to improve efficiency.
+
+##### Failure Management in Cassandra
+
+In Cassandra, managing failures is crucial to ensure continuous availability and data consistency within the cluster.
+
+###### Gossip Protocol
+The gossip protocol is a key mechanism for managing failures in distributed systems. This protocol relies on a simple and robust communication method inspired by how information spreads in a human community: through gossip. The protocol operates in four phases:
+1. Periodic Information Exchange: Cluster nodes periodically exchange information about their status and that of other nodes. This exchange occurs at regular intervals and can involve a random number of nodes.
+2. Information Propagation: Each node, after receiving updated information from other nodes, transmits it to additional nodes in the cluster. This continuous propagation process allows information to spread quickly throughout the system.
+3. Failure Detection: When a node stops responding to gossip messages, other nodes can detect its absence. After a certain number of failed communication attempts, the node is considered unavailable or "failed."
+4. Global State Update: Once a failure is detected, the information is propagated to other nodes. This allows all cluster nodes to have an updated and consistent view of the state of other nodes, facilitating failure management and reassignment of the failed node's tasks.
+
+The gossip protocol is highly scalable. Even in large clusters with thousands of nodes, the time needed to disseminate information remains contained. Due to its decentralized nature, the gossip protocol is inherently fault-tolerant. There is no single point of failure since every node contributes to information dissemination. Gossip uses a reduced number of messages for information dissemination compared to centralized protocols, reducing network load. The protocol is relatively simple to implement, making it a popular choice for many distributed systems.
+
+###### Consistency Levels
+Consistency levels are critical for managing read and write operations. When performing a write operation, it is possible to specify a consistency level that defines how many nodes must confirm the write for it to be considered valid. For example, selecting the "QUORUM" consistency level requires that the majority of nodes holding the replicas confirm the operation.
+
+###### Hinted Handoff
+In case a node becomes unavailable, Cassandra uses a technique called hinted handoff to ensure continuity of operations. This technique is crucial for maintaining data reliability and availability in a distributed cluster.
+
+When a node is temporarily out of service, the data that should be written to that node is stored as "hints" on another node in the cluster. This alternative node records the information that specific data was supposed to be written to the inactive node. The system continues to operate without interrupting read and write operations, as other available nodes handle the data.
+
+The hinted handoff not only allows uninterrupted data writes but also ensures no information is lost during the original node's downtime. Once the inactive node comes back online and becomes available again, the node storing the hints transfers the missing data to the original node. This process ensures all nodes can update and synchronize correctly, restoring data integrity in the cluster.
+
+###### Read Repair
+During read operations, Cassandra verifies that all data replicas are consistent with each other. This process is known as read repair. When a client requests data, Cassandra reads it from all configured replicas (the number depends on the chosen consistency level). If the system detects discrepancies between replicas, it automatically performs a repair operation to correct them. This repair can be synchronous or asynchronous:
+
+- Synchronous: When a read requires synchronous read repair, Cassandra not only returns the correct data to the client but also updates all involved replicas before completing the read operation.
+- Asynchronous: In the case of asynchronous read repair, Cassandra returns the correct data to the client and schedules the update of replicas for a later time.
+
+This mechanism ensures replicas remain synchronized and that read data is always correct and up-to-date, improving data consistency within the cluster.
+
+###### Manual Repair
+In addition to automatic read repair, Cassandra provides tools for manual data repair, essential for maintaining cluster integrity and consistency over time. One such tool is the `nodetool repair` command. This command is used to manually synchronize replicas and correct any discrepancies that may have occurred due to unavailable nodes or failed writes.
+
+Regular execution of `nodetool repair` is crucial, especially in environments where nodes may encounter failures or periodic maintenance. This command scans the cluster and compares data across various replicas, ensuring each replica contains the most up-to-date information and correcting any divergences.
+
+The importance of `nodetool repair` lies in its ability to prevent the accumulation of inconsistencies that could compromise data integrity over the long term. In practice, diligent administration of Cassandra includes regular execution of the `nodetool repair` command as part of periodic cluster maintenance operations. This ensures that even in the presence of temporary failures or maintenance interventions, the system remains robust, consistent, and reliable.
 
 ## Conclusions
 
