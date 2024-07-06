@@ -5649,25 +5649,25 @@ scalable and reliable database system.
 
     ```bash
     docker exec -it shard1 bash
-    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard1", members: [{ _id : 0, host : "shard1:27018" }]})'
+    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard1", members: [{ _id: 0, host: "mongod11:27018" }, { _id: 1, host: "mongod12:27018" }, { _id: 2, host: "mongod13:27018" }]})'
     exit
     ```
 
     ```bash
     docker exec -it shard2 bash
-    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard2", members: [{ _id : 0, host : "shard2:27018" }]})'
+    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard2", members: [{ _id: 0, host: "mongod21:27018" }, { _id: 1, host: "mongod22:27018" }, { _id: 2, host: "mongod23:27018" }]})'
     exit
     ```
 
     ```bash
     docker exec -it shard3 bash
-    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard3", members: [{ _id : 0, host : "shard3:27018" }]})'
+    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard3", members: [{ _id: 0, host: "mongod31:27018" }, { _id: 1, host: "mongod32:27018" }, { _id: 2, host: "mongod33:27018" }]})'
     exit
     ```
 
     ```bash
     docker exec -it shard4 bash
-    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard4", members: [{ _id : 0, host : "shard4:27018" }]})'
+    mongo --port 27018 --eval 'rs.initiate({_id: "rsShard4", members: [{ _id: 0, host: "mongod41:27018" }, { _id: 1, host: "mongod42:27018" }, { _id: 2, host: "mongod43:27018" }]})'
     exit
     ```
 
@@ -5676,10 +5676,10 @@ scalable and reliable database system.
 
     ```bash
     docker exec -it mongos bash
-     mongo --port 27017 --eval 'sh.addShard("rsShard1/shard1:27018")'
-    mongo --port 27017 --eval 'sh.addShard("rsShard2/shard2:27018")'
-    mongo --port 27017 --eval 'sh.addShard("rsShard3/shard3:27018")'
-    mongo --port 27017 --eval 'sh.addShard("rsShard4/shard4:27018")'
+    mongo --port 27017 --eval 'sh.addShard("rsShard1/mongod11:27018,mongod12:27018,mongod13:27018")'
+    mongo --port 27017 --eval 'sh.addShard("rsShard2/mongod21:27018,mongod22:27018,mongod23:27018")'
+    mongo --port 27017 --eval 'sh.addShard("rsShard3/mongod31:27018,mongod32:27018,mongod33:27018")'
+    mongo --port 27017 --eval 'sh.addShard("rsShard4/mongod41:27018,mongod42:27018,mongod43:27018")'
     ```
 
 5. **Enable Sharding on the Database and Collection:**
@@ -5899,6 +5899,68 @@ public class MongoDBShardedConnection {
     }
 }
 ```
+
+#### Example of role variation between nodes
+
+Consider `shard1` having one primary node (PRIMARY) and two secondary nodes (SECONDARY). The `rs.status` command displays:
+
+```bash
+{
+  "set" : "rsShard1",
+  "members" : [
+    {
+      "_id" : 0,
+      "name" : "mongod11:27018",  // this is the primary node
+      "stateStr" : "PRIMARY",
+      // ...
+    },
+    {
+      "_id" : 1,
+      "name" : "mongod12:27018",  // this is a secondary node
+      "stateStr" : "SECONDARY",
+      // ...
+    },
+    {
+      "_id" : 2,
+      "name" : "mongod13:27018",  // this is a secondary node
+      "stateStr" : "SECONDARY",
+      // ...
+    }
+  ]
+}
+```
+
+If the primary node (`mongod1`) were to malfunction or become unreachable for any reason, MongoDB automatically elects a new node as primary. This election process is managed internally by the replica set.
+
+After the primary node malfunctions, running `rs.status()` again might show output similar to this:
+
+```bash
+{
+  "set" : "rsShard1",
+  "members" : [
+    {
+      "_id" : 0,
+      "name" : "mongod11:27018",  // this node is no longer primary, could be offline or in recovery state
+      "stateStr" : "DOWN",
+      // ...
+    },
+    {
+      "_id" : 1,
+      "name" : "mongod12:27018",  // the previously secondary node is now elected as primary
+      "stateStr" : "PRIMARY",
+      // ...
+    },
+    {
+      "_id" : 2,
+      "name" : "mongod13:27018",  // this is still a secondary node
+      "stateStr" : "SECONDARY",
+      // ...
+    }
+  ]
+}
+```
+
+In the above example, `mongod2:27018` has been elected as the new primary node (PRIMARY) of the `rsShard1` replica set, since the originally primary node (`mongod1`) is now in a DOWN state.
 
 ### Large Volume Data Management in Cassandra
 
