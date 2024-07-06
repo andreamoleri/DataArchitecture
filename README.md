@@ -2484,897 +2484,6 @@ APPLY BATCH;
 
 Especially the last 2 structures/operations will be explored in depth in the specific chapter.
 
-## Transactions and Aggregations
-### MongoDB Transactions and Aggregations
-
-#### Creating MongoDB Transactions in Java Applications
-
-In this section, we demonstrate how to create a multi-document transaction in MongoDB using Java. A multi-document
-transaction ensures the atomicity of reads and/or writes across multiple documents. Specifically, a transaction is
-a sequence of operations executed on a database that represents a single unit of work. Once committed, all write
-operations within the transaction are persisted. If a transaction is aborted or fails to complete successfully,
-all associated write operations are rolled back. Therefore, all operations within a transaction either succeed or
-fail together. This property is known as atomicity. Transactions also ensure the consistency, isolation, and
-durability of operations. These qualities—Atomicity, Consistency, Isolation, and Durability—are collectively
-referred to as ACID compliance.
-
-#### Implementation Example
-
-To initiate a transaction in MongoDB using Java, we utilize the `WithTransaction()` method of a session object.
-Below are the steps involved in completing a multi-document transaction, followed by the corresponding code snippet:
-
-1. **Session Initialization and Transaction Start**: Begin by establishing a new session and starting a transaction
-2. using the `WithTransaction()` method on the session object.
-
-2. **Transaction Operations**: Define the operations to be performed within the transaction. This typically includes
-3. fetching necessary data, performing updates, and inserting documents.
-
-3. **Transaction Commit**: After executing all operations successfully, commit the transaction to persist the changes.
-
-4. **Handling Timeouts and Resource Closure**: MongoDB automatically cancels any multi-document transaction that
-5. exceeds 60 seconds. Additionally, ensure proper closure of resources utilized by the transaction.
-
-#### Example Code
-
-```java
-final MongoClient client = MongoClients.create(connectionString);
-final ClientSession clientSession = client.startSession();
-
-TransactionBody txnBody = new TransactionBody<String>() {
-    public String execute() {
-        MongoCollection<Document> bankingCollection = client.getDatabase("bank").getCollection("accounts");
-
-        Bson fromAccountFilter = eq("account_id", "MDB310054629");
-        Bson withdrawalUpdate = Updates.inc("balance", -200);
-
-        Bson toAccountFilter = eq("account_id", "MDB643731035");
-        Bson depositUpdate = Updates.inc("balance", 200);
-
-        System.out.println("Withdrawing from Account " + fromAccountFilter.toBsonDocument().toJson() + ": " + withdrawalUpdate.toBsonDocument().toJson());
-        System.out.println("Depositing to Account " + toAccountFilter.toBsonDocument().toJson() + ": " + depositUpdate.toBsonDocument().toJson());
-
-        bankingCollection.updateOne(clientSession, fromAccountFilter, withdrawalUpdate);
-        bankingCollection.updateOne(clientSession, toAccountFilter, depositUpdate);
-
-        return "Transferred funds from Andrea Moleri to Claudia Gatto";
-    }
-};
-
-try {
-    clientSession.withTransaction(txnBody);
-} catch (RuntimeException e) {
-    System.out.println("Transaction aborted: " + e.getMessage());
-} finally {
-    clientSession.close();
-}
-```
-
-This Java code snippet exemplifies the process described. It begins by initializing a MongoDB client and starting a
-session. Within the `execute()` method of the `TransactionBody`, two updates are performed atomically on specified
-accounts. If all operations succeed, the transaction commits; otherwise, it rolls back automatically. Finally, the
-session is closed to release associated resources.
-
-By following these steps and utilizing MongoDB's transaction capabilities in Java, developers can ensure reliable
-and consistent data operations across multiple documents within a MongoDB database. What follows is another example of
-a real-world scenario in which we would use the method.
-
-```java
-// DemoApp.java
-public class DemoApp {
-    public static void main(final String[] args) {
-        Logger root = (Logger) LoggerFactory.getLogger("org.mongodb.driver");
-        // Available levels are: OFF, ERROR, WARN, INFO, DEBUG, TRACE, ALL
-        root.setLevel(Level.WARN);
-
-        String connectionString = System.getenv("MONGODB_URI");
-        try (MongoClient client = MongoClients.create(connectionString)) {
-            //Transaction
-            Transaction txn = new Transaction(client);
-            var senderAccountFilter = "MDB310054629";
-            var receiverAccountFilter = "MDB643731035";
-            double transferAmount = 200;
-            txn.transferMoney(senderAccountFilter, transferAmount, receiverAccountFilter);
-        }
-    }
-}
-
-// Transaction.java
-public class Transaction {
-    private final MongoClient client;
-
-    public Transaction(MongoClient client) {
-        this.client = client;
-    }
-
-    public void transferMoney(String accountIdOfSender, double transactionAmount, String accountIdOfReceiver) {
-    try (ClientSession session = client.startSession()) {
-        UUID transfer = UUID.randomUUID();
-        String transferId = transfer.toString();
-        try {
-            session.withTransaction(() -> {
-                MongoCollection<Document> accountsCollection = client.getDatabase("bank").getCollection("accounts");
-                MongoCollection<Document> transfersCollection = client.getDatabase("bank").getCollection("transfers");
-
-
-                Bson senderAccountFilter = eq("account_id", accountIdOfSender);
-                Bson debitUpdate = Updates.combine(inc("balance", -1 * transactionAmount),push("transfers_complete", transferId));
-
-                Bson receiverAccountId = eq("account_id", accountIdOfReceiver);
-                Bson credit = Updates.combine(inc("balance", transactionAmount), push("transfers_complete", transferId));
-
-                transfersCollection.insertOne(session, new Document("_id", new ObjectId()).append("transfer_id", transferId).append("to_account", accountIdOfReceiver).append("from_account", accountIdOfSender).append("amount", transactionAmount).append("last_updated", new Date()));
-                accountsCollection.updateOne(session, senderAccountFilter, debitUpdate);
-                accountsCollection.updateOne(session, receiverAccountId, credit);
-                return null;
-            });
-        } catch (RuntimeException e) {
-            throw e;
-        }
-    }
-}
-}
-```
-
-#### Introduction to MongoDB Aggregation
-
-In the realm of databases, aggregation involves the analysis and summary of data, where an aggregation stage represents
-an operation performed on data without permanently altering the source data. MongoDB facilitates the creation of
-aggregation pipelines, where developers specify aggregation operations sequentially. What distinguishes MongoDB
-aggregations is the ability to chain these operations into a pipeline, consisting of stages where data can be filtered,
-sorted, grouped, and transformed. Documents output from one stage become the input for the next. In MongoDB Atlas,
-developers can access the Aggregation tab to add stages one by one and view results for each stage. Similarly, this
-can be accomplished using MongoDB CLI or MongoDB Language Drivers. Below is an example of aggregation syntax using the
-CLI, starting with `db.collection.aggregate` followed by stage names and their contained expressions. Each stage
-represents a discrete data operation, commonly including `$match` for filtering data, `$group` for grouping documents,
-and `$sort` for ordering documents based on specified criteria. The use of `$` prefix signifies a field path,
-referencing the value in that field, useful for operations like concatenation (`$concat: ["$first_name", "$last_name"]`).
-
-```bash
-db.collection.aggregate([
-    {
-        $stage1: {
-            { expression1 },
-            { expression2 }...
-        },
-        $stage2: {
-            { expression1 }...
-        }
-    }
-])
-```
-
-#### Using $match and $group Stages in a MongoDB Aggregation Pipeline
-
-The `$match` stage filters documents that match specified conditions, as illustrated in the example below. The `$group`
-stage groups documents based on a specified group key. These stages are commonly used together in an aggregation
-pipeline. In the example, the aggregation pipeline identifies documents with a `"state"` field matching `"CA"` and then
-groups these documents by the "$city" group key to count the total number of zip codes in California. Placing `$match`
-early in the pipeline optimizes performance by utilizing indexes to reduce the number of documents processed.
-Conversely, the output of `$group` is a document for each unique value of the group key. Note that `$group` includes
-`_id` as the group key and an accumulator field, specifying how to aggregate information for each group. For instance,
-grouping by city and using `count` as an accumulator determines the count of ZIP Codes per city.
-
-```bash
-# Example of Match Stage
-{
-    $match: {
-        "field_name": "value"
-    }
-}
-
-# Example of Group Stage
-{
-    $group:
-    {
-        _id: <expression>, // Group key
-        <field>: { <accumulator> : <expression> }
-    }
-}
- 
-# Example Using Both
-db.zips.aggregate([
-    { $match: { state: "CA" } },
-    {
-        $group: {
-            _id: "$city",
-            totalZips: { $count : { } }
-        }
-    }
-])
-```
-
-#### Using $sort and $limit Stages in a MongoDB Aggregation Pipeline
-
-Next, the `$sort` and `$limit` stages in MongoDB aggregation pipelines are discussed. The `$sort` stage arranges all
-input documents in a specified order, using `1` for ascending and `-1` for descending order. The `$limit` stage restricts
-output to a specified number of documents. These stages can be combined, such as in the third example where documents
-are sorted in descending order by population (`pop`), and only the top five documents are returned. `$sort` and `$limit`
-stages are essential for quickly identifying top or bottom values in a dataset. Order of stages is crucial; arranging
-`$sort` before `$limit` yields different results compared to the reverse order.
-
-```bash
-# Example of Sort Stage
-{
-    $sort: {
-        "field_name": 1
-    }
-}
-
-# Example of Limit Stage
-{
-    $limit: 5
-}
-
-# Example Using Both
-db.zips.aggregate([
-    { $sort: { pop: -1 } },
-    { $limit: 5 }
-])
-```
-
-#### Using $project, $count, and $set Stages in a MongoDB Aggregation Pipeline
-
-Moving on to `$project`, `$set`, and `$count` stages in MongoDB aggregation pipelines. The `$project` stage specifies
-output document fields, including (`1` for inclusion, `0` for exclusion), and optionally assigns new values to fields.
-This stage is typically the final one to format output. The `$set` stage creates new fields or modifies existing ones
-within documents, facilitating changes or additions for subsequent pipeline stages. The `$count` stage generates a
-document indicating the count of documents at that stage in the pipeline. `$set` is useful for field modifications,
-while `$project` controls output field visibility and value transformations. `$count` provides a count of documents
-in the aggregation pipeline stage.
-
-```bash
-# Example of Project Stage
-{
-    $project: {
-        state: 1, 
-        zip: 1,
-        population: "$pop",
-        _id: 0
-    }
-}
-
-# Example of Set Stage
-{
-    $set: {
-        place: {
-            $concat: ["$city", ",", "$state"]
-        },
-        pop: 10000
-    }
-}
-
-# Example of Count Stage
-{
-    $count: "total_zips"
-}
-```
-
-#### Using the $out Stage in a MongoDB Aggregation Pipeline
-
-The `$out` stage facilitates the creation of a new collection from the output of an aggregation pipeline. It writes
-documents returned by the pipeline into a specified collection. This stage must be the last one in the pipeline.
-Note that `$out` creates a new collection if one does not already exist. If the collection exists, `$out` overwrites
-it with new data. Therefore, careful consideration of the collection name is advised to avoid unintentionally
-overwriting existing data. The `$out` stage expects the database name in the `db` field and the collection name in
-the `coll` field. Alternatively, providing just the collection name directly is also valid. Executing `$out` does not
-produce command-line output; instead, results of the aggregation pipeline are written to a new collection, confirmed
-by `show collections` command in the terminal.
-
-```bash
-# Mode 1
-$out: {
-    db: "<db>",
-    coll: "<newcollection>"
-}
-
-# Mode 2
-{ $out: "<newcollection>" }
-
-# Example
-db.sightings.aggregate([
-    {
-        $match: {
-            date: {
-                $gte: ISODate('2024-01-01T00:00:00.0Z'),
-                $lt: ISODate('2024-01-01T00:00:00.0Z')
-            }
-        }
-    },
-    {
-        $out: 'sightings_2024'
-    }
-])
-db.sightings_2022.findOne()
-```
-
-#### Building a MongoDB Aggregation Pipeline in Java Applications
-
-When using the MongoDB Aggregation Framework to construct queries, one must conceptualize these queries as composed of
-discrete stages, where each stage produces an output document that serves as input to the next stage. This aggregation
-pipeline simplifies debugging and maintenance of individual stages, facilitating query rewriting and optimization.
-The expression operators used within this framework function akin to functions, offering a broad spectrum including
-arithmetic, trigonometric, date, and boolean operators. Once assembled, the aggregation pipeline can be validated using
-tools such as MongoShell, Atlas Aggregation Builder, and Compass before integration into the chosen programming language.
-
-#### Using MongoDB Aggregation Stages with Java: $match and $group
-
-In the following Java examples, the `Aggregates` builder class is employed to configure `$match` and `$group` stages
-within MongoDB aggregation pipelines. Each example demonstrates how to utilize these stages effectively to manipulate
-and aggregate data.
-
-##### Example 1: Using $match
-
-```java
-public static void main(String[] args) {
-    String connectionString = System.getProperty("mongodb.uri");
-    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
-        MongoDatabase db = mongoClient.getDatabase("bank");
-        MongoCollection<Document> accounts = db.getCollection("accounts");
-        matchStage(accounts);
-    }
-}
-
-private static void matchStage(MongoCollection<Document> accounts){
-    Bson matchStage = Aggregates.match(Filters.eq("account_id", "MDB310054629"));
-    System.out.println("Display aggregation results");
-    accounts.aggregate(Arrays.asList(matchStage)).forEach(document -> System.out.print(document.toJson()));
-}
-```
-
-##### Example 2: Using $match and $group
-
-```java
-public static void main(String[] args) {
-    String connectionString = System.getProperty("mongodb.uri");
-    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
-        MongoDatabase db = mongoClient.getDatabase("bank");
-        MongoCollection<Document> accounts = db.getCollection("accounts");
-        matchAndGroupStages(accounts);
-    }
-}
-
-private static void matchAndGroupStages(MongoCollection<Document> accounts){
-    Bson matchStage = Aggregates.match(Filters.eq("account_id", "MDB310054629"));
-    Bson groupStage = Aggregates.group("$account_type", sum("total_balance", "$balance"), avg("average_balance", "$balance"));
-    System.out.println("Display aggregation results");
-    accounts.aggregate(Arrays.asList(matchStage, groupStage)).forEach(document -> System.out.print(document.toJson()));
-}
-```
-
-#### Using MongoDB Aggregation Stages with Java: $sort and $project
-
-This example illustrates the use of `$sort` and `$project` stages within MongoDB aggregation pipelines, emphasizing
-sorting and projecting fields from queried documents.
-
-```java
-public static void main(String[] args) {
-    String connectionString = System.getProperty("mongodb.uri");
-    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
-        MongoDatabase db = mongoClient.getDatabase("bank");
-        MongoCollection<Document> accounts = db.getCollection("accounts");
-        matchSortAndProjectStages(accounts);
-    }
-}
-
-private static void matchSortAndProjectStages(MongoCollection<Document> accounts){
-    Bson matchStage =
-            Aggregates.match(Filters.and(Filters.gt("balance", 1500), Filters.eq("account_type", "checking")));
-    Bson sortStage = Aggregates.sort(Sorts.orderBy(descending("balance")));
-    Bson projectStage = Aggregates.project(
-            Projections.fields(
-                    Projections.include("account_id", "account_type", "balance"),
-                    Projections.computed("euro_balance", new Document("$divide", Arrays.asList("$balance", 1.20F))),
-                    Projections.excludeId()
-            )
-    );
-    System.out.println("Display aggregation results");
-    accounts.aggregate(Arrays.asList(matchStage, sortStage, projectStage)).forEach(document -> System.out.print(document.toJson()));
-}
-```
-
-These examples demonstrate the structured use of MongoDB aggregation stages in Java applications, showcasing the
-flexibility and power of the MongoDB Aggregation Framework for data analysis and manipulation. Each stage—`$match`,
-`$group`, `$sort`, and `$project`—plays a crucial role in shaping and refining the results of queries executed against
-MongoDB databases.
-
-### Cassandra Transactions
-
-Transaction and concurrency management in a distributed system like Cassandra requires specific structures to ensure consistency and reliability. These include batch operations and Lightweight Transactions (LWT), which facilitate data operations by offering a certain level of atomicity and consistency.
-
-#### Batch Operations in Cassandra
-
-Batch operations in Cassandra allow executing a group of write operations as a single unit. This means all operations within the batch are sent to the database together and executed in the same context. A batch can include insert, update, or delete instructions. Its syntax can be:
-```cql
-BEGIN BATCH
-INSERT INTO keyspace_name.table_name (column1, column2) VALUES (value1, value2);
-UPDATE keyspace_name.table_name SET column1 = value WHERE column2 = value2;
-DELETE FROM keyspace_name.table_name WHERE column1 = value1;
-APPLY BATCH;
-```
-Batch operations are particularly useful for increasing the efficiency of sending operations to the server, as they reduce the number of exchanges between the client and server. When executing a batch, if it involves operations on a single partition, Cassandra can ensure atomicity. This means that all operations in the batch will either be applied together or none of them will be applied. If any operation fails for any reason (e.g., syntax error, data validation error, or network error preventing batch completion), none of the operations in the batch will be applied. Thus, the entire batch is treated as an atomic unit, as if it were a single operation.
-
-When the batch involves operations on multiple partitions, complete atomicity is not guaranteed. In these cases, Cassandra tries to apply all operations, but if one operation fails, the behavior does not ensure the complete reversibility of already applied operations. Therefore, batches in Cassandra provide a form of partial atomicity.
-
-In the context of transaction and concurrency management, batch operations help coordinate multiple writes in a single request. This can reduce concurrency issues as operations are applied in a coherent unit. However, since Cassandra is a distributed system designed for scalability, its consistency model is eventual, meaning that without additional control mechanisms, batch operations cannot guarantee that all nodes will immediately see the same data version.
-
-#### Lightweight Transactions (LWT) in Cassandra
-
-Lightweight Transactions (LWT) in Cassandra are a mechanism for performing write operations with consensus control that ensures consistency in the presence of concurrency. LWTs use a Paxos-based protocol to achieve consensus among cluster nodes before applying the write. The syntax of an LWT includes the `IF` clause that checks a condition before performing an insert, delete, or update operation. Some examples are:
-```cql
-INSERT INTO keyspace_name.table_name (column1, column2) VALUES (value1, value2) IF NOT EXISTS;
-```
-```cql
-UPDATE keyspace_name.table_name SET column1 = value WHERE column2 = value2 IF column3 = value3;
-```
-```cql
-DELETE FROM keyspace_name.table_name WHERE column1 = value1 IF EXISTS;
-```
-LWTs are particularly useful for ensuring that write operations respect certain conditions, maintaining data consistency in concurrency scenarios. They are ideal for implementing conditional write operations, such as inserting a record only if it does not already exist (`IF NOT EXISTS`), or updating a record only if another condition is met (`IF column = value`).
-
-When a client sends an LWT to the coordinator node, a Paxos-based protocol is applied in four phases:
-- **Preparation Phase**: The coordinator sends a "Prepare" request to all replicas involved in the transaction. The participating nodes locally evaluate whether they can satisfy the condition specified in the `IF` clause before confirming their readiness to proceed. The replicas respond by indicating the highest proposal number they have accepted so far.
-- **Proposal Phase**: Based on the responses received during the preparation phase, the coordinator generates a new proposal with a unique number and the value to be written. This proposal is then sent to all involved replicas. The replicas compare the new proposal number with any previously accepted proposal numbers. If the new proposal number is higher, the replicas accept the proposal and respond to the coordinator.
-- **Commit Phase**: This phase verifies the consensus of the transaction. Once the coordinator has received acceptances from the majority of replicas, it decides to commit the transaction. The coordinator then sends a "Commit" request to all replicas, indicating that the proposal should be applied. The replicas receive this request and mark the proposal as committed. The `IF` clause is re-evaluated before the final commit to ensure that the condition is still met.
-- **Application Phase**: The replicas apply the committed value to their local data. Each replica confirms to the coordinator that the value has been correctly applied. Finally, once the coordinator has received confirmations from all replicas, it sends a confirmation to the client that the LWT has been successfully completed.
-
-In the context of transaction and concurrency management, LWTs offer a strong consistency mechanism. Through the use of the protocol, an LWT ensures that only one consistent version of the data is written and made visible to all nodes in the cluster. This is crucial in applications where data integrity must be ensured, such as in a user registration system where each username must be unique.
-
-However, LWTs come with a performance cost. The consensus process requires a series of information exchanges between nodes to reach an agreement, which slows down the operation compared to normal writes.
-
-#### Application to data model
-In the context of a flight booking system, poor concurrency management can cause numerous problems. A particularly serious case can occur when, for example, on a sold-out flight (all seats have been purchased), two people book the same seat due to a system error. To avoid such issues, it has been decided to use Lightweight Transactions (LWT) in the system.
-
-In the implemented model, the crucial operation that requires concurrency control is: "Given a flight code, a seat code, and user information, insert the user data and change the seat status from 'Vacant' to 'Occupied'." In CQL language, this operation translates to:
-
-```cql
-UPDATE seat SET status = 'Occupied', balance = 'v1', date_of_birth = 'v2', document_info = 'v3', name = 'v4', surname = 'v5' WHERE flight = 'v6' AND id = 'v7';
-```
-
-Since a seat must be vacant before it can be occupied, we can update the operation using LWT by adding a clause that verifies the seat status is 'Vacant' before performing the operation. The CQL query will therefore be:
-
-```cql
-UPDATE seat SET status = 'Occupied', balance = 'v1', date_of_birth = 'v2', document_info = 'v3', name = 'v4', surname = 'v5' WHERE flight = 'v6' AND id = 'v7' IF status = 'Vacant';
-```
-
-In this way, it ensures that two people cannot book the same seat on the same flight.
-
-In the Java code related to the implemented model, all simple checks, such as seat availability and user balance, are handled by the application. This approach improves performance. Specifically, in the updated code below, three methods have been added:
-
-- ```transaction```: Given the departure and arrival airports, it executes a query to find available flights on that route, selects one (the first), checks if there are available seats on that flight, selects one if available, and calls execute to book the seat with the user data provided as input.
-- ```parallelTransaction```: This is a test method that essentially performs the same function as transaction but ensures that two people are simultaneously attempting to book the same seat on the same flight.
-- ```execute```: This method starts by checking the user's available balance. If the balance is sufficient, it proceeds with booking the flight. After sending the UPDATE operation, it checks if it was applied and informs the caller of the outcome. When called by parallelTransaction, it is expected that one booking will succeed while the other will not.
-
-```java
-package com.example.cassandra;
-
-// Import necessary classes from DataStax driver and AWS MCS for authentication
-import com.datastax.driver.core.*;
-import software.aws.mcs.auth.SigV4AuthProvider;
-
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-public class App
-{
-static Session session = null;
-
-    // Method to get flights from a specific airport
-    public static List<Flight> getFlightsFromAirport(String airportCode){
-        // Create a query to select all flights from a specific departure airport
-        SimpleStatement query = new SimpleStatement("SELECT * FROM flight WHERE departure='" + airportCode + "';");
-        return getFlights(query);
-    }
-
-    // Helper method to execute a query and return a list of Flight objects
-    private static List<Flight> getFlights(SimpleStatement query) {
-        ResultSet rs = session.execute(query);
-        List<Flight> flightList = new ArrayList<>();
-
-        // Iterate through the result set and create Flight objects
-        for (Row row : rs) {
-            String departure = row.getString("departure");
-            String day = "" + row.getDate("day");
-            String destination = row.getString("destination");
-            String hour = "" + row.getTime("hour");
-            String id = row.getString("id");
-            String duration = row.getString("duration");
-            int number_of_seats = row.getInt("number_of_seats");
-            String operator = row.getString("operator");
-            float price_per_person = row.getFloat("price_per_person");
-
-            Flight flight = new Flight(departure, day, destination, hour, id, duration, number_of_seats, operator, price_per_person);
-            flightList.add(flight);
-        }
-
-        return flightList;
-    }
-
-    // Method to get flights based on departure and destination airports
-    public static List<Flight> getFlightsFromDepartureAndDestination(String departureCode, String destinationCode) {
-        // Create a query to select flights based on departure and destination
-        SimpleStatement query = new SimpleStatement("SELECT * FROM flight WHERE departure='" + departureCode + "' AND destination='" + destinationCode + "';");
-        return getFlights(query);
-    }
-
-    // Method to get airport details based on IATA code
-    public static Airport getAirportFromIATA(String airportCode) {
-        // Create a query to select an airport based on its IATA code
-        SimpleStatement query = new SimpleStatement("SELECT * FROM airport WHERE IATA_code='" + airportCode + "';");
-        ResultSet rs = session.execute(query);
-
-        Row row = rs.one();
-        Airport airport = null;
-        // From result set to Airport
-        if (row != null) {
-            String iata_code = row.getString("iata_code");
-            String country = row.getString("country");
-            String country_code = row.getString("country_code");
-            String geo_point = row.getString("geo_point");
-            String icao_code = row.getString("icao_code");
-            String name = row.getString("name");
-            String name_en = row.getString("name_en");
-            String name_fr = row.getString("name_fr");
-            String operator = row.getString("operator");
-            String phone = row.getString("phone");
-            int size = row.getInt("size");
-            String website= row.getString("website");
-
-            airport = new Airport(iata_code, country, country_code, geo_point, icao_code, name, name_en, name_fr, operator, phone, size, website);
-        }
-
-        return airport;
-    }
-
-    // Method to get seats for a specific flight
-    public static List<Seat> getSeats(String flightCode) {
-        // Create a query to select all seats for a specific flight
-        SimpleStatement query = new SimpleStatement("SELECT * FROM seat WHERE flight='" + flightCode + "';");
-        ResultSet rs = session.execute(query);
-
-        List<Seat> seatList = new ArrayList<>();
-
-        // Iterate through the result set and create Seat objects
-        for (Row row : rs) {
-            String flight = row.getString("flight");
-            String id = row.getString("id");
-            float balance = row.getFloat("balance");
-            String date_of_birth = "" + row.getDate("date_of_birth");
-            String document_info = row.getString("document_info");
-            String name = row.getString("name");
-            String status = row.getString("status");
-            String surname = row.getString("surname");
-
-            Seat seat = new Seat(flight, id, balance, date_of_birth, document_info, name, status, surname);
-            seatList.add(seat);
-        }
-
-        return seatList;
-    }
-
-    // Method to get available (vacant) seats for a specific flight
-    public static List<Seat> getAvailableSeats(String flightCode) {
-        List<Seat> seats = getSeats(flightCode);
-        List<Seat> availableSeats = new ArrayList<>();
-
-        // Filter seats to only include those that are vacant
-        for (Seat seat : seats) {
-            if(seat.getStatus().equals("Vacant")) {
-                availableSeats.add(seat);
-            }
-        }
-
-        return availableSeats;
-    }
-
-    // Method to get the status of a specific seat on a flight
-    public static String getSeatStatus(String flightCode, String idSeat) throws Exception {
-        // Create a query to select a seat based on flight and seat ID
-        SimpleStatement query = new SimpleStatement("SELECT * FROM seat WHERE flight='" + flightCode + "' AND id='"+ idSeat +"';");
-        ResultSet rs = session.execute(query);
-
-        Row row = rs.one();
-
-        if (row != null) {
-            return row.getString("status");
-        }
-
-        throw new Exception("This seat does not exist");
-    }
-
-    // Method to get the first available flight based on departure and destination airports
-    public static Flight getFirstAvailableFlight(String departureCode, String destinationCode) throws Exception{
-        List<Flight> flights = getFlightsFromDepartureAndDestination(departureCode, destinationCode);
-
-        if (flights.isEmpty()) {
-            throw new Exception("No flights found");
-        }
-
-        return flights.get(0);
-    }
-
-    // Method to get the first available seat on a specific flight
-    public static Seat getFirstAvailableSeat(String flightCode) throws Exception {
-        List<Seat> seats = getAvailableSeats(flightCode);
-
-        if (seats.isEmpty()) {
-            throw new Exception("No seats available");
-        }
-
-        return seats.get(0);
-    }
-
-    // Method to perform a transaction to book a flight and a seat for a user
-    public static void transaction(User user, String departureCode, String destinationCode) {
-        Flight flight;
-        Seat seat;
-        try {
-            flight = getFirstAvailableFlight(departureCode, destinationCode);
-            seat = getFirstAvailableSeat(flight.getId());
-            System.out.println(execute(user, flight, seat));
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    // Method to perform parallel transactions for two users
-    public static void parrallelTransaction(User user1, User user2, String departureCode, String destinationCode) {
-        Flight flight;
-        Seat seat;
-        try {
-            flight = getFirstAvailableFlight(departureCode, destinationCode);
-            seat = getFirstAvailableSeat(flight.getId());
-
-            // Create threads to execute transactions for both users in parallel
-            Thread thread1 = new Thread(() -> { System.out.println(execute(user1, flight, seat)); });
-            Thread thread2 = new Thread(() -> { System.out.println(execute(user2, flight, seat)); });
-
-            thread1.start();
-            thread2.start();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-
-    }
-
-    // Method to execute the booking of a seat for a user
-    public static String execute(User user, Flight flight, Seat seat) {
-        if (flight.getPrice_per_person() > user.getBalance()) {
-            return "Insufficient balance";
-        }
-
-        user.setBalance(user.getBalance() - flight.getPrice_per_person());
-
-        String updateQuery = "UPDATE seat SET status = 'Occupied', balance = ?, date_of_birth = ?, document_info = ?, name = ?, surname = ? WHERE flight = ? AND id = ? IF status = 'Vacant'";
-        PreparedStatement updateStmt = session.prepare(updateQuery);
-        updateStmt.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-
-        LocalDate birthDate = LocalDate.fromYearMonthDay(
-                Integer.parseInt(user.getDate_of_birth().substring(0, 4)),
-                Integer.parseInt(user.getDate_of_birth().substring(5, 7)),
-                Integer.parseInt(user.getDate_of_birth().substring(8, 10))
-        );
-
-        ResultSet resultSet = session.execute(updateStmt.bind(user.getBalance(), birthDate, user.getDocument_info(), user.getName(), user.getSurname(), seat.getFlight(), seat.getId()));
-
-        if (!resultSet.wasApplied()) {
-            return user.getName() + " " + user.getSurname() + ": seat reservation " + seat.getId() + " failed. It might already be 'Occupied'.";
-        }
-
-        return user.getName() + " " + user.getSurname() + ": seat " + seat.getId() + " successfully booked up.";
-    }
-
-    // Method to insert data into tables from text files
-    public static void insert(String table) {
-        List<List<String>> dati = new ArrayList<>();
-
-        String[] fileName = {"airport.txt", "flights.txt", "seats.txt"};
-
-        for (String s: fileName) {
-            try (BufferedReader br = new BufferedReader(new FileReader(s))) {
-                String line;
-                List<String> list = new ArrayList<>();
-
-                // Read data from the text file and add it to the list
-                while ((line = br.readLine()) != null) {
-                    list.add(line.trim());
-                }
-
-                dati.add(list);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        // Insert data into the specified table
-        if(table.equals("airport")) {
-            System.out.println("Insert Airport");
-            for (String l1: dati.get(0)) {
-                SimpleStatement query = new SimpleStatement("INSERT INTO airport (Size, Country, Country_code, Geo_Point, IATA_code, ICAO_code, Name, Name_en, Name_fr, Operator, Phone, Website) VALUES " + l1 + ";");
-                session.execute(query);
-            }
-        } else {
-            if(table.equals("flight")) {
-                System.out.println("Insert Flight");
-                for (String l2: dati.get(1)) {
-                    SimpleStatement query = new SimpleStatement("INSERT INTO flight (ID, Departure, Destination, Number_of_Seats, Day, Hour, Operator, Duration, Price_per_Person) VALUES " + l2 + ";");
-                    session.execute(query);
-                }
-            } else {
-                System.out.println("Insert Seat");
-                for (String l3: dati.get(2)) {
-                    SimpleStatement query = new SimpleStatement("INSERT INTO seat (Flight, ID, Status, Name, Surname, Document_Info, Date_of_Birth, Balance) VALUES " + l3 + ";");
-                    session.execute(query);
-                }
-            }
-        }
-    }
-
-    // Main method to initialize the Cassandra session and perform setup tasks
-    public static void main( String[] args ) {
-        String endPoint = "cassandra.eu-north-1.amazonaws.com";
-        int portNumber = 9142;
-
-        try {
-            // Initialize Cassandra session with AWS MCS authentication
-            session = Cluster.builder()
-                    .addContactPoint(endPoint)
-                    .withPort(portNumber)
-                    .withAuthProvider(new SigV4AuthProvider("eu-north-1"))
-                    .withSSL()
-                    .build()
-                    .connect();
-
-            System.out.println("Connected to Cassandra!");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // Create keyspace and use it
-        session.execute("CREATE KEYSPACE IF NOT EXISTS my_airport WITH replication = "
-                + "{'class':'SimpleStrategy','replication_factor':3};");
-
-        session.execute("USE my_airport;");
-
-        // Get list of existing tables before creating new ones
-        ResultSet rs = session.execute("SELECT table_name FROM system_schema.tables " +
-                "WHERE keyspace_name = 'my_airport' ");
-
-        List<String> list_before = new ArrayList<>();
-        for (Row row : rs) {
-            list_before.add(row.getString("table_name"));
-        }
-
-        // Create necessary tables if they don't exist
-        session.execute("CREATE TABLE IF NOT EXISTS airport (Name_en text, Country text, Website text, Geo_Point text, ICAO_code text, Country_code text, Phone text, Name_fr text, Name text, IATA_code text, Size int, Operator text, PRIMARY KEY (IATA_code));");
-        session.execute("CREATE TABLE IF NOT EXISTS flight (ID text, Number_of_Seats int, Day date, Hour time, Operator text, Duration text, Price_per_Person float, Destination text, Departure text, PRIMARY KEY ((Departure), Destination, Day, Hour, id));");
-        session.execute("CREATE TABLE IF NOT EXISTS seat (Flight text, Status text, ID text, Name text, Surname text, Document_Info text, Date_of_Birth date, Balance float, PRIMARY KEY ((Flight), ID));");
-
-        // Get list of tables after creation
-        rs = session.execute("SELECT table_name FROM system_schema.tables " +
-                "WHERE keyspace_name = 'my_airport' ");
-
-        List<String> list_after = new ArrayList<>();
-        for (Row row : rs) {
-            list_after.add(row.getString("table_name"));
-        }
-
-        // Insert data into newly created tables
-        if (list_before.size() != list_after.size()) {
-            for (String s : list_after) {
-                if (!list_before.contains(s)) {
-                    insert(s);
-                }
-            }
-        }
-
-        // Test various queries and transactions
-        // Test Query getFlightsFromAirport
-        System.out.println("getFlightsFromAirport");
-        System.out.println(getFlightsFromAirport("BGY"));
-
-        // Test Query getAirportFromIATA
-        System.out.println("getAirportFromIATA");
-        System.out.println(getAirportFromIATA("BGY"));
-
-        // Test Query getFlightsFromDepartureAndDestination
-        System.out.println("getFlightsFromDepartureAndDestination");
-        System.out.println(getFlightsFromDepartureAndDestination("BGY", "AAL"));
-
-        // Test Query getAvailableSeats
-        System.out.println("getAvailableSeats");
-        System.out.println(getAvailableSeats("6677f9a27acf35542d8ef4df"));
-
-        // Test Query getSeatStatus
-        System.out.println("getSeatStatus");
-        try {
-            System.out.println(getSeatStatus("6677f9a27acf35542d8ef4df", "10B"));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        User user1 = new User(200, "2001-11-14", "CA11111XT", "Mario", "Verdi");
-
-        // Test Simple Transaction
-        System.out.println("transaction");
-        transaction(user1, "BGY", "AAL");
-
-        // Test Failed Transaction
-        System.out.println("transaction with no balance");
-        user1.setBalance(0);
-        transaction(user1, "BGY", "AAL");
-
-        // Test Parallel Transaction
-        user1.setBalance(300);
-        User user2 = new User(300, "2000-12-01", "CAAAAAAAA", "Luca", "Rossi");
-        System.out.println("parrallelTransaction");
-        parrallelTransaction(user1, user2, "BGY", "AAL");
-    }
-}
-```
-
-An example of query execution with concurrent LWTs can be:
-
-```plaintext
-Trace ID: c1512810-3a2f-11ef-9bb1-0f67a87d0426
-/2 Preparing c1587b12-3a2f-11ef-da45-6843ca902dd1 47694ms
-/2 Promising ballot c1587b12-3a2f-11ef-da45-6843ca902dd1 65716ms
-/2 Appending to commitlog 66332ms
-/2 Adding to paxos memtable 66706ms
-/2 Reading existing values for CAS precondition 69460ms
-/2 Executing single-partition query on seat 71186ms
-/2 Acquiring sstable references 71351ms
-/2 Merging memtable contents 71474ms
-/2 Read 1 live rows and 0 tombstone cells 72472ms
-/2 CAS precondition is met; proposing client-requested updates for c1587b12-3a2f-11ef-da45-6843ca902dd1 85767ms
-/2 Accepting proposal Accepted(139394090253450002:c1587b12-3a2f-11ef-da45-6843ca902dd1, 1720116225345000:key=6677f9a27acf35542d8ef4df
-Row: id=11E | balance=74, date_of_birth=2001-11-14, document_info=CA11111XT, name=Mario, status=Occupied, surname=Verdi) 88749ms
-/2 Appending to commitlog 91469ms
-/2 Adding to paxos memtable 91883ms
-/2 Committing proposal Committed(139394090253450002:c1587b12-3a2f-11ef-da45-6843ca902dd1, 1720116225345000:key=6677f9a27acf35542d8ef4df
-Row: id=11E | balance=74, date_of_birth=2001-11-14, document_info=CA11111XT, name=Mario, status=Occupied, surname=Verdi) 99883ms
-/2 Appending to commitlog 100387ms
-/2 Adding to seat memtable 101132ms
-/2 Appending to commitlog 108416ms
-/2 Adding to paxos memtable 108859ms
-/2 CAS applied successfully 110613ms
-```
-
-```plaintext
-Trace ID: c151281a-3a2f-11ef-9bb1-0f67a87d0426
-/2 Preparing c156f472-3a2f-11ef-c9d4-a4b8589ef39a 41340ms
-/2 Promising ballot c156f472-3a2f-11ef-c9d4-a4b8589ef39a 54533ms
-/2 Appending to commitlog 60670ms
-/2 Adding to paxos memtable 61286ms
-/2 Reading existing values for CAS precondition 68610ms
-/2 Executing single-partition query on seat 70832ms
-/2 Acquiring sstable references 71145ms
-/2 Merging memtable contents 71372ms
-/2 Read 1 live rows and 0 tombstone cells 72515ms
-/2 CAS precondition is met; proposing client-requested updates for c156f472-3a2f-11ef-c9d4-a4b8589ef39a 87881ms
-/2 Rejecting proposal for Accepted(139394090253350002:c156f472-3a2f-11ef-c9d4-a4b8589ef39a, 1720116225335000:key=6677f9a27acf35542d8ef4df
-Row: id=11E | balance=174, date_of_birth=2000-12-01, document_info=CAAAAAAAA, name=Luca, status=Occupied, surname=Rossi) because inProgress is now c1587b12-3a2f-11ef-da45-6843ca902dd1 94375ms
-/2 Paxos proposal not accepted (pre-empted by a higher ballot) 95414ms
-/2 Preparing c1621802-3a2f-11ef-110e-7f625f30ee43 110763ms
-/2 Promising ballot c1621802-3a2f-11ef-110e-7f625f30ee43 112032ms
-/2 Appending to commitlog 112670ms
-/2 Adding to paxos memtable 112945ms
-/2 Reading existing values for CAS precondition 114621ms
-/2 Executing single-partition query on seat 115328ms
-/2 Acquiring sstable references 115805ms
-/2 Merging memtable contents 116994ms
-/2 Read 1 live rows and 0 tombstone cells 118135ms
-/2 CAS precondition does not match current values [my_airport.seat] key=6677f9a27acf35542d8ef4df partition_deletion=deletedAt=-9223372036854775808, localDeletion=2147483647 columns=[[] | [balance date_of_birth document_info name status surname]]
-Row[info=[ts=1720115220302524] ]: id=11E | [balance=74 ts=1720116225345000], [date_of_birth=2001-11-14 ts=1720116225345000], [document_info=CA11111XT ts=1720116225345000], [name=Mario ts=1720116225345000], [status=Occupied ts=1720116225345000], [surname=Verdi ts=1720116225345000] 128739ms
-/2 CAS precondition is met; proposing client-requested updates for c1621802-3a2f-11ef-110e-7f625f30ee43 129063ms
-/2 Accepting proposal Accepted(139394090254080002:c1621802-3a2f-11ef-110e-7f625f30ee43, 1442880000000000:key=6677f9a27acf35542d8ef4df) 130634ms
-/2 Appending to commitlog 131213ms
-/2 Adding to paxos memtable 131646ms
-/2 CAS did not apply 138740ms
-```
-
 ## Optimization
 ### MongoDB Optimization With Indexes
 #### Using MongoDB Indexes in Collections
@@ -4180,805 +3289,6 @@ and scalability. What follows are some best practices that can be observed in th
 By implementing these practices, the database is kept as lightweight and efficient as possible while still maintaining 
 a structure that is easy for programmers to work with and understand.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-However, the code does not end here, in fact, in addition to the Connection class and the Modeling class, there are 
-various other classes in the project, whose purpose is to model and manage transactions. In this regard, let's start 
-by observing the main class, which serves as the entry point for the application, demonstrating various operations such 
-as MongoDB interactions, logging configurations, and concurrent transaction handling. The Java code of the application
-is as follows:
-
-```java
-// Import necessary classes
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
-import java.util.logging.Logger;
-import java.util.logging.LogRecord;
-
-/**
- * The Main class serves as the entry point for the application, demonstrating various operations
- * such as MongoDB interactions, logging configurations, and concurrent transaction handling.
- *
- * @author Andrea Moleri
- * @version 1.0
- * @since 2024-07-02
- */
-public class Main {
-
-    private static final Logger logger = Logger.getLogger(Main.class.getName());
-
-    /**
-     * The main method configures logging, establishes a connection to a MongoDB instance,
-     * and performs various database operations such as retrieving flight information,
-     * booking seats, and handling concurrent transactions.
-     *
-     * @param args Command line arguments (not used).
-     */
-    public static void main(String[] args) {
-        try {
-            // Configure the FileHandler with a custom Formatter
-            FileHandler fileHandler = new FileHandler("app.log");
-            fileHandler.setFormatter(new SimpleLogFormatter());
-            logger.addHandler(fileHandler);
-
-            // MongoDB connection details
-            String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
-            String dbName = "Airports";
-            String collectionName = "airportCollection";
-
-            // Initialize MongoDB client and Transactions instance
-            MongoClient mongoClient = MongoClients.create(connectionString);
-            Transactions transactions = new Transactions(mongoClient, dbName, collectionName);
-
-            // Example usage of Transactions methods
-            String departureAirportCode = "MXP";
-            String arrivalAirportCode = "PMV";
-
-            Map<String, Map<String, String>> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
-
-            logger.info("├─ TESTING FLIGHT RETRIEVAL");
-            logger.info("│---├─ Retrieving flights departing from the specified airport (" + departureAirportCode + ")");
-            for (Map.Entry<String, Map<String, String>> entry : flightsFromBGY.entrySet()) {
-                String iataCode = entry.getKey();
-                Map<String, String> flightDetails = entry.getValue();
-                logger.info("│---├─ Flight to " + iataCode + ": " + flightDetails);
-            }
-            logger.info("");
-
-            PeopleGenerator generator = null;
-            String flightID = null;
-            List<String> availableSeatsDetails = null;
-            if (flightsFromBGY.containsKey(arrivalAirportCode)) {
-                flightID = flightsFromBGY.get(arrivalAirportCode).get("ID");
-
-                logger.info("├─ TESTING SEATS RETRIEVAL");
-                logger.info("│---├─ The user chose to depart from " + departureAirportCode + " to " + arrivalAirportCode);
-                logger.info("│---├─ Retrieving available seats for the specified flight (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
-                availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
-                logger.info("│---├─ Number of available seats: " + availableSeatsDetails.size());
-                logger.info("│---├─ Available seats are: " + availableSeatsDetails);
-                logger.info("");
-
-                if (!availableSeatsDetails.isEmpty()) {
-                    // Shuffle the list to randomize the seat selection
-                    Collections.shuffle(availableSeatsDetails);
-
-                    // TESTING CONCURRENT TRANSACTIONS
-                    String seatID = availableSeatsDetails.get(0);
-                    generator = new PeopleGenerator();
-                    List<PeopleGenerator.Person> people = generator.generatePeople(2);
-                    PeopleGenerator.Person person1 = people.get(0);
-                    PeopleGenerator.Person person2 = people.get(1);
-
-                    logger.info("├─ TESTING CONCURRENT TRANSACTIONS");
-                    logger.info("│---├─ Testing concurrent booking for the same seat (" + seatID + ") on flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
-                    logger.info("│---├─ Booking result for person 1: " + transactions.bookFlight(flightID, seatID, person1));
-                    logger.info("│---├─ Booking result for person 2: " + transactions.bookFlight(flightID, seatID, person2));
-                    logger.info("│---├─ Person 1 booked the seat first and successfully: " + person1);
-                    logger.info("│---├─ Person 2 consequently failed to book the same seat: " + person2);
-                    logBalanceChange(logger, person1);
-                    logger.info("");
-
-                    // TESTING NON-CONCURRENT TRANSACTION
-                    String newSeatID = availableSeatsDetails.get(1);
-                    PeopleGenerator.Person newPerson = generator.generatePeople(1).get(0);
-
-                    logger.info("├─ TESTING NON-CONCURRENT TRANSACTION");
-                    logger.info("│---├─ A new user chose to book the " + newSeatID + " seat, without any concurrency from other users");
-                    logger.info("│---├─ Booking result for new person: " + transactions.bookFlight(flightID, newSeatID, newPerson));
-                    logger.info("│---├─ New person booked the seat successfully: " + newPerson);
-                    logBalanceChange(logger, newPerson);
-                    logger.info("");
-                } else {
-                    logger.info("│---├─ No available seats found for the flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
-                }
-            } else {
-                logger.info("│---├─ No flights found departing from " + departureAirportCode);
-            }
-
-            // Testing for the "poor" person attempting to book an available seat
-            availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
-            PeopleGenerator.Person poorPerson = generator.generatePoorPerson();
-            String poorPersonSeatID = availableSeatsDetails.get(1);
-
-            logger.info("├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR");
-            logger.info("│---├─ " + poorPerson.getName() + " " + poorPerson.getSurname() + " with balance " + poorPerson.getBalance() + "$ is attempting to book seat " + poorPersonSeatID);
-            logger.info("│---├─ Booking result for person with insufficient funds: " + transactions.bookFlight(flightID, poorPersonSeatID, poorPerson));
-            logger.info("│---├─ The booking failed due to insufficient balance to complete the transaction");
-            logger.info("");
-
-            // Close the MongoDB client
-            transactions.close();
-
-            // Close the FileHandler after use
-            fileHandler.close();
-
-        } catch (IOException e) {
-            logger.severe("│---├─ Error during logger configuration: " + e.getMessage());
-        }
-    }
-
-    /**
-     * A custom formatter to exclude the date, time, class name, and log level from the log messages.
-     */
-    static class SimpleLogFormatter extends Formatter {
-        @Override
-        public String format(LogRecord record) {
-            return record.getMessage() + System.lineSeparator();
-        }
-    }
-
-    /**
-     * Logs the balance change for a person after booking a flight.
-     *
-     * @param logger The logger instance to use for logging.
-     * @param person The person whose balance change is being logged.
-     */
-    private static void logBalanceChange(Logger logger, PeopleGenerator.Person person) {
-        logger.info(String.format("│---├─ The balance of %s %s before booking the flight was %.2f$",
-                person.getName(), person.getSurname(), person.getOldBalance()));
-        logger.info(String.format("│---├─ The cost of the flight was %.2f$", person.getDifference()));
-        logger.info(String.format("│---├─ This means the new balance of %s %s is %.2f$",
-                person.getName(), person.getSurname(), person.getBalance()));
-    }
-}
-```
-
-When executed, this class returns a log file called `app.log`, an example of the plaintext content of which is shown below:
-For visual simplicity, some of the flight parameters available in the testing flight retrieval section have been removed, 
-but they can be added again by editing the body of the main class above.
-
-```plaintext
-├─ TESTING FLIGHT RETRIEVAL
-│---├─ Retrieving flights departing from the specified airport (MXP)
-│---├─ Flight to CDG: {IATA_code=CDG, Country=France, ID=6677f9907acf35542d8ef21b, Name=Aéroport de Paris-Charles-de-Gaulle}
-│---├─ Flight to PMV: {IATA_code=PMV, Country=Venezuela, ID=6677f9907acf35542d8ef21c, Name=Aeropuerto Internacional del Caribe Santiago Mariño}
-
-├─ TESTING SEATS RETRIEVAL
-│---├─ The user chose to depart from MXP to PMV
-│---├─ Retrieving available seats for the specified flight (MXP -> PMV)
-│---├─ Number of available seats: 13
-│---├─ Available seats are: [1F, 2C, 3A, 4F, 5A, 5B, 5D, 9A, 9C, 10B, 11C, 13B, 13F]
-
-├─ TESTING CONCURRENT TRANSACTIONS
-│---├─ Testing concurrent booking for the same seat (11C) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
-│---├─ Booking result for person 1: true
-│---├─ Booking result for person 2: false
-│---├─ Person 1 booked the seat first and successfully: Person{name='Salvatore', surname='Montanari', documentInfo='M4J601O', dateOfBirth='1933-08-27', balance=43988.87}
-│---├─ Person 2 consequently failed to book the same seat: Person{name='Enrico', surname='Pellegrini', documentInfo='PGUJ8Q0', dateOfBirth='1938-06-12', balance=39196.33}
-│---├─ The balance of Salvatore Montanari before booking the flight was 44350.87$
-│---├─ The cost of the flight was 362.00$
-│---├─ This means the new balance of Salvatore Montanari is 43988.87$
-
-├─ TESTING NON-CONCURRENT TRANSACTION
-│---├─ A new user chose to book the 3A seat, without any concurrency from other users
-│---├─ Booking result for new person: true
-│---├─ New person booked the seat successfully: Person{name='Marcella', surname='D'Agostino', documentInfo='YUW4PE3', dateOfBirth='2005-08-05', balance=92079.26}
-│---├─ The balance of Marcella D'Agostino before booking the flight was 92441.26$
-│---├─ The cost of the flight was 362.00$
-│---├─ This means the new balance of Marcella D'Agostino is 92079.26$
-
-├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR
-│---├─ Angela Sanna with balance 10.0$ is attempting to book seat 2C
-│---├─ Booking result for person with insufficient funds: false
-│---├─ The booking failed to to having insufficient balance to complete the transaction
-```
-
-Various test cases are listed within the log file just shown as described by the objectives of our model. In particular, 
-flight retrieval, seats retrieval, concurrent and non-concurrent transactions and testing of insufficient funds behavior 
-are tested. It should be specified that it would have been possible to add a test case called "TESTING ALREADY BOOKED 
-TRANSACTION", in which the behavior of a user who would have tried to book an already occupied seat would have been 
-tested. However, this test was omitted as it was already logically incorporated by the locking mechanism of the test 
-case called "TESTING CONCURRENT TRANSACTIONS".
-
-At this point it is natural to ask how the actual Transactions work within the database. 
-To do this, let's take a look at how the `Transactions.java` class works below
-
-```java
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
-import com.mongodb.client.result.UpdateResult;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.*;
-
-/**
- * The Transactions class provides methods for interacting with a MongoDB collection 
- * to retrieve flight information, check seat availability, and handle booking operations 
- * with thread safety considerations.
- * 
- * @version 1.0
- * @since 2024-07-02
- * @author Andrea Moleri
- */
-class Transactions {
-
-    private MongoClient mongoClient;
-    private MongoDatabase database;
-    private MongoCollection<Document> collection;
-    private Lock lock = new ReentrantLock();
-    private static final Logger logger = Logger.getLogger(Transactions.class.getName());
-
-    /**
-     * Constructs a Transactions object with the specified MongoDB client, database name, and collection name.
-     *
-     * @param mongoClient The MongoDB client instance.
-     * @param dbName The name of the database.
-     * @param collectionName The name of the collection.
-     */
-    public Transactions(MongoClient mongoClient, String dbName, String collectionName) {
-        this.mongoClient = mongoClient;
-        this.database = mongoClient.getDatabase(dbName);
-        this.collection = database.getCollection(collectionName);
-    }
-
-    /**
-     * Retrieves flights departing from the specified airport.
-     *
-     * @param airportCode The IATA code of the departure airport.
-     * @return A map containing flight details keyed by destination airport IATA code.
-     */
-    public Map<String, Map<String, String>> getFlightsFromAirport(String airportCode) {
-        Map<String, Map<String, String>> flightsMap = new HashMap<>();
-
-        FindIterable<Document> iterable = collection.find(Filters.eq("IATA_code", airportCode));
-
-        for (Document airportDoc : iterable) {
-            List<Document> flightsFromAirport = airportDoc.getList("Flights", Document.class);
-            for (Document flight : flightsFromAirport) {
-                ObjectId destinationId = flight.getObjectId("Destination");
-                Document destinationAirport = getAirportById(destinationId);
-                if (destinationAirport != null) {
-                    Map<String, String> flightDetails = new HashMap<>();
-                    flightDetails.put("ID", flight.getString("ID"));
-                    flightDetails.put("Name", destinationAirport.getString("Name"));
-                    flightDetails.put("IATA_code", destinationAirport.getString("IATA_code"));
-                    flightDetails.put("Country", destinationAirport.getString("Country"));
-                    flightsMap.put(destinationAirport.getString("IATA_code"), flightDetails);
-                }
-            }
-        }
-
-        return flightsMap;
-    }
-
-    /**
-     * Retrieves the details of an airport by its ID.
-     *
-     * @param airportId The ObjectId of the airport.
-     * @return The document containing airport details, or null if not found.
-     */
-    private Document getAirportById(ObjectId airportId) {
-        return collection.find(Filters.eq("_id", airportId)).first();
-    }
-
-    /**
-     * Retrieves the list of available seats for a flight from a departure airport to an arrival airport.
-     *
-     * @param departureAirportCode The IATA code of the departure airport.
-     * @param arrivalAirportCode The IATA code of the arrival airport.
-     * @return A list of seat IDs that are available.
-     */
-    public List<String> getAvailableSeats(String departureAirportCode, String arrivalAirportCode) {
-        List<String> availableSeatsList = new ArrayList<>();
-
-        Document departureAirport = collection.find(Filters.eq("IATA_code", departureAirportCode)).first();
-
-        if (departureAirport != null) {
-            List<Document> flightsFromDeparture = departureAirport.getList("Flights", Document.class);
-            for (Document flight : flightsFromDeparture) {
-                ObjectId destinationId = flight.getObjectId("Destination");
-                Document destinationAirport = getAirportById(destinationId);
-                if (destinationAirport != null && destinationAirport.getString("IATA_code").equals(arrivalAirportCode)) {
-                    List<Document> seats = flight.getList("Seats", Document.class);
-                    for (Document seat : seats) {
-                        if ("Vacant".equals(seat.getString("Status"))) {
-                            availableSeatsList.add(seat.getString("ID"));
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
-        return availableSeatsList;
-    }
-
-    /**
-     * Attempts to book a flight for a given person, ensuring thread safety and atomic updates in MongoDB.
-     *
-     * @param flightID The ID of the flight to book.
-     * @param seatID The ID of the seat to book.
-     * @param person The person attempting to book the flight.
-     * @return True if the booking is successful, false otherwise.
-     */
-    public boolean bookFlight(String flightID, String seatID, PeopleGenerator.Person person) {
-        lock.lock();
-        try {
-            Document flightDocument = collection.find(Filters.eq("Flights.ID", flightID)).first();
-            if (flightDocument == null) {
-                return false;
-            }
-
-            List<Document> flights = flightDocument.getList("Flights", Document.class);
-            Document targetFlight = flights.stream()
-                    .filter(f -> flightID.equals(f.getString("ID")))
-                    .findFirst()
-                    .orElse(null);
-
-            if (targetFlight == null) {
-                return false;
-            }
-
-            Object priceObject = targetFlight.get("Price_per_Person");
-            if (!(priceObject instanceof Number)) {
-                return false; // Handle case where price is not a valid number
-            }
-            double seatPrice = ((Number) priceObject).doubleValue(); // Convert seat price to double
-
-            List<Document> seats = targetFlight.getList("Seats", Document.class);
-            Document seat = seats.stream()
-                    .filter(s -> seatID.equals(s.getString("ID")) && "Vacant".equals(s.getString("Status")))
-                    .findFirst()
-                    .orElse(null);
-
-            if (seat == null) {
-                return false;
-            }
-
-            if (person.getBalance() < seatPrice) {
-                return false;
-            }
-
-            // Store old balance and difference in Person object
-            person.setOldBalance(person.getBalance());
-            person.setDifference(seatPrice);
-
-            // Update seat status and person details
-            seat.put("Status", "Booked");
-            seat.put("Name", person.getName());
-            seat.put("Surname", person.getSurname());
-            seat.put("Document_Info", person.getDocumentInfo());
-            seat.put("Date_of_Birth", person.getDateOfBirth());
-            seat.put("Balance", person.getBalance() - seatPrice);
-
-            // Update MongoDB document atomically
-            UpdateResult result = collection.updateOne(
-                    Filters.and(
-                            Filters.eq("Flights.ID", flightID),
-                            Filters.eq("Flights.Seats.ID", seatID),
-                            Filters.eq("Flights.Seats.Status", "Vacant")
-                    ),
-                    Updates.combine(
-                            Updates.set("Flights.$[flight].Seats.$[seat].Status", "Booked"),
-                            Updates.set("Flights.$[flight].Seats.$[seat].Name", person.getName()),
-                            Updates.set("Flights.$[flight].Seats.$[seat].Surname", person.getSurname()),
-                            Updates.set("Flights.$[flight].Seats.$[seat].Document_Info", person.getDocumentInfo()),
-                            Updates.set("Flights.$[flight].Seats.$[seat].Date_of_Birth", person.getDateOfBirth()),
-                            Updates.set("Flights.$[flight].Seats.$[seat].Balance", person.getBalance() - seatPrice)
-                    ),
-                    new UpdateOptions().arrayFilters(Arrays.asList(
-                            Filters.eq("flight.ID", flightID),
-                            Filters.eq("seat.ID", seatID)
-                    ))
-            );
-
-            if (result.getModifiedCount() == 1) {
-                // Deduct seat price from person's balance
-                person.setBalance(person.getBalance() - seatPrice);
-                return true;
-            } else {
-                return false;
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Closes the MongoDB client connection.
-     */
-    public void close() {
-        mongoClient.close();
-    }
-
-}
-```
-
-The code in the `Transactions.java` class is designed to handle various operations related to flights in a MongoDB 
-collection. It allows for retrieving flight information, checking seat availability, and booking seats in a thread-safe manner.
-We now want to focus our attention on the management of concurrent read and write operations in MongoDB, and how the 
-database provides tools to manage them. Not only this, but we will also detail how the Java class just shown takes 
-advantage of Locking mechanisms in conjunction with the tools offered by MongoDB to avoid any conflicts
-
-#### Managing Concurrency 
-
-MongoDB is designed to handle high-concurrency environments, supporting concurrent read operations efficiently through 
-its architecture and features like multi-version concurrency control (MVCC). This mechanism allows multiple clients to 
-read data from the database simultaneously without interfering with each other, ensuring that each read operation 
-receives a consistent view of the data as it was at the start of the read operation.
-
-In MVCC, when a read operation begins, MongoDB provides a snapshot of the data at that moment. Any updates made by other 
-clients after the read operation has started do not affect the snapshot seen by the reader. This approach provides several benefits:
-
-1. **Consistency**: readers always see a consistent view of the data, even if other clients are making concurrent writes.
-2. **Isolation**: MVCC ensures that readers are isolated from writers. Changes made by a writer are not visible to readers until the write is complete.
-3. **Performance**: by allowing multiple clients to read from the same data set concurrently, MongoDB can handle a high number of read requests efficiently.
-
-MongoDB employs snapshot reads for read operations within transactions. A snapshot read captures the state of the database
-at the start of the transaction, ensuring that all read operations within the transaction see a consistent view of the data. 
-This is particularly useful in scenarios requiring strong consistency guarantees.
-MongoDB provides various read concern levels to control the consistency and isolation properties of read operations:
-
-- **"local"**: Returns the most recent data available, regardless of the acknowledgment of the write operations.
-- **"majority"**: Returns data that has been acknowledged by the majority of the replica set members, ensuring that the read data is durable.
-- **"snapshot"**: Provides a snapshot of the data as it was at the start of a transaction, ensuring a consistent view of the data during the transaction.
-
-The `Transactions.java` class leverages MongoDB's ability to handle concurrent operations to ensure efficient and safe 
-access to our dataset. Here is how the class handles concurrent reads and writes:
-
-1. **Retrieving Flights from an Airport**:
-  - The `getFlightsFromAirport` method retrieves all flights departing from a specified airport. MongoDB handles the concurrent reads internally, ensuring that the data returned is consistent.
-
-2. **Checking Available Seats**:
-  - The `getAvailableSeats` method checks the availability of seats on a flight. This method involves reading the flight and seat information from the database. MongoDB's concurrent read capabilities ensure that multiple clients can check seat availability simultaneously without interference.
-
-3. **Booking a Flight**:
-  - The `bookFlight` method handles concurrent write operations. This method is designed to be thread-safe, ensuring that only one thread can book a seat at a time using the `ReentrantLock`.
-
-The `ReentrantLock` in Java provides a way to ensure that only one thread can execute a block of code at a time. 
-In the `bookFlight` method, the lock is used to ensure that the entire process of checking seat availability and 
-updating the seat status is atomic. Here's how it works:
-
-1. **Acquire the Lock**: when a thread enters the `bookFlight` method, it calls `lock.lock()` to acquire the lock. This prevents other threads from entering the critical section of the code until the lock is released.
-2. **Check and Update**: inside the locked section, the code performs the following:
-  - It checks if the flight and the seat are available.
-  - It verifies that the person has sufficient balance.
-  - It updates the seat status to "Booked" and deducts the price from the person's balance.
-  - It performs an atomic update in the MongoDB collection using the `updateOne` method with array filters to ensure only the specified seat is updated.
-3. **Release the Lock**: after the update operation, the lock is released using `lock.unlock()`, allowing other threads to attempt booking operations.
-
-By using `ReentrantLock`, the code ensures that even if multiple threads try to book the same seat at the same time, 
-*only one will succeed,* and the others will receive a failure response. This approach prevents race conditions and 
-ensures data consistency within the application.
-
-#### Other Auxiliary Classes
-
-To conclude the overview of the code necessary for the operation of both the Main class and the Transactions class, it 
-is best to shift the focus of our attention to the last two classes that make up the model: PeopleGenerator and its 
-auxiliary class NameSurnamePool. First follows the PeopleGenerator code, whose purpose is to generate a People object. 
-Given the simplicity of its nature (it is effectively a random generator of people based on various parameters), the 
-code will be self-explanatory.
-
-```java
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
-
-/**
- * The PeopleGenerator class is responsible for generating a list of Person objects with
- * random attributes, including name, surname, document information, date of birth, and balance.
- * It can also generate a "poor" person with a limited balance.
- *
- * @version 1.0
- * @since 2024-07-02
- * @author Andrea Moleri
- */
-public class PeopleGenerator {
-
-    private static final Random RANDOM = new Random();
-    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
-
-    /**
-     * Generates a list of Person objects with specified count.
-     *
-     * @param count The number of Person objects to generate.
-     * @return A list of generated Person objects.
-     */
-    public List<Person> generatePeople(int count) {
-        List<Person> people = new ArrayList<>(count);
-        Set<String> documentNumbers = new HashSet<>(count);
-
-        for (int i = 0; i < count; i++) {
-            String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
-            String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
-            String documentInfo;
-
-            // Generate a unique document number
-            do {
-                documentInfo = generateDocumentInfo();
-            } while (documentNumbers.contains(documentInfo));
-
-            documentNumbers.add(documentInfo);
-            String dateOfBirth = generateDateOfBirth();
-            double balance = 100 + (100000 - 100) * RANDOM.nextDouble();
-
-            // Round the balance to two decimal places
-            balance = Double.parseDouble(DECIMAL_FORMAT.format(balance));
-
-            people.add(new Person(name, surname, documentInfo, dateOfBirth, balance));
-        }
-
-        return people;
-    }
-
-    /**
-     * Generates a 7-character alphanumeric document information string.
-     *
-     * @return A randomly generated document information string.
-     */
-    private String generateDocumentInfo() {
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        StringBuilder sb = new StringBuilder(7);
-        for (int i = 0; i < 7; i++) {
-            sb.append(chars.charAt(RANDOM.nextInt(chars.length())));
-        }
-        return sb.toString();
-    }
-
-    /**
-     * Generates a random date of birth between 18 and 100 years ago.
-     *
-     * @return A randomly generated date of birth in "yyyy-MM-dd" format.
-     */
-    private String generateDateOfBirth() {
-        long now = System.currentTimeMillis();
-        long eighteenYearsAgo = now - (18L * 365 * 24 * 60 * 60 * 1000);
-        long hundredYearsAgo = now - (100L * 365 * 24 * 60 * 60 * 1000);
-        long randomMillis = ThreadLocalRandom.current().nextLong(hundredYearsAgo, eighteenYearsAgo);
-        return new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date(randomMillis));
-    }
-
-    /**
-     * Generates a Person object with limited balance, representing a "poor" person.
-     *
-     * @return A generated "poor" Person object.
-     */
-    public Person generatePoorPerson() {
-        String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
-        String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
-        String documentInfo = generateDocumentInfo();
-        String dateOfBirth = generateDateOfBirth();
-        double balance = 10.0; // Balance limited to 10$
-
-        return new Person(name, surname, documentInfo, dateOfBirth, balance);
-    }
-
-    /**
-     * The Person class represents an individual with attributes such as name, surname, document information,
-     * date of birth, and balance. It also tracks the previous balance and balance difference for transactions.
-     */
-    public static class Person {
-        private String name;
-        private String surname;
-        private String documentInfo;
-        private String dateOfBirth;
-        private double balance;
-        private double oldBalance; // Added to manage the previous balance
-        private double difference; // Added to manage balance difference
-
-        /**
-         * Constructs a new Person instance.
-         *
-         * @param name The name of the person.
-         * @param surname The surname of the person.
-         * @param documentInfo The document information of the person.
-         * @param dateOfBirth The date of birth of the person.
-         * @param balance The balance of the person.
-         */
-        public Person(String name, String surname, String documentInfo, String dateOfBirth, double balance) {
-            this.name = name;
-            this.surname = surname;
-            this.documentInfo = documentInfo;
-            this.dateOfBirth = dateOfBirth;
-            this.balance = balance;
-            this.oldBalance = balance; // Initially, the previous balance is equal to the current balance
-            this.difference = 0.0; // Initially, there is no balance difference
-        }
-
-        // Getters and setters...
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getSurname() {
-            return surname;
-        }
-
-        public void setSurname(String surname) {
-            this.surname = surname;
-        }
-
-        public String getDocumentInfo() {
-            return documentInfo;
-        }
-
-        public void setDocumentInfo(String documentInfo) {
-            this.documentInfo = documentInfo;
-        }
-
-        public String getDateOfBirth() {
-            return dateOfBirth;
-        }
-
-        public void setDateOfBirth(String dateOfBirth) {
-            this.dateOfBirth = dateOfBirth;
-        }
-
-        public double getBalance() {
-            return balance;
-        }
-
-        public void setBalance(double balance) {
-            this.balance = balance;
-        }
-
-        public double getOldBalance() {
-            return oldBalance;
-        }
-
-        public void setOldBalance(double oldBalance) {
-            this.oldBalance = oldBalance;
-        }
-
-        public double getDifference() {
-            return difference;
-        }
-
-        public void setDifference(double difference) {
-            this.difference = difference;
-        }
-
-        @Override
-        public String toString() {
-            return "Person{" +
-                    "name='" + name + '\'' +
-                    ", surname='" + surname + '\'' +
-                    ", documentInfo='" + documentInfo + '\'' +
-                    ", dateOfBirth='" + dateOfBirth + '\'' +
-                    ", balance=" + balance +
-                    '}';
-        }
-    }
-
-    /**
-     * The main method to test the generation of Person objects.
-     *
-     * @param args Command line arguments (not used).
-     */
-    public static void main(String[] args) {
-        PeopleGenerator generator = new PeopleGenerator();
-        List<Person> people = generator.generatePeople(10000);
-
-        // Print the first 10 people to verify the output
-        for (int i = 0; i < 10; i++) {
-            System.out.println(people.get(i));
-        }
-    }
-}
-```
-
-Similarly, we present the auxiliary class NameSurnamePool, which is nothing more than a class intended to contain Array 
-of possible names and surnames, which will be used in combination to generate a People object. Again, the code is simple 
-enough that it does not require further explanations other than those already provided by the comments within it.
-
-```java
-import java.util.Arrays;
-import java.util.List;
-
-/**
- * The NameSurnamePool class provides static lists of common Italian names and surnames.
- * These lists can be used for generating sample data or for any other purpose requiring 
- * a set of predefined names and surnames.
- *
- * @version 1.0
- * @since 2024-07-02
- * @author Andrea Moleri
- */
-public class NameSurnamePool {
-
-    /**
-     * A static list of common Italian first names.
-     */
-    public static final List<String> NAMES = Arrays.asList(
-            "Luca", "Marco", "Giulia", "Francesca", "Alessandro", "Chiara", "Matteo", "Valentina", "Simone", "Martina",
-            "Andrea", "Sara", "Stefano", "Giorgia", "Davide", "Alice", "Federico", "Elena", "Nicola", "Silvia", "Giulio",
-            "Paolo", "Anna", "Antonio", "Laura", "Roberto", "Roberta", "Enrico", "Marta", "Gabriele", "Claudia",
-            "Leonardo", "Veronica", "Massimo", "Cristina", "Filippo", "Eleonora", "Giovanni", "Maria", "Pietro", "Federica",
-            "Vincenzo", "Daniela", "Riccardo", "Alberto", "Angela", "Emanuele", "Monica", "Salvatore", "Serena", "Beatrice",
-            "Tommaso", "Camilla", "Giovanna", "Vittoria", "Gabriella", "Lorenzo", "Michele", "Luigi", "Alessia", "Edoardo",
-            "Fabrizio", "Irene", "Fabio", "Patrizia", "Sergio", "Elisabetta", "Raffaele", "Caterina", "Ludovica", "Maurizio",
-            "Alberto", "Manuela", "Claudio", "Franco", "Tiziana", "Pasquale", "Debora", "Sabrina", "Giuseppe", "Marcella",
-            "Lucrezia", "Dario", "Cristiano", "Eleonora", "Renato", "Cinzia", "Alessia", "Cristian", "Lucia", "Sofia",
-            "Matilde", "Ginevra", "Arianna", "Samuele", "Noemi", "Aurora", "Rachele", "Michela", "Melissa", "Rebecca"
-    );
-
-    /**
-     * A static list of common Italian surnames.
-     */
-    public static final List<String> SURNAMES = Arrays.asList(
-            "Rossi", "Bianchi", "Esposito", "Romano", "Ferrari", "Ricci", "Marino", "Greco", "Bruno", "Gallo",
-            "Conti", "De Luca", "Costa", "Giordano", "Manenti", "Rizzo", "Lombardi", "Moretti", "Barbieri", "Fontana",
-            "Santoro", "Mariani", "Rinaldi", "Caruso", "Ferraro", "Gatti", "Testa", "Martini", "Pellegrini", "Palumbo",
-            "Sorrentino", "Longo", "Leone", "Gentile", "Lombardo", "Moleri", "Colombo", "D'Amico", "Martino", "Bianco",
-            "Morelli", "Amato", "Silvestri", "Grasso", "Parisi", "Sanna", "Farina", "Ruggiero", "Monti", "Coppola",
-            "De Santis", "Mazza", "Villa", "Marchetti", "Caputo", "Ferretti", "Battaglia", "Fiore", "Messina", "Donati",
-            "Vitali", "Fabbri", "Valentini", "Orlando", "Mariani", "Rizzi", "Benedetti", "Neri", "Bellini", "Rossetti",
-            "Bertoni", "Piras", "Rosati", "Di Lorenzo", "Martelli", "Marino", "Ferri", "Brunetti", "De Angelis", "Basili",
-            "Veneziani", "Pascarella", "Pagano", "Palmieri", "Ferraro", "Armani", "Raimondi", "Montanari", "Carbone", "D'Agostino"
-    );
-}
-```
-
-This concludes the overview of the code used for the purposes of data ingestion, data processing, data parsing, data 
-modeling and transactions management within the MongoDB database, paying careful attention to the management of 
-concurrent transactions.
-
 ### Creating the Data Model and Transactions in Cassandra
 In the context of Cassandra, maximizing database efficiency requires a data model design approach focused primarily on anticipated queries. This means the data structure must be conceived to facilitate and optimize query operations, even if this results in an increase in write operations, which are nonetheless executed almost instantaneously thanks to Cassandra's features. Therefore, according to this methodology, it is necessary to create tables that directly reflect the anticipated query types, while ensuring an even distribution of data across the cluster nodes to prevent overloading specific nodes and to guarantee effective, seamless scalability.
 To successfully implement this approach, it is essential to follow a series of steps:
@@ -5454,31 +3764,1686 @@ static Session session = null;
 }
 ```
 
-## Large Volume Data Management 
-#### Large Volume Data Management in MongoDB
+## Transactions and Aggregations
+### MongoDB Transactions and Aggregations
 
-In this chapter, we will delve into how it is possible to manage and read large volumes of data in MongoDB, using the
-`"Airports"` database which we already know to be containing a collection called `"airportCollection"`. We will explore how
-to efficiently distribute the database across multiple nodes to optimize performance and ensure fault tolerance.
-Additionally, we will discuss the mechanisms MongoDB employs to handle failures within the cluster and strategies to
+#### Creating MongoDB Transactions in Java Applications
+
+In this section, we demonstrate how to create a multi-document transaction in MongoDB using Java. A multi-document
+transaction ensures the atomicity of reads and/or writes across multiple documents. Specifically, a transaction is
+a sequence of operations executed on a database that represents a single unit of work. Once committed, all write
+operations within the transaction are persisted. If a transaction is aborted or fails to complete successfully,
+all associated write operations are rolled back. Therefore, all operations within a transaction either succeed or
+fail together. This property is known as atomicity. Transactions also ensure the consistency, isolation, and
+durability of operations. These qualities—Atomicity, Consistency, Isolation, and Durability—are collectively
+referred to as ACID compliance.
+
+#### Implementation Example
+
+To initiate a transaction in MongoDB using Java, we utilize the `WithTransaction()` method of a session object.
+Below are the steps involved in completing a multi-document transaction, followed by the corresponding code snippet:
+
+1. **Session Initialization and Transaction Start**: Begin by establishing a new session and starting a transaction
+2. using the `WithTransaction()` method on the session object.
+
+2. **Transaction Operations**: Define the operations to be performed within the transaction. This typically includes
+3. fetching necessary data, performing updates, and inserting documents.
+
+3. **Transaction Commit**: After executing all operations successfully, commit the transaction to persist the changes.
+
+4. **Handling Timeouts and Resource Closure**: MongoDB automatically cancels any multi-document transaction that
+5. exceeds 60 seconds. Additionally, ensure proper closure of resources utilized by the transaction.
+
+#### Example Code
+
+```java
+final MongoClient client = MongoClients.create(connectionString);
+final ClientSession clientSession = client.startSession();
+
+TransactionBody txnBody = new TransactionBody<String>() {
+    public String execute() {
+        MongoCollection<Document> bankingCollection = client.getDatabase("bank").getCollection("accounts");
+
+        Bson fromAccountFilter = eq("account_id", "MDB310054629");
+        Bson withdrawalUpdate = Updates.inc("balance", -200);
+
+        Bson toAccountFilter = eq("account_id", "MDB643731035");
+        Bson depositUpdate = Updates.inc("balance", 200);
+
+        System.out.println("Withdrawing from Account " + fromAccountFilter.toBsonDocument().toJson() + ": " + withdrawalUpdate.toBsonDocument().toJson());
+        System.out.println("Depositing to Account " + toAccountFilter.toBsonDocument().toJson() + ": " + depositUpdate.toBsonDocument().toJson());
+
+        bankingCollection.updateOne(clientSession, fromAccountFilter, withdrawalUpdate);
+        bankingCollection.updateOne(clientSession, toAccountFilter, depositUpdate);
+
+        return "Transferred funds from Andrea Moleri to Claudia Gatto";
+    }
+};
+
+try {
+    clientSession.withTransaction(txnBody);
+} catch (RuntimeException e) {
+    System.out.println("Transaction aborted: " + e.getMessage());
+} finally {
+    clientSession.close();
+}
+```
+
+This Java code snippet exemplifies the process described. It begins by initializing a MongoDB client and starting a
+session. Within the `execute()` method of the `TransactionBody`, two updates are performed atomically on specified
+accounts. If all operations succeed, the transaction commits; otherwise, it rolls back automatically. Finally, the
+session is closed to release associated resources.
+
+By following these steps and utilizing MongoDB's transaction capabilities in Java, developers can ensure reliable
+and consistent data operations across multiple documents within a MongoDB database. What follows is another example of
+a real-world scenario in which we would use the method.
+
+```java
+// DemoApp.java
+public class DemoApp {
+    public static void main(final String[] args) {
+        Logger root = (Logger) LoggerFactory.getLogger("org.mongodb.driver");
+        // Available levels are: OFF, ERROR, WARN, INFO, DEBUG, TRACE, ALL
+        root.setLevel(Level.WARN);
+
+        String connectionString = System.getenv("MONGODB_URI");
+        try (MongoClient client = MongoClients.create(connectionString)) {
+            //Transaction
+            Transaction txn = new Transaction(client);
+            var senderAccountFilter = "MDB310054629";
+            var receiverAccountFilter = "MDB643731035";
+            double transferAmount = 200;
+            txn.transferMoney(senderAccountFilter, transferAmount, receiverAccountFilter);
+        }
+    }
+}
+
+// Transaction.java
+public class Transaction {
+    private final MongoClient client;
+
+    public Transaction(MongoClient client) {
+        this.client = client;
+    }
+
+    public void transferMoney(String accountIdOfSender, double transactionAmount, String accountIdOfReceiver) {
+    try (ClientSession session = client.startSession()) {
+        UUID transfer = UUID.randomUUID();
+        String transferId = transfer.toString();
+        try {
+            session.withTransaction(() -> {
+                MongoCollection<Document> accountsCollection = client.getDatabase("bank").getCollection("accounts");
+                MongoCollection<Document> transfersCollection = client.getDatabase("bank").getCollection("transfers");
+
+
+                Bson senderAccountFilter = eq("account_id", accountIdOfSender);
+                Bson debitUpdate = Updates.combine(inc("balance", -1 * transactionAmount),push("transfers_complete", transferId));
+
+                Bson receiverAccountId = eq("account_id", accountIdOfReceiver);
+                Bson credit = Updates.combine(inc("balance", transactionAmount), push("transfers_complete", transferId));
+
+                transfersCollection.insertOne(session, new Document("_id", new ObjectId()).append("transfer_id", transferId).append("to_account", accountIdOfReceiver).append("from_account", accountIdOfSender).append("amount", transactionAmount).append("last_updated", new Date()));
+                accountsCollection.updateOne(session, senderAccountFilter, debitUpdate);
+                accountsCollection.updateOne(session, receiverAccountId, credit);
+                return null;
+            });
+        } catch (RuntimeException e) {
+            throw e;
+        }
+    }
+}
+}
+```
+
+#### Introduction to MongoDB Aggregation
+
+In the realm of databases, aggregation involves the analysis and summary of data, where an aggregation stage represents
+an operation performed on data without permanently altering the source data. MongoDB facilitates the creation of
+aggregation pipelines, where developers specify aggregation operations sequentially. What distinguishes MongoDB
+aggregations is the ability to chain these operations into a pipeline, consisting of stages where data can be filtered,
+sorted, grouped, and transformed. Documents output from one stage become the input for the next. In MongoDB Atlas,
+developers can access the Aggregation tab to add stages one by one and view results for each stage. Similarly, this
+can be accomplished using MongoDB CLI or MongoDB Language Drivers. Below is an example of aggregation syntax using the
+CLI, starting with `db.collection.aggregate` followed by stage names and their contained expressions. Each stage
+represents a discrete data operation, commonly including `$match` for filtering data, `$group` for grouping documents,
+and `$sort` for ordering documents based on specified criteria. The use of `$` prefix signifies a field path,
+referencing the value in that field, useful for operations like concatenation (`$concat: ["$first_name", "$last_name"]`).
+
+```bash
+db.collection.aggregate([
+    {
+        $stage1: {
+            { expression1 },
+            { expression2 }...
+        },
+        $stage2: {
+            { expression1 }...
+        }
+    }
+])
+```
+
+#### Using $match and $group Stages in a MongoDB Aggregation Pipeline
+
+The `$match` stage filters documents that match specified conditions, as illustrated in the example below. The `$group`
+stage groups documents based on a specified group key. These stages are commonly used together in an aggregation
+pipeline. In the example, the aggregation pipeline identifies documents with a `"state"` field matching `"CA"` and then
+groups these documents by the "$city" group key to count the total number of zip codes in California. Placing `$match`
+early in the pipeline optimizes performance by utilizing indexes to reduce the number of documents processed.
+Conversely, the output of `$group` is a document for each unique value of the group key. Note that `$group` includes
+`_id` as the group key and an accumulator field, specifying how to aggregate information for each group. For instance,
+grouping by city and using `count` as an accumulator determines the count of ZIP Codes per city.
+
+```bash
+# Example of Match Stage
+{
+    $match: {
+        "field_name": "value"
+    }
+}
+
+# Example of Group Stage
+{
+    $group:
+    {
+        _id: <expression>, // Group key
+        <field>: { <accumulator> : <expression> }
+    }
+}
+ 
+# Example Using Both
+db.zips.aggregate([
+    { $match: { state: "CA" } },
+    {
+        $group: {
+            _id: "$city",
+            totalZips: { $count : { } }
+        }
+    }
+])
+```
+
+#### Using $sort and $limit Stages in a MongoDB Aggregation Pipeline
+
+Next, the `$sort` and `$limit` stages in MongoDB aggregation pipelines are discussed. The `$sort` stage arranges all
+input documents in a specified order, using `1` for ascending and `-1` for descending order. The `$limit` stage restricts
+output to a specified number of documents. These stages can be combined, such as in the third example where documents
+are sorted in descending order by population (`pop`), and only the top five documents are returned. `$sort` and `$limit`
+stages are essential for quickly identifying top or bottom values in a dataset. Order of stages is crucial; arranging
+`$sort` before `$limit` yields different results compared to the reverse order.
+
+```bash
+# Example of Sort Stage
+{
+    $sort: {
+        "field_name": 1
+    }
+}
+
+# Example of Limit Stage
+{
+    $limit: 5
+}
+
+# Example Using Both
+db.zips.aggregate([
+    { $sort: { pop: -1 } },
+    { $limit: 5 }
+])
+```
+
+#### Using $project, $count, and $set Stages in a MongoDB Aggregation Pipeline
+
+Moving on to `$project`, `$set`, and `$count` stages in MongoDB aggregation pipelines. The `$project` stage specifies
+output document fields, including (`1` for inclusion, `0` for exclusion), and optionally assigns new values to fields.
+This stage is typically the final one to format output. The `$set` stage creates new fields or modifies existing ones
+within documents, facilitating changes or additions for subsequent pipeline stages. The `$count` stage generates a
+document indicating the count of documents at that stage in the pipeline. `$set` is useful for field modifications,
+while `$project` controls output field visibility and value transformations. `$count` provides a count of documents
+in the aggregation pipeline stage.
+
+```bash
+# Example of Project Stage
+{
+    $project: {
+        state: 1, 
+        zip: 1,
+        population: "$pop",
+        _id: 0
+    }
+}
+
+# Example of Set Stage
+{
+    $set: {
+        place: {
+            $concat: ["$city", ",", "$state"]
+        },
+        pop: 10000
+    }
+}
+
+# Example of Count Stage
+{
+    $count: "total_zips"
+}
+```
+
+#### Using the $out Stage in a MongoDB Aggregation Pipeline
+
+The `$out` stage facilitates the creation of a new collection from the output of an aggregation pipeline. It writes
+documents returned by the pipeline into a specified collection. This stage must be the last one in the pipeline.
+Note that `$out` creates a new collection if one does not already exist. If the collection exists, `$out` overwrites
+it with new data. Therefore, careful consideration of the collection name is advised to avoid unintentionally
+overwriting existing data. The `$out` stage expects the database name in the `db` field and the collection name in
+the `coll` field. Alternatively, providing just the collection name directly is also valid. Executing `$out` does not
+produce command-line output; instead, results of the aggregation pipeline are written to a new collection, confirmed
+by `show collections` command in the terminal.
+
+```bash
+# Mode 1
+$out: {
+    db: "<db>",
+    coll: "<newcollection>"
+}
+
+# Mode 2
+{ $out: "<newcollection>" }
+
+# Example
+db.sightings.aggregate([
+    {
+        $match: {
+            date: {
+                $gte: ISODate('2024-01-01T00:00:00.0Z'),
+                $lt: ISODate('2024-01-01T00:00:00.0Z')
+            }
+        }
+    },
+    {
+        $out: 'sightings_2024'
+    }
+])
+db.sightings_2022.findOne()
+```
+
+#### Building a MongoDB Aggregation Pipeline in Java Applications
+
+When using the MongoDB Aggregation Framework to construct queries, one must conceptualize these queries as composed of
+discrete stages, where each stage produces an output document that serves as input to the next stage. This aggregation
+pipeline simplifies debugging and maintenance of individual stages, facilitating query rewriting and optimization.
+The expression operators used within this framework function akin to functions, offering a broad spectrum including
+arithmetic, trigonometric, date, and boolean operators. Once assembled, the aggregation pipeline can be validated using
+tools such as MongoShell, Atlas Aggregation Builder, and Compass before integration into the chosen programming language.
+
+#### Using MongoDB Aggregation Stages with Java: $match and $group
+
+In the following Java examples, the `Aggregates` builder class is employed to configure `$match` and `$group` stages
+within MongoDB aggregation pipelines. Each example demonstrates how to utilize these stages effectively to manipulate
+and aggregate data.
+
+##### Example 1: Using $match
+
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchStage(accounts);
+    }
+}
+
+private static void matchStage(MongoCollection<Document> accounts){
+    Bson matchStage = Aggregates.match(Filters.eq("account_id", "MDB310054629"));
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+##### Example 2: Using $match and $group
+
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchAndGroupStages(accounts);
+    }
+}
+
+private static void matchAndGroupStages(MongoCollection<Document> accounts){
+    Bson matchStage = Aggregates.match(Filters.eq("account_id", "MDB310054629"));
+    Bson groupStage = Aggregates.group("$account_type", sum("total_balance", "$balance"), avg("average_balance", "$balance"));
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage, groupStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+#### Using MongoDB Aggregation Stages with Java: $sort and $project
+
+This example illustrates the use of `$sort` and `$project` stages within MongoDB aggregation pipelines, emphasizing
+sorting and projecting fields from queried documents.
+
+```java
+public static void main(String[] args) {
+    String connectionString = System.getProperty("mongodb.uri");
+    try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        MongoDatabase db = mongoClient.getDatabase("bank");
+        MongoCollection<Document> accounts = db.getCollection("accounts");
+        matchSortAndProjectStages(accounts);
+    }
+}
+
+private static void matchSortAndProjectStages(MongoCollection<Document> accounts){
+    Bson matchStage =
+            Aggregates.match(Filters.and(Filters.gt("balance", 1500), Filters.eq("account_type", "checking")));
+    Bson sortStage = Aggregates.sort(Sorts.orderBy(descending("balance")));
+    Bson projectStage = Aggregates.project(
+            Projections.fields(
+                    Projections.include("account_id", "account_type", "balance"),
+                    Projections.computed("euro_balance", new Document("$divide", Arrays.asList("$balance", 1.20F))),
+                    Projections.excludeId()
+            )
+    );
+    System.out.println("Display aggregation results");
+    accounts.aggregate(Arrays.asList(matchStage, sortStage, projectStage)).forEach(document -> System.out.print(document.toJson()));
+}
+```
+
+These examples demonstrate the structured use of MongoDB aggregation stages in Java applications, showcasing the
+flexibility and power of the MongoDB Aggregation Framework for data analysis and manipulation. Each stage—`$match`,
+`$group`, `$sort`, and `$project`—plays a crucial role in shaping and refining the results of queries executed against
+MongoDB databases.
+
+#### Transactions in the data model
+
+In addition to the Connection class and the Modeling class, there are various other classes in the project, whose purpose is to model and manage transactions. In this regard, let's start
+by observing the main class, which serves as the entry point for the application, demonstrating various operations such
+as MongoDB interactions, logging configurations, and concurrent transaction handling. The Java code of the application
+is as follows:
+
+```java
+// Import necessary classes
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Logger;
+import java.util.logging.LogRecord;
+
+/**
+ * The Main class serves as the entry point for the application, demonstrating various operations
+ * such as MongoDB interactions, logging configurations, and concurrent transaction handling.
+ *
+ * @author Andrea Moleri
+ * @version 1.0
+ * @since 2024-07-02
+ */
+public class Main {
+
+    private static final Logger logger = Logger.getLogger(Main.class.getName());
+
+    /**
+     * The main method configures logging, establishes a connection to a MongoDB instance,
+     * and performs various database operations such as retrieving flight information,
+     * booking seats, and handling concurrent transactions.
+     *
+     * @param args Command line arguments (not used).
+     */
+    public static void main(String[] args) {
+        try {
+            // Configure the FileHandler with a custom Formatter
+            FileHandler fileHandler = new FileHandler("app.log");
+            fileHandler.setFormatter(new SimpleLogFormatter());
+            logger.addHandler(fileHandler);
+
+            // MongoDB connection details
+            String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
+            String dbName = "Airports";
+            String collectionName = "airportCollection";
+
+            // Initialize MongoDB client and Transactions instance
+            MongoClient mongoClient = MongoClients.create(connectionString);
+            Transactions transactions = new Transactions(mongoClient, dbName, collectionName);
+
+            // Example usage of Transactions methods
+            String departureAirportCode = "MXP";
+            String arrivalAirportCode = "PMV";
+
+            Map<String, Map<String, String>> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
+
+            logger.info("├─ TESTING FLIGHT RETRIEVAL");
+            logger.info("│---├─ Retrieving flights departing from the specified airport (" + departureAirportCode + ")");
+            for (Map.Entry<String, Map<String, String>> entry : flightsFromBGY.entrySet()) {
+                String iataCode = entry.getKey();
+                Map<String, String> flightDetails = entry.getValue();
+                logger.info("│---├─ Flight to " + iataCode + ": " + flightDetails);
+            }
+            logger.info("");
+
+            PeopleGenerator generator = null;
+            String flightID = null;
+            List<String> availableSeatsDetails = null;
+            if (flightsFromBGY.containsKey(arrivalAirportCode)) {
+                flightID = flightsFromBGY.get(arrivalAirportCode).get("ID");
+
+                logger.info("├─ TESTING SEATS RETRIEVAL");
+                logger.info("│---├─ The user chose to depart from " + departureAirportCode + " to " + arrivalAirportCode);
+                logger.info("│---├─ Retrieving available seats for the specified flight (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
+                logger.info("│---├─ Number of available seats: " + availableSeatsDetails.size());
+                logger.info("│---├─ Available seats are: " + availableSeatsDetails);
+                logger.info("");
+
+                if (!availableSeatsDetails.isEmpty()) {
+                    // Shuffle the list to randomize the seat selection
+                    Collections.shuffle(availableSeatsDetails);
+
+                    // TESTING CONCURRENT TRANSACTIONS
+                    String seatID = availableSeatsDetails.get(0);
+                    generator = new PeopleGenerator();
+                    List<PeopleGenerator.Person> people = generator.generatePeople(2);
+                    PeopleGenerator.Person person1 = people.get(0);
+                    PeopleGenerator.Person person2 = people.get(1);
+
+                    logger.info("├─ TESTING CONCURRENT TRANSACTIONS");
+                    logger.info("│---├─ Testing concurrent booking for the same seat (" + seatID + ") on flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                    logger.info("│---├─ Booking result for person 1: " + transactions.bookFlight(flightID, seatID, person1));
+                    logger.info("│---├─ Booking result for person 2: " + transactions.bookFlight(flightID, seatID, person2));
+                    logger.info("│---├─ Person 1 booked the seat first and successfully: " + person1);
+                    logger.info("│---├─ Person 2 consequently failed to book the same seat: " + person2);
+                    logBalanceChange(logger, person1);
+                    logger.info("");
+
+                    // TESTING NON-CONCURRENT TRANSACTION
+                    String newSeatID = availableSeatsDetails.get(1);
+                    PeopleGenerator.Person newPerson = generator.generatePeople(1).get(0);
+
+                    logger.info("├─ TESTING NON-CONCURRENT TRANSACTION");
+                    logger.info("│---├─ A new user chose to book the " + newSeatID + " seat, without any concurrency from other users");
+                    logger.info("│---├─ Booking result for new person: " + transactions.bookFlight(flightID, newSeatID, newPerson));
+                    logger.info("│---├─ New person booked the seat successfully: " + newPerson);
+                    logBalanceChange(logger, newPerson);
+                    logger.info("");
+                } else {
+                    logger.info("│---├─ No available seats found for the flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                }
+            } else {
+                logger.info("│---├─ No flights found departing from " + departureAirportCode);
+            }
+
+            // Testing for the "poor" person attempting to book an available seat
+            availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
+            PeopleGenerator.Person poorPerson = generator.generatePoorPerson();
+            String poorPersonSeatID = availableSeatsDetails.get(1);
+
+            logger.info("├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR");
+            logger.info("│---├─ " + poorPerson.getName() + " " + poorPerson.getSurname() + " with balance " + poorPerson.getBalance() + "$ is attempting to book seat " + poorPersonSeatID);
+            logger.info("│---├─ Booking result for person with insufficient funds: " + transactions.bookFlight(flightID, poorPersonSeatID, poorPerson));
+            logger.info("│---├─ The booking failed due to insufficient balance to complete the transaction");
+            logger.info("");
+
+            // Close the MongoDB client
+            transactions.close();
+
+            // Close the FileHandler after use
+            fileHandler.close();
+
+        } catch (IOException e) {
+            logger.severe("│---├─ Error during logger configuration: " + e.getMessage());
+        }
+    }
+
+    /**
+     * A custom formatter to exclude the date, time, class name, and log level from the log messages.
+     */
+    static class SimpleLogFormatter extends Formatter {
+        @Override
+        public String format(LogRecord record) {
+            return record.getMessage() + System.lineSeparator();
+        }
+    }
+
+    /**
+     * Logs the balance change for a person after booking a flight.
+     *
+     * @param logger The logger instance to use for logging.
+     * @param person The person whose balance change is being logged.
+     */
+    private static void logBalanceChange(Logger logger, PeopleGenerator.Person person) {
+        logger.info(String.format("│---├─ The balance of %s %s before booking the flight was %.2f$",
+                person.getName(), person.getSurname(), person.getOldBalance()));
+        logger.info(String.format("│---├─ The cost of the flight was %.2f$", person.getDifference()));
+        logger.info(String.format("│---├─ This means the new balance of %s %s is %.2f$",
+                person.getName(), person.getSurname(), person.getBalance()));
+    }
+}
+```
+
+When executed, this class returns a log file called `app.log`, an example of the plaintext content of which is shown below:
+For visual simplicity, some of the flight parameters available in the testing flight retrieval section have been removed,
+but they can be added again by editing the body of the main class above.
+
+```plaintext
+├─ TESTING FLIGHT RETRIEVAL
+│---├─ Retrieving flights departing from the specified airport (MXP)
+│---├─ Flight to CDG: {IATA_code=CDG, Country=France, ID=6677f9907acf35542d8ef21b, Name=Aéroport de Paris-Charles-de-Gaulle}
+│---├─ Flight to PMV: {IATA_code=PMV, Country=Venezuela, ID=6677f9907acf35542d8ef21c, Name=Aeropuerto Internacional del Caribe Santiago Mariño}
+
+├─ TESTING SEATS RETRIEVAL
+│---├─ The user chose to depart from MXP to PMV
+│---├─ Retrieving available seats for the specified flight (MXP -> PMV)
+│---├─ Number of available seats: 13
+│---├─ Available seats are: [1F, 2C, 3A, 4F, 5A, 5B, 5D, 9A, 9C, 10B, 11C, 13B, 13F]
+
+├─ TESTING CONCURRENT TRANSACTIONS
+│---├─ Testing concurrent booking for the same seat (11C) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
+│---├─ Booking result for person 1: true
+│---├─ Booking result for person 2: false
+│---├─ Person 1 booked the seat first and successfully: Person{name='Salvatore', surname='Montanari', documentInfo='M4J601O', dateOfBirth='1933-08-27', balance=43988.87}
+│---├─ Person 2 consequently failed to book the same seat: Person{name='Enrico', surname='Pellegrini', documentInfo='PGUJ8Q0', dateOfBirth='1938-06-12', balance=39196.33}
+│---├─ The balance of Salvatore Montanari before booking the flight was 44350.87$
+│---├─ The cost of the flight was 362.00$
+│---├─ This means the new balance of Salvatore Montanari is 43988.87$
+
+├─ TESTING NON-CONCURRENT TRANSACTION
+│---├─ A new user chose to book the 3A seat, without any concurrency from other users
+│---├─ Booking result for new person: true
+│---├─ New person booked the seat successfully: Person{name='Marcella', surname='D'Agostino', documentInfo='YUW4PE3', dateOfBirth='2005-08-05', balance=92079.26}
+│---├─ The balance of Marcella D'Agostino before booking the flight was 92441.26$
+│---├─ The cost of the flight was 362.00$
+│---├─ This means the new balance of Marcella D'Agostino is 92079.26$
+
+├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR
+│---├─ Angela Sanna with balance 10.0$ is attempting to book seat 2C
+│---├─ Booking result for person with insufficient funds: false
+│---├─ The booking failed to to having insufficient balance to complete the transaction
+```
+
+Various test cases are listed within the log file just shown as described by the objectives of our model. In particular,
+flight retrieval, seats retrieval, concurrent and non-concurrent transactions and testing of insufficient funds behavior
+are tested. It should be specified that it would have been possible to add a test case called "TESTING ALREADY BOOKED
+TRANSACTION", in which the behavior of a user who would have tried to book an already occupied seat would have been
+tested. However, this test was omitted as it was already logically incorporated by the locking mechanism of the test
+case called "TESTING CONCURRENT TRANSACTIONS".
+
+At this point it is natural to ask how the actual Transactions work within the database.
+To do this, let's take a look at how the `Transactions.java` class works below
+
+```java
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.*;
+
+/**
+ * The Transactions class provides methods for interacting with a MongoDB collection 
+ * to retrieve flight information, check seat availability, and handle booking operations 
+ * with thread safety considerations.
+ * 
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
+class Transactions {
+
+    private MongoClient mongoClient;
+    private MongoDatabase database;
+    private MongoCollection<Document> collection;
+    private Lock lock = new ReentrantLock();
+    private static final Logger logger = Logger.getLogger(Transactions.class.getName());
+
+    /**
+     * Constructs a Transactions object with the specified MongoDB client, database name, and collection name.
+     *
+     * @param mongoClient The MongoDB client instance.
+     * @param dbName The name of the database.
+     * @param collectionName The name of the collection.
+     */
+    public Transactions(MongoClient mongoClient, String dbName, String collectionName) {
+        this.mongoClient = mongoClient;
+        this.database = mongoClient.getDatabase(dbName);
+        this.collection = database.getCollection(collectionName);
+    }
+
+    /**
+     * Retrieves flights departing from the specified airport.
+     *
+     * @param airportCode The IATA code of the departure airport.
+     * @return A map containing flight details keyed by destination airport IATA code.
+     */
+    public Map<String, Map<String, String>> getFlightsFromAirport(String airportCode) {
+        Map<String, Map<String, String>> flightsMap = new HashMap<>();
+
+        FindIterable<Document> iterable = collection.find(Filters.eq("IATA_code", airportCode));
+
+        for (Document airportDoc : iterable) {
+            List<Document> flightsFromAirport = airportDoc.getList("Flights", Document.class);
+            for (Document flight : flightsFromAirport) {
+                ObjectId destinationId = flight.getObjectId("Destination");
+                Document destinationAirport = getAirportById(destinationId);
+                if (destinationAirport != null) {
+                    Map<String, String> flightDetails = new HashMap<>();
+                    flightDetails.put("ID", flight.getString("ID"));
+                    flightDetails.put("Name", destinationAirport.getString("Name"));
+                    flightDetails.put("IATA_code", destinationAirport.getString("IATA_code"));
+                    flightDetails.put("Country", destinationAirport.getString("Country"));
+                    flightsMap.put(destinationAirport.getString("IATA_code"), flightDetails);
+                }
+            }
+        }
+
+        return flightsMap;
+    }
+
+    /**
+     * Retrieves the details of an airport by its ID.
+     *
+     * @param airportId The ObjectId of the airport.
+     * @return The document containing airport details, or null if not found.
+     */
+    private Document getAirportById(ObjectId airportId) {
+        return collection.find(Filters.eq("_id", airportId)).first();
+    }
+
+    /**
+     * Retrieves the list of available seats for a flight from a departure airport to an arrival airport.
+     *
+     * @param departureAirportCode The IATA code of the departure airport.
+     * @param arrivalAirportCode The IATA code of the arrival airport.
+     * @return A list of seat IDs that are available.
+     */
+    public List<String> getAvailableSeats(String departureAirportCode, String arrivalAirportCode) {
+        List<String> availableSeatsList = new ArrayList<>();
+
+        Document departureAirport = collection.find(Filters.eq("IATA_code", departureAirportCode)).first();
+
+        if (departureAirport != null) {
+            List<Document> flightsFromDeparture = departureAirport.getList("Flights", Document.class);
+            for (Document flight : flightsFromDeparture) {
+                ObjectId destinationId = flight.getObjectId("Destination");
+                Document destinationAirport = getAirportById(destinationId);
+                if (destinationAirport != null && destinationAirport.getString("IATA_code").equals(arrivalAirportCode)) {
+                    List<Document> seats = flight.getList("Seats", Document.class);
+                    for (Document seat : seats) {
+                        if ("Vacant".equals(seat.getString("Status"))) {
+                            availableSeatsList.add(seat.getString("ID"));
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        return availableSeatsList;
+    }
+
+    /**
+     * Attempts to book a flight for a given person, ensuring thread safety and atomic updates in MongoDB.
+     *
+     * @param flightID The ID of the flight to book.
+     * @param seatID The ID of the seat to book.
+     * @param person The person attempting to book the flight.
+     * @return True if the booking is successful, false otherwise.
+     */
+    public boolean bookFlight(String flightID, String seatID, PeopleGenerator.Person person) {
+        lock.lock();
+        try {
+            Document flightDocument = collection.find(Filters.eq("Flights.ID", flightID)).first();
+            if (flightDocument == null) {
+                return false;
+            }
+
+            List<Document> flights = flightDocument.getList("Flights", Document.class);
+            Document targetFlight = flights.stream()
+                    .filter(f -> flightID.equals(f.getString("ID")))
+                    .findFirst()
+                    .orElse(null);
+
+            if (targetFlight == null) {
+                return false;
+            }
+
+            Object priceObject = targetFlight.get("Price_per_Person");
+            if (!(priceObject instanceof Number)) {
+                return false; // Handle case where price is not a valid number
+            }
+            double seatPrice = ((Number) priceObject).doubleValue(); // Convert seat price to double
+
+            List<Document> seats = targetFlight.getList("Seats", Document.class);
+            Document seat = seats.stream()
+                    .filter(s -> seatID.equals(s.getString("ID")) && "Vacant".equals(s.getString("Status")))
+                    .findFirst()
+                    .orElse(null);
+
+            if (seat == null) {
+                return false;
+            }
+
+            if (person.getBalance() < seatPrice) {
+                return false;
+            }
+
+            // Store old balance and difference in Person object
+            person.setOldBalance(person.getBalance());
+            person.setDifference(seatPrice);
+
+            // Update seat status and person details
+            seat.put("Status", "Booked");
+            seat.put("Name", person.getName());
+            seat.put("Surname", person.getSurname());
+            seat.put("Document_Info", person.getDocumentInfo());
+            seat.put("Date_of_Birth", person.getDateOfBirth());
+            seat.put("Balance", person.getBalance() - seatPrice);
+
+            // Update MongoDB document atomically
+            UpdateResult result = collection.updateOne(
+                    Filters.and(
+                            Filters.eq("Flights.ID", flightID),
+                            Filters.eq("Flights.Seats.ID", seatID),
+                            Filters.eq("Flights.Seats.Status", "Vacant")
+                    ),
+                    Updates.combine(
+                            Updates.set("Flights.$[flight].Seats.$[seat].Status", "Booked"),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Name", person.getName()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Surname", person.getSurname()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Document_Info", person.getDocumentInfo()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Date_of_Birth", person.getDateOfBirth()),
+                            Updates.set("Flights.$[flight].Seats.$[seat].Balance", person.getBalance() - seatPrice)
+                    ),
+                    new UpdateOptions().arrayFilters(Arrays.asList(
+                            Filters.eq("flight.ID", flightID),
+                            Filters.eq("seat.ID", seatID)
+                    ))
+            );
+
+            if (result.getModifiedCount() == 1) {
+                // Deduct seat price from person's balance
+                person.setBalance(person.getBalance() - seatPrice);
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Closes the MongoDB client connection.
+     */
+    public void close() {
+        mongoClient.close();
+    }
+
+}
+```
+
+The code in the `Transactions.java` class is designed to handle various operations related to flights in a MongoDB
+collection. It allows for retrieving flight information, checking seat availability, and booking seats in a thread-safe manner.
+We now want to focus our attention on the management of concurrent read and write operations in MongoDB, and how the
+database provides tools to manage them. Not only this, but we will also detail how the Java class just shown takes
+advantage of Locking mechanisms in conjunction with the tools offered by MongoDB to avoid any conflicts
+
+##### Managing Concurrency
+
+MongoDB is designed to handle high-concurrency environments, supporting concurrent read operations efficiently through
+its architecture and features like multi-version concurrency control (MVCC). This mechanism allows multiple clients to
+read data from the database simultaneously without interfering with each other, ensuring that each read operation
+receives a consistent view of the data as it was at the start of the read operation.
+
+In MVCC, when a read operation begins, MongoDB provides a snapshot of the data at that moment. Any updates made by other
+clients after the read operation has started do not affect the snapshot seen by the reader. This approach provides several benefits:
+
+1. **Consistency**: readers always see a consistent view of the data, even if other clients are making concurrent writes.
+2. **Isolation**: MVCC ensures that readers are isolated from writers. Changes made by a writer are not visible to readers until the write is complete.
+3. **Performance**: by allowing multiple clients to read from the same data set concurrently, MongoDB can handle a high number of read requests efficiently.
+
+MongoDB employs snapshot reads for read operations within transactions. A snapshot read captures the state of the database
+at the start of the transaction, ensuring that all read operations within the transaction see a consistent view of the data.
+This is particularly useful in scenarios requiring strong consistency guarantees.
+MongoDB provides various read concern levels to control the consistency and isolation properties of read operations:
+
+- **"local"**: Returns the most recent data available, regardless of the acknowledgment of the write operations.
+- **"majority"**: Returns data that has been acknowledged by the majority of the replica set members, ensuring that the read data is durable.
+- **"snapshot"**: Provides a snapshot of the data as it was at the start of a transaction, ensuring a consistent view of the data during the transaction.
+
+The `Transactions.java` class leverages MongoDB's ability to handle concurrent operations to ensure efficient and safe
+access to our dataset. Here is how the class handles concurrent reads and writes:
+
+1. **Retrieving Flights from an Airport**:
+- The `getFlightsFromAirport` method retrieves all flights departing from a specified airport. MongoDB handles the concurrent reads internally, ensuring that the data returned is consistent.
+
+2. **Checking Available Seats**:
+- The `getAvailableSeats` method checks the availability of seats on a flight. This method involves reading the flight and seat information from the database. MongoDB's concurrent read capabilities ensure that multiple clients can check seat availability simultaneously without interference.
+
+3. **Booking a Flight**:
+- The `bookFlight` method handles concurrent write operations. This method is designed to be thread-safe, ensuring that only one thread can book a seat at a time using the `ReentrantLock`.
+
+The `ReentrantLock` in Java provides a way to ensure that only one thread can execute a block of code at a time.
+In the `bookFlight` method, the lock is used to ensure that the entire process of checking seat availability and
+updating the seat status is atomic. Here's how it works:
+
+1. **Acquire the Lock**: when a thread enters the `bookFlight` method, it calls `lock.lock()` to acquire the lock. This prevents other threads from entering the critical section of the code until the lock is released.
+2. **Check and Update**: inside the locked section, the code performs the following:
+- It checks if the flight and the seat are available.
+- It verifies that the person has sufficient balance.
+- It updates the seat status to "Booked" and deducts the price from the person's balance.
+- It performs an atomic update in the MongoDB collection using the `updateOne` method with array filters to ensure only the specified seat is updated.
+3. **Release the Lock**: after the update operation, the lock is released using `lock.unlock()`, allowing other threads to attempt booking operations.
+
+By using `ReentrantLock`, the code ensures that even if multiple threads try to book the same seat at the same time,
+*only one will succeed,* and the others will receive a failure response. This approach prevents race conditions and
+ensures data consistency within the application.
+
+##### Other Auxiliary Classes
+
+To conclude the overview of the code necessary for the operation of both the Main class and the Transactions class, it
+is best to shift the focus of our attention to the last two classes that make up the model: PeopleGenerator and its
+auxiliary class NameSurnamePool. First follows the PeopleGenerator code, whose purpose is to generate a People object.
+Given the simplicity of its nature (it is effectively a random generator of people based on various parameters), the
+code will be self-explanatory.
+
+```java
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * The PeopleGenerator class is responsible for generating a list of Person objects with
+ * random attributes, including name, surname, document information, date of birth, and balance.
+ * It can also generate a "poor" person with a limited balance.
+ *
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
+public class PeopleGenerator {
+
+    private static final Random RANDOM = new Random();
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
+
+    /**
+     * Generates a list of Person objects with specified count.
+     *
+     * @param count The number of Person objects to generate.
+     * @return A list of generated Person objects.
+     */
+    public List<Person> generatePeople(int count) {
+        List<Person> people = new ArrayList<>(count);
+        Set<String> documentNumbers = new HashSet<>(count);
+
+        for (int i = 0; i < count; i++) {
+            String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
+            String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
+            String documentInfo;
+
+            // Generate a unique document number
+            do {
+                documentInfo = generateDocumentInfo();
+            } while (documentNumbers.contains(documentInfo));
+
+            documentNumbers.add(documentInfo);
+            String dateOfBirth = generateDateOfBirth();
+            double balance = 100 + (100000 - 100) * RANDOM.nextDouble();
+
+            // Round the balance to two decimal places
+            balance = Double.parseDouble(DECIMAL_FORMAT.format(balance));
+
+            people.add(new Person(name, surname, documentInfo, dateOfBirth, balance));
+        }
+
+        return people;
+    }
+
+    /**
+     * Generates a 7-character alphanumeric document information string.
+     *
+     * @return A randomly generated document information string.
+     */
+    private String generateDocumentInfo() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder(7);
+        for (int i = 0; i < 7; i++) {
+            sb.append(chars.charAt(RANDOM.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Generates a random date of birth between 18 and 100 years ago.
+     *
+     * @return A randomly generated date of birth in "yyyy-MM-dd" format.
+     */
+    private String generateDateOfBirth() {
+        long now = System.currentTimeMillis();
+        long eighteenYearsAgo = now - (18L * 365 * 24 * 60 * 60 * 1000);
+        long hundredYearsAgo = now - (100L * 365 * 24 * 60 * 60 * 1000);
+        long randomMillis = ThreadLocalRandom.current().nextLong(hundredYearsAgo, eighteenYearsAgo);
+        return new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date(randomMillis));
+    }
+
+    /**
+     * Generates a Person object with limited balance, representing a "poor" person.
+     *
+     * @return A generated "poor" Person object.
+     */
+    public Person generatePoorPerson() {
+        String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
+        String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
+        String documentInfo = generateDocumentInfo();
+        String dateOfBirth = generateDateOfBirth();
+        double balance = 10.0; // Balance limited to 10$
+
+        return new Person(name, surname, documentInfo, dateOfBirth, balance);
+    }
+
+    /**
+     * The Person class represents an individual with attributes such as name, surname, document information,
+     * date of birth, and balance. It also tracks the previous balance and balance difference for transactions.
+     */
+    public static class Person {
+        private String name;
+        private String surname;
+        private String documentInfo;
+        private String dateOfBirth;
+        private double balance;
+        private double oldBalance; // Added to manage the previous balance
+        private double difference; // Added to manage balance difference
+
+        /**
+         * Constructs a new Person instance.
+         *
+         * @param name The name of the person.
+         * @param surname The surname of the person.
+         * @param documentInfo The document information of the person.
+         * @param dateOfBirth The date of birth of the person.
+         * @param balance The balance of the person.
+         */
+        public Person(String name, String surname, String documentInfo, String dateOfBirth, double balance) {
+            this.name = name;
+            this.surname = surname;
+            this.documentInfo = documentInfo;
+            this.dateOfBirth = dateOfBirth;
+            this.balance = balance;
+            this.oldBalance = balance; // Initially, the previous balance is equal to the current balance
+            this.difference = 0.0; // Initially, there is no balance difference
+        }
+
+        // Getters and setters...
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getSurname() {
+            return surname;
+        }
+
+        public void setSurname(String surname) {
+            this.surname = surname;
+        }
+
+        public String getDocumentInfo() {
+            return documentInfo;
+        }
+
+        public void setDocumentInfo(String documentInfo) {
+            this.documentInfo = documentInfo;
+        }
+
+        public String getDateOfBirth() {
+            return dateOfBirth;
+        }
+
+        public void setDateOfBirth(String dateOfBirth) {
+            this.dateOfBirth = dateOfBirth;
+        }
+
+        public double getBalance() {
+            return balance;
+        }
+
+        public void setBalance(double balance) {
+            this.balance = balance;
+        }
+
+        public double getOldBalance() {
+            return oldBalance;
+        }
+
+        public void setOldBalance(double oldBalance) {
+            this.oldBalance = oldBalance;
+        }
+
+        public double getDifference() {
+            return difference;
+        }
+
+        public void setDifference(double difference) {
+            this.difference = difference;
+        }
+
+        @Override
+        public String toString() {
+            return "Person{" +
+                    "name='" + name + '\'' +
+                    ", surname='" + surname + '\'' +
+                    ", documentInfo='" + documentInfo + '\'' +
+                    ", dateOfBirth='" + dateOfBirth + '\'' +
+                    ", balance=" + balance +
+                    '}';
+        }
+    }
+
+    /**
+     * The main method to test the generation of Person objects.
+     *
+     * @param args Command line arguments (not used).
+     */
+    public static void main(String[] args) {
+        PeopleGenerator generator = new PeopleGenerator();
+        List<Person> people = generator.generatePeople(10000);
+
+        // Print the first 10 people to verify the output
+        for (int i = 0; i < 10; i++) {
+            System.out.println(people.get(i));
+        }
+    }
+}
+```
+
+Similarly, we present the auxiliary class NameSurnamePool, which is nothing more than a class intended to contain Array
+of possible names and surnames, which will be used in combination to generate a People object. Again, the code is simple
+enough that it does not require further explanations other than those already provided by the comments within it.
+
+```java
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * The NameSurnamePool class provides static lists of common Italian names and surnames.
+ * These lists can be used for generating sample data or for any other purpose requiring 
+ * a set of predefined names and surnames.
+ *
+ * @version 1.0
+ * @since 2024-07-02
+ * @author Andrea Moleri
+ */
+public class NameSurnamePool {
+
+    /**
+     * A static list of common Italian first names.
+     */
+    public static final List<String> NAMES = Arrays.asList(
+            "Luca", "Marco", "Giulia", "Francesca", "Alessandro", "Chiara", "Matteo", "Valentina", "Simone", "Martina",
+            "Andrea", "Sara", "Stefano", "Giorgia", "Davide", "Alice", "Federico", "Elena", "Nicola", "Silvia", "Giulio",
+            "Paolo", "Anna", "Antonio", "Laura", "Roberto", "Roberta", "Enrico", "Marta", "Gabriele", "Claudia",
+            "Leonardo", "Veronica", "Massimo", "Cristina", "Filippo", "Eleonora", "Giovanni", "Maria", "Pietro", "Federica",
+            "Vincenzo", "Daniela", "Riccardo", "Alberto", "Angela", "Emanuele", "Monica", "Salvatore", "Serena", "Beatrice",
+            "Tommaso", "Camilla", "Giovanna", "Vittoria", "Gabriella", "Lorenzo", "Michele", "Luigi", "Alessia", "Edoardo",
+            "Fabrizio", "Irene", "Fabio", "Patrizia", "Sergio", "Elisabetta", "Raffaele", "Caterina", "Ludovica", "Maurizio",
+            "Alberto", "Manuela", "Claudio", "Franco", "Tiziana", "Pasquale", "Debora", "Sabrina", "Giuseppe", "Marcella",
+            "Lucrezia", "Dario", "Cristiano", "Eleonora", "Renato", "Cinzia", "Alessia", "Cristian", "Lucia", "Sofia",
+            "Matilde", "Ginevra", "Arianna", "Samuele", "Noemi", "Aurora", "Rachele", "Michela", "Melissa", "Rebecca"
+    );
+
+    /**
+     * A static list of common Italian surnames.
+     */
+    public static final List<String> SURNAMES = Arrays.asList(
+            "Rossi", "Bianchi", "Esposito", "Romano", "Ferrari", "Ricci", "Marino", "Greco", "Bruno", "Gallo",
+            "Conti", "De Luca", "Costa", "Giordano", "Manenti", "Rizzo", "Lombardi", "Moretti", "Barbieri", "Fontana",
+            "Santoro", "Mariani", "Rinaldi", "Caruso", "Ferraro", "Gatti", "Testa", "Martini", "Pellegrini", "Palumbo",
+            "Sorrentino", "Longo", "Leone", "Gentile", "Lombardo", "Moleri", "Colombo", "D'Amico", "Martino", "Bianco",
+            "Morelli", "Amato", "Silvestri", "Grasso", "Parisi", "Sanna", "Farina", "Ruggiero", "Monti", "Coppola",
+            "De Santis", "Mazza", "Villa", "Marchetti", "Caputo", "Ferretti", "Battaglia", "Fiore", "Messina", "Donati",
+            "Vitali", "Fabbri", "Valentini", "Orlando", "Mariani", "Rizzi", "Benedetti", "Neri", "Bellini", "Rossetti",
+            "Bertoni", "Piras", "Rosati", "Di Lorenzo", "Martelli", "Marino", "Ferri", "Brunetti", "De Angelis", "Basili",
+            "Veneziani", "Pascarella", "Pagano", "Palmieri", "Ferraro", "Armani", "Raimondi", "Montanari", "Carbone", "D'Agostino"
+    );
+}
+```
+
+This concludes the overview of the code used for the purposes of data ingestion, data processing, data parsing, data
+modeling and transactions management within the MongoDB database, paying careful attention to the management of
+concurrent transactions.
+
+### Cassandra Transactions
+
+Transaction and concurrency management in a distributed system like Cassandra requires specific structures to ensure consistency and reliability. These include batch operations and Lightweight Transactions (LWT), which facilitate data operations by offering a certain level of atomicity and consistency.
+
+#### Batch Operations in Cassandra
+
+Batch operations in Cassandra allow executing a group of write operations as a single unit. This means all operations within the batch are sent to the database together and executed in the same context. A batch can include insert, update, or delete instructions. Its syntax can be:
+```cql
+BEGIN BATCH
+INSERT INTO keyspace_name.table_name (column1, column2) VALUES (value1, value2);
+UPDATE keyspace_name.table_name SET column1 = value WHERE column2 = value2;
+DELETE FROM keyspace_name.table_name WHERE column1 = value1;
+APPLY BATCH;
+```
+Batch operations are particularly useful for increasing the efficiency of sending operations to the server, as they reduce the number of exchanges between the client and server. When executing a batch, if it involves operations on a single partition, Cassandra can ensure atomicity. This means that all operations in the batch will either be applied together or none of them will be applied. If any operation fails for any reason (e.g., syntax error, data validation error, or network error preventing batch completion), none of the operations in the batch will be applied. Thus, the entire batch is treated as an atomic unit, as if it were a single operation.
+
+When the batch involves operations on multiple partitions, complete atomicity is not guaranteed. In these cases, Cassandra tries to apply all operations, but if one operation fails, the behavior does not ensure the complete reversibility of already applied operations. Therefore, batches in Cassandra provide a form of partial atomicity.
+
+In the context of transaction and concurrency management, batch operations help coordinate multiple writes in a single request. This can reduce concurrency issues as operations are applied in a coherent unit. However, since Cassandra is a distributed system designed for scalability, its consistency model is eventual, meaning that without additional control mechanisms, batch operations cannot guarantee that all nodes will immediately see the same data version.
+
+#### Lightweight Transactions (LWT) in Cassandra
+
+Lightweight Transactions (LWT) in Cassandra are a mechanism for performing write operations with consensus control that ensures consistency in the presence of concurrency. LWTs use a Paxos-based protocol to achieve consensus among cluster nodes before applying the write. The syntax of an LWT includes the `IF` clause that checks a condition before performing an insert, delete, or update operation. Some examples are:
+```cql
+INSERT INTO keyspace_name.table_name (column1, column2) VALUES (value1, value2) IF NOT EXISTS;
+```
+```cql
+UPDATE keyspace_name.table_name SET column1 = value WHERE column2 = value2 IF column3 = value3;
+```
+```cql
+DELETE FROM keyspace_name.table_name WHERE column1 = value1 IF EXISTS;
+```
+LWTs are particularly useful for ensuring that write operations respect certain conditions, maintaining data consistency in concurrency scenarios. They are ideal for implementing conditional write operations, such as inserting a record only if it does not already exist (`IF NOT EXISTS`), or updating a record only if another condition is met (`IF column = value`).
+
+When a client sends an LWT to the coordinator node, a Paxos-based protocol is applied in four phases:
+- **Preparation Phase**: The coordinator sends a "Prepare" request to all replicas involved in the transaction. The participating nodes locally evaluate whether they can satisfy the condition specified in the `IF` clause before confirming their readiness to proceed. The replicas respond by indicating the highest proposal number they have accepted so far.
+- **Proposal Phase**: Based on the responses received during the preparation phase, the coordinator generates a new proposal with a unique number and the value to be written. This proposal is then sent to all involved replicas. The replicas compare the new proposal number with any previously accepted proposal numbers. If the new proposal number is higher, the replicas accept the proposal and respond to the coordinator.
+- **Commit Phase**: This phase verifies the consensus of the transaction. Once the coordinator has received acceptances from the majority of replicas, it decides to commit the transaction. The coordinator then sends a "Commit" request to all replicas, indicating that the proposal should be applied. The replicas receive this request and mark the proposal as committed. The `IF` clause is re-evaluated before the final commit to ensure that the condition is still met.
+- **Application Phase**: The replicas apply the committed value to their local data. Each replica confirms to the coordinator that the value has been correctly applied. Finally, once the coordinator has received confirmations from all replicas, it sends a confirmation to the client that the LWT has been successfully completed.
+
+In the context of transaction and concurrency management, LWTs offer a strong consistency mechanism. Through the use of the protocol, an LWT ensures that only one consistent version of the data is written and made visible to all nodes in the cluster. This is crucial in applications where data integrity must be ensured, such as in a user registration system where each username must be unique.
+
+However, LWTs come with a performance cost. The consensus process requires a series of information exchanges between nodes to reach an agreement, which slows down the operation compared to normal writes.
+
+#### Application to data model
+In the context of a flight booking system, poor concurrency management can cause numerous problems. A particularly serious case can occur when, for example, on a sold-out flight (all seats have been purchased), two people book the same seat due to a system error. To avoid such issues, it has been decided to use Lightweight Transactions (LWT) in the system.
+
+In the implemented model, the crucial operation that requires concurrency control is: "Given a flight code, a seat code, and user information, insert the user data and change the seat status from 'Vacant' to 'Occupied'." In CQL language, this operation translates to:
+
+```cql
+UPDATE seat SET status = 'Occupied', balance = 'v1', date_of_birth = 'v2', document_info = 'v3', name = 'v4', surname = 'v5' WHERE flight = 'v6' AND id = 'v7';
+```
+
+Since a seat must be vacant before it can be occupied, we can update the operation using LWT by adding a clause that verifies the seat status is 'Vacant' before performing the operation. The CQL query will therefore be:
+
+```cql
+UPDATE seat SET status = 'Occupied', balance = 'v1', date_of_birth = 'v2', document_info = 'v3', name = 'v4', surname = 'v5' WHERE flight = 'v6' AND id = 'v7' IF status = 'Vacant';
+```
+
+In this way, it ensures that two people cannot book the same seat on the same flight.
+
+In the Java code related to the implemented model, all simple checks, such as seat availability and user balance, are handled by the application. This approach improves performance. Specifically, in the updated code below, three methods have been added:
+
+- ```transaction```: Given the departure and arrival airports, it executes a query to find available flights on that route, selects one (the first), checks if there are available seats on that flight, selects one if available, and calls execute to book the seat with the user data provided as input.
+- ```parallelTransaction```: This is a test method that essentially performs the same function as transaction but ensures that two people are simultaneously attempting to book the same seat on the same flight.
+- ```execute```: This method starts by checking the user's available balance. If the balance is sufficient, it proceeds with booking the flight. After sending the UPDATE operation, it checks if it was applied and informs the caller of the outcome. When called by parallelTransaction, it is expected that one booking will succeed while the other will not.
+
+```java
+package com.example.cassandra;
+
+// Import necessary classes from DataStax driver and AWS MCS for authentication
+import com.datastax.driver.core.*;
+import software.aws.mcs.auth.SigV4AuthProvider;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class App
+{
+static Session session = null;
+
+    // Method to get flights from a specific airport
+    public static List<Flight> getFlightsFromAirport(String airportCode){
+        // Create a query to select all flights from a specific departure airport
+        SimpleStatement query = new SimpleStatement("SELECT * FROM flight WHERE departure='" + airportCode + "';");
+        return getFlights(query);
+    }
+
+    // Helper method to execute a query and return a list of Flight objects
+    private static List<Flight> getFlights(SimpleStatement query) {
+        ResultSet rs = session.execute(query);
+        List<Flight> flightList = new ArrayList<>();
+
+        // Iterate through the result set and create Flight objects
+        for (Row row : rs) {
+            String departure = row.getString("departure");
+            String day = "" + row.getDate("day");
+            String destination = row.getString("destination");
+            String hour = "" + row.getTime("hour");
+            String id = row.getString("id");
+            String duration = row.getString("duration");
+            int number_of_seats = row.getInt("number_of_seats");
+            String operator = row.getString("operator");
+            float price_per_person = row.getFloat("price_per_person");
+
+            Flight flight = new Flight(departure, day, destination, hour, id, duration, number_of_seats, operator, price_per_person);
+            flightList.add(flight);
+        }
+
+        return flightList;
+    }
+
+    // Method to get flights based on departure and destination airports
+    public static List<Flight> getFlightsFromDepartureAndDestination(String departureCode, String destinationCode) {
+        // Create a query to select flights based on departure and destination
+        SimpleStatement query = new SimpleStatement("SELECT * FROM flight WHERE departure='" + departureCode + "' AND destination='" + destinationCode + "';");
+        return getFlights(query);
+    }
+
+    // Method to get airport details based on IATA code
+    public static Airport getAirportFromIATA(String airportCode) {
+        // Create a query to select an airport based on its IATA code
+        SimpleStatement query = new SimpleStatement("SELECT * FROM airport WHERE IATA_code='" + airportCode + "';");
+        ResultSet rs = session.execute(query);
+
+        Row row = rs.one();
+        Airport airport = null;
+        // From result set to Airport
+        if (row != null) {
+            String iata_code = row.getString("iata_code");
+            String country = row.getString("country");
+            String country_code = row.getString("country_code");
+            String geo_point = row.getString("geo_point");
+            String icao_code = row.getString("icao_code");
+            String name = row.getString("name");
+            String name_en = row.getString("name_en");
+            String name_fr = row.getString("name_fr");
+            String operator = row.getString("operator");
+            String phone = row.getString("phone");
+            int size = row.getInt("size");
+            String website= row.getString("website");
+
+            airport = new Airport(iata_code, country, country_code, geo_point, icao_code, name, name_en, name_fr, operator, phone, size, website);
+        }
+
+        return airport;
+    }
+
+    // Method to get seats for a specific flight
+    public static List<Seat> getSeats(String flightCode) {
+        // Create a query to select all seats for a specific flight
+        SimpleStatement query = new SimpleStatement("SELECT * FROM seat WHERE flight='" + flightCode + "';");
+        ResultSet rs = session.execute(query);
+
+        List<Seat> seatList = new ArrayList<>();
+
+        // Iterate through the result set and create Seat objects
+        for (Row row : rs) {
+            String flight = row.getString("flight");
+            String id = row.getString("id");
+            float balance = row.getFloat("balance");
+            String date_of_birth = "" + row.getDate("date_of_birth");
+            String document_info = row.getString("document_info");
+            String name = row.getString("name");
+            String status = row.getString("status");
+            String surname = row.getString("surname");
+
+            Seat seat = new Seat(flight, id, balance, date_of_birth, document_info, name, status, surname);
+            seatList.add(seat);
+        }
+
+        return seatList;
+    }
+
+    // Method to get available (vacant) seats for a specific flight
+    public static List<Seat> getAvailableSeats(String flightCode) {
+        List<Seat> seats = getSeats(flightCode);
+        List<Seat> availableSeats = new ArrayList<>();
+
+        // Filter seats to only include those that are vacant
+        for (Seat seat : seats) {
+            if(seat.getStatus().equals("Vacant")) {
+                availableSeats.add(seat);
+            }
+        }
+
+        return availableSeats;
+    }
+
+    // Method to get the status of a specific seat on a flight
+    public static String getSeatStatus(String flightCode, String idSeat) throws Exception {
+        // Create a query to select a seat based on flight and seat ID
+        SimpleStatement query = new SimpleStatement("SELECT * FROM seat WHERE flight='" + flightCode + "' AND id='"+ idSeat +"';");
+        ResultSet rs = session.execute(query);
+
+        Row row = rs.one();
+
+        if (row != null) {
+            return row.getString("status");
+        }
+
+        throw new Exception("This seat does not exist");
+    }
+
+    // Method to get the first available flight based on departure and destination airports
+    public static Flight getFirstAvailableFlight(String departureCode, String destinationCode) throws Exception{
+        List<Flight> flights = getFlightsFromDepartureAndDestination(departureCode, destinationCode);
+
+        if (flights.isEmpty()) {
+            throw new Exception("No flights found");
+        }
+
+        return flights.get(0);
+    }
+
+    // Method to get the first available seat on a specific flight
+    public static Seat getFirstAvailableSeat(String flightCode) throws Exception {
+        List<Seat> seats = getAvailableSeats(flightCode);
+
+        if (seats.isEmpty()) {
+            throw new Exception("No seats available");
+        }
+
+        return seats.get(0);
+    }
+
+    // Method to perform a transaction to book a flight and a seat for a user
+    public static void transaction(User user, String departureCode, String destinationCode) {
+        Flight flight;
+        Seat seat;
+        try {
+            flight = getFirstAvailableFlight(departureCode, destinationCode);
+            seat = getFirstAvailableSeat(flight.getId());
+            System.out.println(execute(user, flight, seat));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    // Method to perform parallel transactions for two users
+    public static void parrallelTransaction(User user1, User user2, String departureCode, String destinationCode) {
+        Flight flight;
+        Seat seat;
+        try {
+            flight = getFirstAvailableFlight(departureCode, destinationCode);
+            seat = getFirstAvailableSeat(flight.getId());
+
+            // Create threads to execute transactions for both users in parallel
+            Thread thread1 = new Thread(() -> { System.out.println(execute(user1, flight, seat)); });
+            Thread thread2 = new Thread(() -> { System.out.println(execute(user2, flight, seat)); });
+
+            thread1.start();
+            thread2.start();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+    }
+
+    // Method to execute the booking of a seat for a user
+    public static String execute(User user, Flight flight, Seat seat) {
+        if (flight.getPrice_per_person() > user.getBalance()) {
+            return "Insufficient balance";
+        }
+
+        user.setBalance(user.getBalance() - flight.getPrice_per_person());
+
+        String updateQuery = "UPDATE seat SET status = 'Occupied', balance = ?, date_of_birth = ?, document_info = ?, name = ?, surname = ? WHERE flight = ? AND id = ? IF status = 'Vacant'";
+        PreparedStatement updateStmt = session.prepare(updateQuery);
+        updateStmt.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+
+        LocalDate birthDate = LocalDate.fromYearMonthDay(
+                Integer.parseInt(user.getDate_of_birth().substring(0, 4)),
+                Integer.parseInt(user.getDate_of_birth().substring(5, 7)),
+                Integer.parseInt(user.getDate_of_birth().substring(8, 10))
+        );
+
+        ResultSet resultSet = session.execute(updateStmt.bind(user.getBalance(), birthDate, user.getDocument_info(), user.getName(), user.getSurname(), seat.getFlight(), seat.getId()));
+
+        if (!resultSet.wasApplied()) {
+            return user.getName() + " " + user.getSurname() + ": seat reservation " + seat.getId() + " failed. It might already be 'Occupied'.";
+        }
+
+        return user.getName() + " " + user.getSurname() + ": seat " + seat.getId() + " successfully booked up.";
+    }
+
+    // Method to insert data into tables from text files
+    public static void insert(String table) {
+        List<List<String>> dati = new ArrayList<>();
+
+        String[] fileName = {"airport.txt", "flights.txt", "seats.txt"};
+
+        for (String s: fileName) {
+            try (BufferedReader br = new BufferedReader(new FileReader(s))) {
+                String line;
+                List<String> list = new ArrayList<>();
+
+                // Read data from the text file and add it to the list
+                while ((line = br.readLine()) != null) {
+                    list.add(line.trim());
+                }
+
+                dati.add(list);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Insert data into the specified table
+        if(table.equals("airport")) {
+            System.out.println("Insert Airport");
+            for (String l1: dati.get(0)) {
+                SimpleStatement query = new SimpleStatement("INSERT INTO airport (Size, Country, Country_code, Geo_Point, IATA_code, ICAO_code, Name, Name_en, Name_fr, Operator, Phone, Website) VALUES " + l1 + ";");
+                session.execute(query);
+            }
+        } else {
+            if(table.equals("flight")) {
+                System.out.println("Insert Flight");
+                for (String l2: dati.get(1)) {
+                    SimpleStatement query = new SimpleStatement("INSERT INTO flight (ID, Departure, Destination, Number_of_Seats, Day, Hour, Operator, Duration, Price_per_Person) VALUES " + l2 + ";");
+                    session.execute(query);
+                }
+            } else {
+                System.out.println("Insert Seat");
+                for (String l3: dati.get(2)) {
+                    SimpleStatement query = new SimpleStatement("INSERT INTO seat (Flight, ID, Status, Name, Surname, Document_Info, Date_of_Birth, Balance) VALUES " + l3 + ";");
+                    session.execute(query);
+                }
+            }
+        }
+    }
+
+    // Main method to initialize the Cassandra session and perform setup tasks
+    public static void main( String[] args ) {
+        String endPoint = "cassandra.eu-north-1.amazonaws.com";
+        int portNumber = 9142;
+
+        try {
+            // Initialize Cassandra session with AWS MCS authentication
+            session = Cluster.builder()
+                    .addContactPoint(endPoint)
+                    .withPort(portNumber)
+                    .withAuthProvider(new SigV4AuthProvider("eu-north-1"))
+                    .withSSL()
+                    .build()
+                    .connect();
+
+            System.out.println("Connected to Cassandra!");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Create keyspace and use it
+        session.execute("CREATE KEYSPACE IF NOT EXISTS my_airport WITH replication = "
+                + "{'class':'SimpleStrategy','replication_factor':3};");
+
+        session.execute("USE my_airport;");
+
+        // Get list of existing tables before creating new ones
+        ResultSet rs = session.execute("SELECT table_name FROM system_schema.tables " +
+                "WHERE keyspace_name = 'my_airport' ");
+
+        List<String> list_before = new ArrayList<>();
+        for (Row row : rs) {
+            list_before.add(row.getString("table_name"));
+        }
+
+        // Create necessary tables if they don't exist
+        session.execute("CREATE TABLE IF NOT EXISTS airport (Name_en text, Country text, Website text, Geo_Point text, ICAO_code text, Country_code text, Phone text, Name_fr text, Name text, IATA_code text, Size int, Operator text, PRIMARY KEY (IATA_code));");
+        session.execute("CREATE TABLE IF NOT EXISTS flight (ID text, Number_of_Seats int, Day date, Hour time, Operator text, Duration text, Price_per_Person float, Destination text, Departure text, PRIMARY KEY ((Departure), Destination, Day, Hour, id));");
+        session.execute("CREATE TABLE IF NOT EXISTS seat (Flight text, Status text, ID text, Name text, Surname text, Document_Info text, Date_of_Birth date, Balance float, PRIMARY KEY ((Flight), ID));");
+
+        // Get list of tables after creation
+        rs = session.execute("SELECT table_name FROM system_schema.tables " +
+                "WHERE keyspace_name = 'my_airport' ");
+
+        List<String> list_after = new ArrayList<>();
+        for (Row row : rs) {
+            list_after.add(row.getString("table_name"));
+        }
+
+        // Insert data into newly created tables
+        if (list_before.size() != list_after.size()) {
+            for (String s : list_after) {
+                if (!list_before.contains(s)) {
+                    insert(s);
+                }
+            }
+        }
+
+        // Test various queries and transactions
+        // Test Query getFlightsFromAirport
+        System.out.println("getFlightsFromAirport");
+        System.out.println(getFlightsFromAirport("BGY"));
+
+        // Test Query getAirportFromIATA
+        System.out.println("getAirportFromIATA");
+        System.out.println(getAirportFromIATA("BGY"));
+
+        // Test Query getFlightsFromDepartureAndDestination
+        System.out.println("getFlightsFromDepartureAndDestination");
+        System.out.println(getFlightsFromDepartureAndDestination("BGY", "AAL"));
+
+        // Test Query getAvailableSeats
+        System.out.println("getAvailableSeats");
+        System.out.println(getAvailableSeats("6677f9a27acf35542d8ef4df"));
+
+        // Test Query getSeatStatus
+        System.out.println("getSeatStatus");
+        try {
+            System.out.println(getSeatStatus("6677f9a27acf35542d8ef4df", "10B"));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        User user1 = new User(200, "2001-11-14", "CA11111XT", "Mario", "Verdi");
+
+        // Test Simple Transaction
+        System.out.println("transaction");
+        transaction(user1, "BGY", "AAL");
+
+        // Test Failed Transaction
+        System.out.println("transaction with no balance");
+        user1.setBalance(0);
+        transaction(user1, "BGY", "AAL");
+
+        // Test Parallel Transaction
+        user1.setBalance(300);
+        User user2 = new User(300, "2000-12-01", "CAAAAAAAA", "Luca", "Rossi");
+        System.out.println("parrallelTransaction");
+        parrallelTransaction(user1, user2, "BGY", "AAL");
+    }
+}
+```
+
+An example of query execution with concurrent LWTs can be:
+
+```plaintext
+Trace ID: c1512810-3a2f-11ef-9bb1-0f67a87d0426
+/2 Preparing c1587b12-3a2f-11ef-da45-6843ca902dd1 47694ms
+/2 Promising ballot c1587b12-3a2f-11ef-da45-6843ca902dd1 65716ms
+/2 Appending to commitlog 66332ms
+/2 Adding to paxos memtable 66706ms
+/2 Reading existing values for CAS precondition 69460ms
+/2 Executing single-partition query on seat 71186ms
+/2 Acquiring sstable references 71351ms
+/2 Merging memtable contents 71474ms
+/2 Read 1 live rows and 0 tombstone cells 72472ms
+/2 CAS precondition is met; proposing client-requested updates for c1587b12-3a2f-11ef-da45-6843ca902dd1 85767ms
+/2 Accepting proposal Accepted(139394090253450002:c1587b12-3a2f-11ef-da45-6843ca902dd1, 1720116225345000:key=6677f9a27acf35542d8ef4df
+Row: id=11E | balance=74, date_of_birth=2001-11-14, document_info=CA11111XT, name=Mario, status=Occupied, surname=Verdi) 88749ms
+/2 Appending to commitlog 91469ms
+/2 Adding to paxos memtable 91883ms
+/2 Committing proposal Committed(139394090253450002:c1587b12-3a2f-11ef-da45-6843ca902dd1, 1720116225345000:key=6677f9a27acf35542d8ef4df
+Row: id=11E | balance=74, date_of_birth=2001-11-14, document_info=CA11111XT, name=Mario, status=Occupied, surname=Verdi) 99883ms
+/2 Appending to commitlog 100387ms
+/2 Adding to seat memtable 101132ms
+/2 Appending to commitlog 108416ms
+/2 Adding to paxos memtable 108859ms
+/2 CAS applied successfully 110613ms
+```
+
+```plaintext
+Trace ID: c151281a-3a2f-11ef-9bb1-0f67a87d0426
+/2 Preparing c156f472-3a2f-11ef-c9d4-a4b8589ef39a 41340ms
+/2 Promising ballot c156f472-3a2f-11ef-c9d4-a4b8589ef39a 54533ms
+/2 Appending to commitlog 60670ms
+/2 Adding to paxos memtable 61286ms
+/2 Reading existing values for CAS precondition 68610ms
+/2 Executing single-partition query on seat 70832ms
+/2 Acquiring sstable references 71145ms
+/2 Merging memtable contents 71372ms
+/2 Read 1 live rows and 0 tombstone cells 72515ms
+/2 CAS precondition is met; proposing client-requested updates for c156f472-3a2f-11ef-c9d4-a4b8589ef39a 87881ms
+/2 Rejecting proposal for Accepted(139394090253350002:c156f472-3a2f-11ef-c9d4-a4b8589ef39a, 1720116225335000:key=6677f9a27acf35542d8ef4df
+Row: id=11E | balance=174, date_of_birth=2000-12-01, document_info=CAAAAAAAA, name=Luca, status=Occupied, surname=Rossi) because inProgress is now c1587b12-3a2f-11ef-da45-6843ca902dd1 94375ms
+/2 Paxos proposal not accepted (pre-empted by a higher ballot) 95414ms
+/2 Preparing c1621802-3a2f-11ef-110e-7f625f30ee43 110763ms
+/2 Promising ballot c1621802-3a2f-11ef-110e-7f625f30ee43 112032ms
+/2 Appending to commitlog 112670ms
+/2 Adding to paxos memtable 112945ms
+/2 Reading existing values for CAS precondition 114621ms
+/2 Executing single-partition query on seat 115328ms
+/2 Acquiring sstable references 115805ms
+/2 Merging memtable contents 116994ms
+/2 Read 1 live rows and 0 tombstone cells 118135ms
+/2 CAS precondition does not match current values [my_airport.seat] key=6677f9a27acf35542d8ef4df partition_deletion=deletedAt=-9223372036854775808, localDeletion=2147483647 columns=[[] | [balance date_of_birth document_info name status surname]]
+Row[info=[ts=1720115220302524] ]: id=11E | [balance=74 ts=1720116225345000], [date_of_birth=2001-11-14 ts=1720116225345000], [document_info=CA11111XT ts=1720116225345000], [name=Mario ts=1720116225345000], [status=Occupied ts=1720116225345000], [surname=Verdi ts=1720116225345000] 128739ms
+/2 CAS precondition is met; proposing client-requested updates for c1621802-3a2f-11ef-110e-7f625f30ee43 129063ms
+/2 Accepting proposal Accepted(139394090254080002:c1621802-3a2f-11ef-110e-7f625f30ee43, 1442880000000000:key=6677f9a27acf35542d8ef4df) 130634ms
+/2 Appending to commitlog 131213ms
+/2 Adding to paxos memtable 131646ms
+/2 CAS did not apply 138740ms
+```
+
+## Large Volume Data Management
+
+In this chapter, we will delve into how it is possible to manage and read large volumes of data in MongoDB/Cassandra, using the
+`"Airports"` database. We will explore how to efficiently distribute the database across multiple nodes to optimize performance and ensure fault tolerance.
+Additionally, we will discuss the mechanisms MongoDB/Cassandra employs to handle failures within the cluster and strategies to
 mitigate potential issues. Finally, we will provide detailed instructions on using Docker for deployment and management
 of the MongoDB cluster.
 
-We can't talk about reading large volumes of data in MongoDB without explaining what sharding is first. Even though we
-went over sharding in detail in the Architecture section of this document, we will explain it again here, in a more
-focused way for better reading comprehension. Sharding is a method for distributing data across multiple machines.
-MongoDB uses sharding to support deployments with very large data sets and high throughput operations. This is essential
-for managing large volumes of data by spreading the data across several servers, ensuring that no single server is
-overwhelmed by requests or storage demands.
-
-As an arbitrary number, we will choose to distribute the `"airportCollection"` across four nodes. In order to do this,
-we will need to define a sharding key. The sharding key determines how the data is partitioned and distributed. In our
-case, the ideal sharding key might be the `"Country_code"` attribute since it ensures a relatively even distribution of
-data based on the airports' countries. This approach helps in balancing the load and optimizing query performance.
-To be able to carry out the operations we need, the use of Docker is necessary. Therefore, we show below what it is, 
-how it works, and how to configure it to handle the needs of our application
-
-#### What is Docker?
+### Docker
 
 Docker is a platform and toolset designed to simplify the creation, deployment, and management of applications using 
 containerization technology. Containers allow developers to package an application and its dependencies into a 
@@ -5507,7 +5472,7 @@ heavy lifting of building, running, and distributing Docker containers. Containe
 essentially snapshots of a container's filesystem. Images are stored in repositories, such as Docker Hub, and can be 
 pulled and pushed between different Docker installations.
 
-### Benefits of Using Docker
+#### Benefits of Using Docker
 
 - **Portability**: docker containers can run on any machine that has Docker installed, regardless of the underlying operating system. This eliminates the "it works on my machine" problem and streamlines deployment across different environments.
 
@@ -5516,6 +5481,22 @@ pulled and pushed between different Docker installations.
 - **Efficiency**: containers share the host operating system kernel, making them lightweight and efficient compared to traditional virtual machines. Multiple containers can run on the same hardware without significant overhead.
 
 - **Scalability**: docker's architecture allows applications to be quickly deployed and scaled horizontally by adding or removing containers, making it ideal for microservices architectures and distributed applications.
+
+### Large Volume Data Management in MongoDB
+
+We can't talk about reading large volumes of data in MongoDB without explaining what sharding is first. Even though we
+went over sharding in detail in the Architecture section of this document, we will explain it again here, in a more
+focused way for better reading comprehension. Sharding is a method for distributing data across multiple machines.
+MongoDB uses sharding to support deployments with very large data sets and high throughput operations. This is essential
+for managing large volumes of data by spreading the data across several servers, ensuring that no single server is
+overwhelmed by requests or storage demands.
+
+As an arbitrary number, we will choose to distribute the `"airportCollection"` across four nodes. In order to do this,
+we will need to define a sharding key. The sharding key determines how the data is partitioned and distributed. In our
+case, the ideal sharding key might be the `"Country_code"` attribute since it ensures a relatively even distribution of
+data based on the airports' countries. This approach helps in balancing the load and optimizing query performance.
+To be able to carry out the operations we need, the use of Docker is necessary. Therefore, we show below what it is,
+how it works, and how to configure it to handle the needs of our application.
 
 #### Using Docker with MongoDB
 
@@ -5919,39 +5900,39 @@ public class MongoDBShardedConnection {
 }
 ```
 
-#### Large Volume Data Management in Cassandr
+### Large Volume Data Management in Cassandra
 
 Managing large volumes of data in Cassandra involves a combination of distribution, replication, load balancing, partitioning, and sharding techniques.
 
-##### Peer-to-Peer Architecture
+#### Peer-to-Peer Architecture
 Cassandra uses a masterless peer-to-peer architecture where every node in the cluster is equally important. This avoids bottlenecks and single points of failure, enhancing scalability and reliability.
 
-##### Data Distribution, Partitioning, and Sharding
+#### Data Distribution, Partitioning, and Sharding
 In Cassandra, data is partitioned and distributed among the nodes in the cluster using a partitioning hash. The partition key is processed by a hash function that determines the storage node, ensuring uniform data distribution and quick access. This process, known as sharding, divides the data into smaller segments called shards, improving system scalability and load balancing since each node manages only a portion of the total data, reducing the load on each node and allowing the system to grow linearly by adding new nodes.
 
-##### Data Replication
+#### Data Replication
 Cassandra offers strong fault tolerance through data replication. Each piece of data is replicated across multiple nodes based on the configured replication factor. Data replicas not only provide fault tolerance but also improve system availability and resilience. When a node fails, replicas on other nodes ensure data accessibility. Cassandra also allows configuring replicas to be distributed across different data centers, further enhancing resilience against large-scale failures like power outages or natural disasters in a single data center.
 
-##### Eventual Consistency
+#### Eventual Consistency
 Cassandra uses an eventual consistency model, allowing greater flexibility in managing distributed data. Writes are quickly distributed among nodes, and synchronization happens later, enabling high availability and low latency. Users can configure the required consistency level for read and write operations based on the specific needs of the application.
 
-##### Data Compaction
+#### Data Compaction
 Cassandra uses a technique called "compaction" to manage storage and optimize performance. During compaction, data is organized and consolidated into larger files, eliminating obsolete data and reducing disk fragmentation. This process improves read efficiency and reduces disk space usage.
 
-##### Load Balancing
+#### Load Balancing
 Cassandra automatically balances the load among the nodes in the cluster. When new nodes are added, existing data is redistributed to take advantage of the new capacity. This allows horizontal scaling of the cluster without significant service disruptions.
 
-##### Performance Optimization
+#### Performance Optimization
 Cassandra is optimized for handling high read and write throughput. It uses an append-only write model, where data is always added to the end of existing files, reducing write time. Reads are managed using in-memory indexes, allowing quick access to the requested data.
 
-##### Monitoring and Optimization
+#### Monitoring and Optimization
 To effectively manage large data volumes, it is essential to continuously monitor cluster performance. Cassandra provides various tools and metrics to monitor cluster status, resource usage, and query performance. Additionally, configurations can be optimized based on specific workloads to improve efficiency.
 
-##### Failure Management in Cassandra
+#### Failure Management in Cassandra
 
 In Cassandra, managing failures is crucial to ensure continuous availability and data consistency within the cluster.
 
-###### Gossip Protocol
+##### Gossip Protocol
 The gossip protocol is a key mechanism for managing failures in distributed systems. This protocol relies on a simple and robust communication method inspired by how information spreads in a human community: through gossip. The protocol operates in four phases:
 1. Periodic Information Exchange: Cluster nodes periodically exchange information about their status and that of other nodes. This exchange occurs at regular intervals and can involve a random number of nodes.
 2. Information Propagation: Each node, after receiving updated information from other nodes, transmits it to additional nodes in the cluster. This continuous propagation process allows information to spread quickly throughout the system.
@@ -5960,17 +5941,17 @@ The gossip protocol is a key mechanism for managing failures in distributed syst
 
 The gossip protocol is highly scalable. Even in large clusters with thousands of nodes, the time needed to disseminate information remains contained. Due to its decentralized nature, the gossip protocol is inherently fault-tolerant. There is no single point of failure since every node contributes to information dissemination. Gossip uses a reduced number of messages for information dissemination compared to centralized protocols, reducing network load. The protocol is relatively simple to implement, making it a popular choice for many distributed systems.
 
-###### Consistency Levels
+##### Consistency Levels
 Consistency levels are critical for managing read and write operations. When performing a write operation, it is possible to specify a consistency level that defines how many nodes must confirm the write for it to be considered valid. For example, selecting the "QUORUM" consistency level requires that the majority of nodes holding the replicas confirm the operation.
 
-###### Hinted Handoff
+##### Hinted Handoff
 In case a node becomes unavailable, Cassandra uses a technique called hinted handoff to ensure continuity of operations. This technique is crucial for maintaining data reliability and availability in a distributed cluster.
 
 When a node is temporarily out of service, the data that should be written to that node is stored as "hints" on another node in the cluster. This alternative node records the information that specific data was supposed to be written to the inactive node. The system continues to operate without interrupting read and write operations, as other available nodes handle the data.
 
 The hinted handoff not only allows uninterrupted data writes but also ensures no information is lost during the original node's downtime. Once the inactive node comes back online and becomes available again, the node storing the hints transfers the missing data to the original node. This process ensures all nodes can update and synchronize correctly, restoring data integrity in the cluster.
 
-###### Read Repair
+##### Read Repair
 During read operations, Cassandra verifies that all data replicas are consistent with each other. This process is known as read repair. When a client requests data, Cassandra reads it from all configured replicas (the number depends on the chosen consistency level). If the system detects discrepancies between replicas, it automatically performs a repair operation to correct them. This repair can be synchronous or asynchronous:
 
 - Synchronous: When a read requires synchronous read repair, Cassandra not only returns the correct data to the client but also updates all involved replicas before completing the read operation.
@@ -5978,7 +5959,7 @@ During read operations, Cassandra verifies that all data replicas are consistent
 
 This mechanism ensures replicas remain synchronized and that read data is always correct and up-to-date, improving data consistency within the cluster.
 
-###### Manual Repair
+##### Manual Repair
 In addition to automatic read repair, Cassandra provides tools for manual data repair, essential for maintaining cluster integrity and consistency over time. One such tool is the `nodetool repair` command. This command is used to manually synchronize replicas and correct any discrepancies that may have occurred due to unavailable nodes or failed writes.
 
 Regular execution of `nodetool repair` is crucial, especially in environments where nodes may encounter failures or periodic maintenance. This command scans the cluster and compares data across various replicas, ensuring each replica contains the most up-to-date information and correcting any divergences.
