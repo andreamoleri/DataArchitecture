@@ -1326,6 +1326,80 @@ public class App
 }
 ```
 
+#### Connection with Docker
+To connect from Java to a Cassandra database using Docker, you can follow these steps:
+
+1. Docker Compose Configuration
+   Create a `docker-compose.yml` file to define the Cassandra containers.
+
+2. Starting the Cassandra Cluster
+   Run Docker Compose to start the containers:
+
+```sh
+docker-compose up -d
+```
+
+3. Java Dependencies
+   Add the necessary dependencies to your Java project. If you are using Maven, add the following to your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>com.datastax.oss</groupId>
+    <artifactId>java-driver-core</artifactId>
+    <version>4.13.0</version>
+</dependency>
+```
+
+If you are using Gradle:
+
+```gradle
+implementation 'com.datastax.oss:java-driver-core:4.13.0'
+```
+
+4. Connecting to Cassandra from Java
+   Write the Java code to connect to the Cassandra cluster. An example is:
+
+```java
+package com.example.cassandra;
+
+import com.datastax.oss.driver.api.core.CqlSession;
+import java.net.InetSocketAddress;
+
+public class App {
+
+    public static void main(String[] args) {
+
+        try (CqlSession session = CqlSession.builder()
+                .addContactPoint(new InetSocketAddress("localhost", 9042))
+                .addContactPoint(new InetSocketAddress("localhost", 9043))
+                .withLocalDatacenter("datacenter1")
+                .build()) {
+
+            System.out.println("Connected to Cassandra!");
+        }
+    }
+}
+```
+
+where `InetSocketAddress` is a class from the standard Java library, located in the `java.net` package, representing a combination of an IP address (which can be either IPv4 or IPv6) and a port to uniquely identify an endpoint. It is commonly used in network applications to specify a communication endpoint.
+
+5. Data Center Configuration
+   If necessary, you can verify and modify the Cassandra configuration, adding information such as the maximum response time for a query.
+
+```java
+DriverConfigLoader loader = DriverConfigLoader.fromString("datastax-java-driver.basic.request.timeout = 10 seconds");
+
+try (CqlSession session = CqlSession.builder()
+        .addContactPoint(new InetSocketAddress("localhost", 9042))
+        .addContactPoint(new InetSocketAddress("localhost", 9043))
+        .withLocalDatacenter("datacenter1")
+        .withConfigLoader(loader)
+        .build()) {
+
+    System.out.println("Connected to Cassandra!");
+}
+```
+
 ## Syntax
 ### MongoDB Syntax
 
@@ -6027,6 +6101,328 @@ In addition to automatic read repair, Cassandra provides tools for manual data r
 Regular execution of `nodetool repair` is crucial, especially in environments where nodes may encounter failures or periodic maintenance. This command scans the cluster and compares data across various replicas, ensuring each replica contains the most up-to-date information and correcting any divergences.
 
 The importance of `nodetool repair` lies in its ability to prevent the accumulation of inconsistencies that could compromise data integrity over the long term. In practice, diligent administration of Cassandra includes regular execution of the `nodetool repair` command as part of periodic cluster maintenance operations. This ensures that even in the presence of temporary failures or maintenance interventions, the system remains robust, consistent, and reliable.
+
+#### Example of Gossip and Hinted Handoff in Cassandra
+
+Consider the scenario with the following `docker-compose.yml`:
+
+```bash
+services:
+  cassandra-node1:
+    image: cassandra:latest
+    container_name: cassandra-node1
+    environment:
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack1
+    ports:
+      - "9042:9042"
+    networks:
+      - cassandra-net
+
+  cassandra-node2:
+    image: cassandra:latest
+    container_name: cassandra-node2
+    environment:
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_SEEDS=cassandra-node1
+    networks:
+      - cassandra-net
+
+  cassandra-node3:
+    image: cassandra:latest
+    container_name: cassandra-node3
+    environment:
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_SEEDS=cassandra-node1
+    ports:
+      - "9043:9042"
+    networks:
+      - cassandra-net
+
+networks:
+  cassandra-net:
+    driver: bridge
+```
+
+Run the command:
+```bash
+docker-compose up -d
+```
+to start the containers.
+
+Execute the commands:
+```bash
+docker exec -it cassandra-node1 bash
+nodetool describecluster
+```
+to obtain the current status of the nodes:
+
+```plaintext
+root@a619f2004d70:/# nodetool describecluster
+Cluster Information:
+        Name: Test Cluster
+        Snitch: org.apache.cassandra.locator.SimpleSnitch
+        DynamicEndPointSnitch: enabled
+        Partitioner: org.apache.cassandra.dht.Murmur3Partitioner
+        Schema versions:
+                54e17321-3f2e-37ca-9b08-d91ba7bdd369: [172.22.0.2, 172.22.0.3, 172.22.0.4]
+
+Stats for all nodes:
+        Live: 3
+        Joining: 0
+        Moving: 0
+        Leaving: 0
+        Unreachable: 0
+
+Data Centers:
+        datacenter1 #Nodes: 3 #Down: 0
+
+Database versions:
+        4.1.5: [172.22.0.2:7000, 172.22.0.3:7000, 172.22.0.4:7000]
+
+Keyspaces:
+        system_traces -> Replication class: SimpleStrategy {replication_factor=2}
+        system_distributed -> Replication class: SimpleStrategy {replication_factor=3}
+        system_auth -> Replication class: SimpleStrategy {replication_factor=1}
+        system_schema -> Replication class: LocalStrategy {}
+        system -> Replication class: LocalStrategy {}
+```
+
+Next, populate the database by running the following code, analogous to the AWS version explained in previous chapters:
+
+```java
+package com.example.cassandra;
+
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.CqlSession;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
+
+public class App {
+
+    public static void insert(CqlSession session, String table) {
+        List<List<String>> data = new ArrayList<>();
+
+        String[] fileNames = {"airport.txt", "flights.txt", "seats.txt"}; // Your txt file names
+
+        for (String fileName : fileNames) {
+            try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+                String line;
+                List<String> list = new ArrayList<>();
+
+                while ((line = br.readLine()) != null) {
+                    list.add(line.trim());
+                }
+
+                data.add(list);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (table.equals("airport")) {
+            System.out.println("Insert Airport");
+            for (String row : data.get(0)) {
+                try {
+                    SimpleStatement query = SimpleStatement.newInstance(
+                            "INSERT INTO airport (Size, Country, Country_code, Geo_Point, IATA_code, ICAO_code, Name, Name_en, Name_fr, Operator, Phone, Website) VALUES " + row + ";");
+                    query = query.setConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM);
+                    session.execute(query);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+        } else if (table.equals("flight")) {
+            System.out.println("Insert Flight");
+            for (String row : data.get(1)) {
+                try {
+                    SimpleStatement query = SimpleStatement.newInstance(
+                            "INSERT INTO flight (ID, Departure, Destination, Number_of_Seats, Day, Hour, Operator, Duration, Price_per_Person) VALUES " + row + ";");
+                    query = query.setConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM);
+                    session.execute(query);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+        } else {
+            System.out.println("Insert Seat");
+            for (String row : data.get(2)) {
+                try {
+                    SimpleStatement query = SimpleStatement.newInstance(
+                            "INSERT INTO seat (Flight, ID, Status, Name, Surname, Document_Info, Date_of_Birth, Balance) VALUES " + row + ";");
+                    query = query.setConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM);
+                    session.execute(query);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+
+        DriverConfigLoader loader = DriverConfigLoader.fromString("datastax-java-driver.basic.request.timeout = 10 seconds");
+
+        try (CqlSession session = CqlSession.builder()
+                .addContactPoint(new InetSocketAddress("localhost", 9042))
+                .addContactPoint(new InetSocketAddress("localhost", 9043))
+                .withLocalDatacenter("datacenter1")
+                .withConfigLoader(loader)
+                .build()) {
+
+            System.out.println("Connected to Cassandra!");
+
+            session.execute("CREATE KEYSPACE IF NOT EXISTS my_airport WITH replication = "
+                    + "{'class':'SimpleStrategy','replication_factor':1};");
+            session.execute("USE my_airport;");
+
+            ResultSet rs = session.execute("SELECT table_name FROM system_schema.tables " +
+                    "WHERE keyspace_name = 'my_airport' ");
+
+            List<String> tablesBefore = new ArrayList<>();
+            for (Row row : rs) {
+                tablesBefore.add(row.getString("table_name"));
+            }
+
+            session.execute("CREATE TABLE IF NOT EXISTS airport (Name_en text, Country text, Website text, Geo_Point text, ICAO_code text, Country_code text, Phone text, Name_fr text, Name text, IATA_code text, Size int, Operator text, PRIMARY KEY (IATA_code));");
+            session.execute("CREATE TABLE IF NOT EXISTS flight (ID text, Number_of_Seats int, Day date, Hour time, Operator text, Duration text, Price_per_Person int, Destination text, Departure text, PRIMARY KEY ((Departure), Destination, Day, Hour, id));");
+            session.execute("CREATE TABLE IF NOT EXISTS seat (Flight text, Status text, ID text, Name text, Surname text, Document_Info text, Date_of_Birth date, Balance int, PRIMARY KEY ((Flight), ID));");
+
+            rs = session.execute("SELECT table_name FROM system_schema.tables " +
+                    "WHERE keyspace_name = 'my_airport' ");
+
+            List<String> tablesAfter = new ArrayList<>();
+            for (Row row : rs) {
+                tablesAfter.add(row.getString("table_name"));
+            }
+
+            if (tablesBefore.size() != tablesAfter.size()) {
+                for (String table : tablesAfter) {
+                    if (!tablesBefore.contains(table)) {
+                        insert(session, table);
+                    }
+                }
+            }
+
+        }
+    }
+}
+```
+
+Next, suppose you suspend the `cassandra-node2` node.
+Execute the commands:
+```bash
+docker exec -it cassandra-node1 bash
+nodetool describecluster
+```
+to get the current status of the nodes:
+
+```plaintext
+root@a619f2004d70:/# nodetool describecluster
+Cluster Information:
+        Name: Test Cluster
+        Snitch: org.apache.cassandra.locator.SimpleSnitch
+        DynamicEndPointSnitch: enabled
+        Partitioner: org.apache.cassandra.dht.Murmur3Partitioner
+        Schema versions:
+                ee264747-9443-3a0b-b39b-39e6e74d67f8: [172.22.0.2, 172.22.0.4]
+
+                UNREACHABLE: [172.22.0.3]
+
+Stats for all nodes:
+        Live: 2
+        Joining: 0
+        Moving: 0
+        Leaving: 0
+        Unreachable: 1
+
+Data Centers:
+        datacenter1 #Nodes: 3 #Down: 1
+
+Database versions:
+        4.1.5: [172.22.0.2:7000, 172.22.0.3:7000, 172.22.0.4:7000]
+
+Keyspaces:
+        system_traces -> Replication class: SimpleStrategy {replication_factor=2}
+        system_distributed -> Replication class: SimpleStrategy {replication_factor=3}
+        system_auth -> Replication class: SimpleStrategy {replication_factor=1}
+        system_schema -> Replication class: LocalStrategy {}
+        system -> Replication class: LocalStrategy {}
+```
+
+Then suppose, always keeping the node suspended, to start a seat reservation via command line from ```cassandra-node1``` (without considering concurrency or data management problems):
+
+```
+UPDATE seat 
+	SET 
+		status = 'Occupied', 
+		balance = 100, 
+		date_of_birth = '2000-01-01', 
+		document_info = 'AAAAA', 
+		name = 'Mario', 
+		surname = 'Rossi' 
+	WHERE 
+		flight = '6677f96c7acf35542d8eebc9' 
+	AND 	id = '10A';
+```
+
+Finally, restart the ```cassandra-node2``` node.
+After a couple of minutes the following statistics and the log file were analyzed, obtaining in particular:
+```plaintext
+Pool Name                    Active Pending Completed Blocked All time blocked
+RequestResponseStage         0      0       200       0       0
+MutationStage                0      0       172726    0       0
+ReadStage                    0      0       58        0       0
+CompactionExecutor           0      0       1102      0       0
+MemtableReclaimMemory        0      0       41        0       0
+PendingRangeCalculator       0      0       6         0       0
+GossipStage                  0      0       3965      0       0
+SecondaryIndexManagement     0      0       1         0       0
+HintsDispatcher              0      0       1         0       0
+MigrationStage               0      0       22        0       0
+MemtablePostFlush            0      0       98        0       0
+PerDiskMemtableFlushWriter_0 0      0       38        0       0
+ValidationExecutor           0      0       0         0       0
+Sampler                      0      0       0         0       0
+ViewBuildExecutor            0      0       0         0       0
+MemtableFlushWriter          0      0       41        0       0
+TracingStage                 0      0       1002      0       0
+CacheCleanupExecutor         0      0       0         0       0
+Native-Transport-Requests    0      0       283       0       0
+```
+
+```plaintext
+(base) PS C:\Users\Filippo> docker logs cassandra-node1
+OpenJDK 64-Bit Server VM warning: Option UseConcMarkSweepGC was deprecated in version 9.0 and will likely be removed in a future release.
+...
+INFO  [GossipStage:1] 2024-07-07 14:09:56,174 Gossiper.java:1419 - Node /172.22.0.3:7000 has restarted, now UP
+INFO  [GossipStage:1] 2024-07-07 14:09:56,203 StorageService.java:3075 - Node /172.22.0.3:7000 state jump to NORMAL
+INFO  [GossipStage:1] 2024-07-07 14:09:56,413 TokenMetadata.java:539 - Updating topology for /172.22.0.3:7000
+INFO  [GossipStage:1] 2024-07-07 14:09:56,419 TokenMetadata.java:539 - Updating topology for /172.22.0.3:7000
+INFO  [GossipStage:1] 2024-07-07 14:09:56,426 Gossiper.java:1366 - InetAddress /172.22.0.3:7000 is now UP
+INFO  [Messaging-EventLoop-3-5] 2024-07-07 14:10:03,529 InboundConnectionInitiator.java:529 - /172.22.0.3:7000(/172.22.0.3:53846)->/172.22.0.2:7000-SMALL_MESSAGES-816dfb2b messaging connection established, version = 12, framing = CRC, encryption = unencrypted
+INFO  [Messaging-EventLoop-3-6] 2024-07-07 14:10:03,540 InboundConnectionInitiator.java:529 - /172.22.0.3:7000(/172.22.0.3:53856)->/172.22.0.2:7000-LARGE_MESSAGES-9533f979 messaging connection established, version = 12, framing = CRC, encryption = unencrypted
+INFO  [Messaging-EventLoop-3-2] 2024-07-07 14:10:03,558 OutboundConnection.java:1153 - /172.22.0.2:7000(/172.22.0.2:37782)->/172.22.0.3:7000-SMALL_MESSAGES-d46d55a5 successfully connected, version = 12, framing = CRC, encryption = unencrypted
+INFO  [Messaging-EventLoop-3-3] 2024-07-07 14:10:03,577 OutboundConnection.java:1153 - /172.22.0.2:7000(/172.22.0.2:37796)->/172.22.0.3:7000-LARGE_MESSAGES-2edb7d80 successfully connected, version = 12, framing = CRC, encryption = unencrypted
+INFO  [HintsDispatcher:1] 2024-07-07 14:10:12,849 HintsStore.java:213 - Deleted hint file 04a24d9c-ae90-4ae5-ac76-a8ab431d9ad7-1720361192009-2.hints
+INFO  [HintsDispatcher:1] 2024-07-07 14:10:12,852 HintsDispatchExecutor.java:301 - Finished hinted handoff of file 04a24d9c-ae90-4ae5-ac76-a8ab431d9ad7-1720361192009-2.hints to endpoint /172.22.0.3:7000: 04a24d9c-ae90-4ae5-ac76-a8ab431d9ad7
+```
+
+where the information
+```HintsDispatcher              0      0       1         0       0```
+and the last lines of the log file highlight the use of the gossip protocol, to identify the moment when the node came back online, and hinted handoff to transmit the data to it.
 
 ## Conclusions
 
