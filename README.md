@@ -139,8 +139,8 @@ structure of MongoDB involves various components such as nodes, clusters, and da
 these components interact and how the reading and writing processes occur. Let's start by saying that a running MongoDB 
 instance is called a "node". There are two main types of nodes:
 
-- **Primary Nodes**: they are responsible for write operations. Each replica set has only one primary node at a time.
-- **Secondary Nodes**: receive copies of data from the primary node and can serve read operations if configured to do so.
+- **Primary Nodes:** they are responsible for write operations. Each replica set has only one primary node at a time.
+- **Secondary Nodes:** receive copies of data from the primary node and can serve read operations if configured to do so.
 
 #### Clusters in MongoDB
 
@@ -148,9 +148,9 @@ MongoDB can also be configured as a cluster, a powerful setup that involves mult
 A cluster ensures data availability and reliability by distributing data and tasks across multiple nodes. 
 This architecture provides several key benefits:
 
-1. **Scalability**: clusters can handle increasing amounts of data by adding more nodes, allowing horizontal scaling.
-2. **High Availability**: by distributing data across multiple nodes, clusters ensure that the system remains operational even if one or more nodes fail.
-3. **Load Balancing**: tasks and queries are distributed across the nodes, balancing the load and improving performance.
+1. **Scalability:** clusters can handle increasing amounts of data by adding more nodes, allowing horizontal scaling.
+2. **High Availability:** by distributing data across multiple nodes, clusters ensure that the system remains operational even if one or more nodes fail.
+3. **Load Balancing:** tasks and queries are distributed across the nodes, balancing the load and improving performance.
 
 Clusters can be easily set up and managed by the programmer, through the command line or by using Atlas user interface. 
 Clusters can be deployed across multiple cloud providers and regions, allowing for global distribution of data and applications.
@@ -162,12 +162,12 @@ data into smaller, more manageable pieces called shards. Each shard is a subset 
 separate node within the cluster. This method enables horizontal scaling, making it possible to handle very large 
 datasets and high-throughput operations efficiently. Key concepts in MongoDB sharding include:
 
-1. **Sharded Clusters**: composed of multiple shards, each storing a portion of the data. A sharded cluster includes three main components: shards, query routers, and config servers.
-    - **Shards**: store the actual data. Each shard can be a replica set to provide high availability and data redundancy.
-    - **Query Routers (mongos)**: route client requests to the appropriate shard(s). They handle the distribution of queries and aggregation of results.
-    - **Config Servers**: maintain metadata and configuration settings for the cluster. They store information about the sharding structure and the location of data.
+1. **Sharded Clusters:** composed of multiple shards, each storing a portion of the data. A sharded cluster includes three main components: shards, query routers, and config servers.
+    - **Shards:** store the actual data. Each shard can be a replica set to provide high availability and data redundancy.
+    - **Query Routers (mongos):** route client requests to the appropriate shard(s). They handle the distribution of queries and aggregation of results.
+    - **Config Servers:** maintain metadata and configuration settings for the cluster. They store information about the sharding structure and the location of data.
 
-2. **Shard Keys**: a shard key is a field or a combination of fields that determines how data is distributed across shards. Choosing an appropriate shard key is crucial for balanced data distribution and query performance.
+2. **Shard Keys:** a shard key is a field or a combination of fields that determines how data is distributed across shards. Choosing an appropriate shard key is crucial for balanced data distribution and query performance.
 
 In MongoDB, sharding can be enabled and configured through the console, providing an easy-to-use interface for managing sharded clusters.
 
@@ -177,14 +177,14 @@ A replica set in MongoDB is a group of MongoDB instances that maintain the same 
 Replica sets provide redundancy and high availability, ensuring that data is replicated across multiple nodes. 
 Key features and benefits of replica sets include:
 
-1. **Data Redundancy**: data is replicated to multiple nodes, protecting against data loss in case of hardware failure or other issues.
-2. **Automatic Failover**: if the primary node fails, an eligible secondary node is automatically elected as the new primary, ensuring continuous availability.
-3. **Read Scalability**: read operations can be distributed across multiple nodes, improving read performance and balancing the load.
+1. **Data Redundancy:** data is replicated to multiple nodes, protecting against data loss in case of hardware failure or other issues.
+2. **Automatic Failover:** if the primary node fails, an eligible secondary node is automatically elected as the new primary, ensuring continuous availability.
+3. **Read Scalability:** read operations can be distributed across multiple nodes, improving read performance and balancing the load.
 
 A typical replica set consists of:
-- **Primary Node**: handles all write operations and coordinates replication to secondary nodes.
-- **Secondary Nodes**: maintain copies of the data from the primary node. They can be configured to handle read operations, providing load balancing and improved read performance.
-- **Arbiter Nodes**: participate in elections but do not store data. They are used to ensure a quorum in elections when there are an even number of data-bearing nodes.
+- **Primary Node:** handles all write operations and coordinates replication to secondary nodes.
+- **Secondary Nodes:** maintain copies of the data from the primary node. They can be configured to handle read operations, providing load balancing and improved read performance.
+- **Arbiter Nodes:** participate in elections but do not store data. They are used to ensure a quorum in elections when there are an even number of data-bearing nodes.
 
 In MongoDB Atlas and in the command line, deploying a replica set is straightforward, and the Atlas platform provides 
 tools for managing and monitoring the health of the replica set. Automatic backups, point-in-time recovery, and monitoring 
@@ -196,8 +196,8 @@ In a distributed architecture, nodes can be distributed across multiple data cen
 and fault tolerance. This configuration improves database availability in the event of natural disasters or regional outages.
 Let's now see an overview of how information exchange works in MongoDB:
 
-- **Replica Set**: secondary nodes continuously synchronize data from the primary node over a network connection. They use the oplog (operation log) based replication protocol, a log of operations applied to the primary database.
-- **Sharded Clusters**: query routers (mongos) receive requests from the client, consult config servers to determine which shard contains the requested data, and then forward the requests to the appropriate shard.
+- **Replica Set:** secondary nodes continuously synchronize data from the primary node over a network connection. They use the oplog (operation log) based replication protocol, a log of operations applied to the primary database.
+- **Sharded Clusters:** query routers (mongos) receive requests from the client, consult config servers to determine which shard contains the requested data, and then forward the requests to the appropriate shard.
 
 #### Reading and Writing Processes
 
@@ -830,15 +830,15 @@ use and the options for connecting to a MongoDB database. For example, the Conne
 from the Mongo Shell, MongoDB Compass, or any other application. MongoDB offers two formats for the Connection String:
 the Standard Format and the DNS Seed List Format.
 
-- **Standard Format**: This is used to connect to standalone clusters, replica sets, or sharded clusters.
-- **DNS Seed List Format**: This format allows us to provide a DNS server list in our connection string. It offers
+- **Standard Format:** this is used to connect to standalone clusters, replica sets, or sharded clusters.
+- **DNS Seed List Format:** this format allows us to provide a DNS server list in our connection string. It offers
   flexibility in deployment and the ability to rotate servers without reconfiguring clients.
 
 #### Finding Your Connection String
 
-Is it possible to find the Connection String on Atlas by navigating to the "Database" section and pressing the "Connect" button
+Is it possible to find the Connection String on Atlas by navigating to the `"Database"` section and pressing the `"Connect"` button
 for the cluster you wish to connect to. This will open a menu that provides options for connecting to the database via
-MongoDB Shell, Application, or Compass. For now, select "Connect Your Application". This will open step-by-step instructions for connecting to the MongoDB instance.
+MongoDB Shell, Application, or Compass. For now, select `"Connect Your Application"`. This will open step-by-step instructions for connecting to the MongoDB instance.
 You will be given a Connection String to copy and paste, which you will use to connect to MongoDB.
 
 #### Structure of the Connection String
@@ -849,10 +849,10 @@ The connection string begins with the required prefix `mongodb+srv` which identi
 mongodb+srv://<username>:<password>@cluster0.usqsf.mongodb.net/?retryWrites=true&w=majority
 ```
 
-- **srv**: Automatically sets the TLS Security Options to true and instructs MongoDB to use the DNS Seedlist.
-- **username and password**: These are created for the database in the Atlas Dashboard.
-- **Host and optional port number**: If the port number is not specified, MongoDB defaults to port 27017.
-- **Additional options**: These include Connection Timeout, TLS, SSL, Connection Pooling, and Read & Write Concerns.
+- **srv:** automatically sets the TLS Security Options to true and instructs MongoDB to use the DNS Seedlist.
+- **username and password:** these are created for the database in the Atlas Dashboard.
+- **Host and optional port number:** if the port number is not specified, MongoDB defaults to port 27017.
+- **Additional options:** these include Connection Timeout, TLS, SSL, Connection Pooling, and Read & Write Concerns.
   In this connection string, `retryWrites` is set to true, instructing MongoDB Drivers to automatically
   retry certain types of operations when they fail.
 
@@ -861,21 +861,19 @@ mongodb+srv://<username>:<password>@cluster0.usqsf.mongodb.net/?retryWrites=true
 
 To connect to the MongoDB Shell, it is possible to follow these steps:
 
-1. **Login to Atlas**: Start by logging into your MongoDB Atlas account.
+1. **Login to Atlas:** start by logging into your MongoDB Atlas account.
    Navigate to the `Databases` section and click on `Connect` for the desired cluster.
 
-2. **Select Connection Method**: Choose the option `Connect with the MongoDB Shell`.
+2. **Select Connection Method:** choose the option `Connect with the MongoDB Shell`.
    This will provide step-by-step instructions for connecting via the shell.
 
-3. **Confirm Shell Installation**: Click on `I Have the MongoDB Shell Installed`.
+3. **Confirm Shell Installation:** click on `I Have the MongoDB Shell Installed`.
    Then, copy the provided connection string.
 
-4. **Execute in Terminal**: Open your terminal, paste the copied connection string, and press Enter.
+4. **Execute in Terminal:** open your terminal, paste the copied connection string, and press Enter.
    You will be prompted to enter the Admin Password. After doing so, you will be connected to the cluster.
 
-
-**Note**: Ensure that the MongoDB Shell is installed before proceeding.
-On macOS, you can install it using the following command:
+**Note:** Ensure that the MongoDB Shell is installed before proceeding. On macOS, you can install it using the following command:
 
 ```sh
 brew install mongosh
@@ -921,11 +919,9 @@ on behalf of client applications. Additionally, the drivers allow specifying con
 settings, write durability, read isolation, and more. The official drivers adhere to language best practices
 and enable the use of the full functionality of the MongoDB deployment.
 
-#### Using Maven with Spring Boot
-
 To start with the practical part using Maven, a Java Maven project can be created with Spring Boot.
-It is possible to use Spring Boot to create a Java Maven project even if there is no intention to use the s
-pecific functionalities of Spring. Spring Boot offers many conventions and tools for project configuration,
+It is possible to use Spring Boot to create a Java Maven project even if there is no intention to use the specific 
+functionalities of Spring. Spring Boot offers many conventions and tools for project configuration,
 greatly simplifying development and dependency management. Even if the functionalities of Spring,
 such as dependency injection or the MVC framework, are not needed, Spring Boot can still provide benefits
 like integration with embedded servers, convention-based automatic configuration, and tools for dependency management.
@@ -1001,14 +997,14 @@ In this step we will also add several other dependencies that will be useful for
 at hand. To summarize, we made the following updates:
 
 1. **Added MongoDB Driver Dependency:**
-   We included the MongoDB driver dependency with version `5.1.0` under `<dependencies>`. This addition enables our project to interact synchronously with MongoDB databases.
+   we included the MongoDB driver dependency with version `5.1.0` under `<dependencies>`. This addition enables our project to interact synchronously with MongoDB databases.
 
 2. **Additional Dependencies for Project Functionality:**
-   Alongside the MongoDB driver, we also incorporated other dependencies:
-   - **OpenCSV (`com.opencsv:opencsv:5.5.2`):** Used for handling CSV input and output.
-   - **SLF4J API (`org.slf4j:slf4j-api:1.7.32`):** Provides a simple facade for various logging frameworks.
-   - **Logback Classic (`ch.qos.logback:logback-classic:1.2.6`):** Offers robust logging capabilities for the application.
-   - **Jansi (`org.fusesource.jansi:jansi:1.18`):** Enhances console output with ANSI escape sequences.
+   alongside the MongoDB driver, we also incorporated other dependencies:
+   - **OpenCSV (`com.opencsv:opencsv:5.5.2`):** used for handling CSV input and output.
+   - **SLF4J API (`org.slf4j:slf4j-api:1.7.32`):** provides a simple facade for various logging frameworks.
+   - **Logback Classic (`ch.qos.logback:logback-classic:1.2.6`):** offers robust logging capabilities for the application.
+   - **Jansi (`org.fusesource.jansi:jansi:1.18`):** enhances console output with ANSI escape sequences.
 
 These dependencies collectively enhance the functionality and logging capabilities of our project, setting a foundation for future developments and integrations.
 
@@ -1076,7 +1072,7 @@ These dependencies collectively enhance the functionality and logging capabiliti
 </project>
 ```
 
-#### Connecting to MongoDB Atlas Cluster
+#### Connecting to a MongoDB Cluster
 
 After adding the MongoDB driver dependency, the next step is to instruct the application to connect to the Atlas
 cluster using the Java Synchronous Driver from the Maven repository. It is necessary to have a valid connection
@@ -2523,25 +2519,25 @@ WHERE conditions
 ```
 
 Where:
-- **SELECT clause**: Specifies the columns to be returned.
-- **FROM clause**: Specifies the table from which to retrieve the data.
-- **WHERE clause**: Defines the conditions for filtering the data. The logic of using this clause has some particularities:
-  - **Partition key**: Every query using a WHERE clause must include at least the partition key to ensure optimal performance. This allows Cassandra to quickly locate the node that holds the data using hash functions and hash tables.
-  - **Clustering keys**: In addition to the partition key, clustering keys can also be used to allow Cassandra to retrieve data more quickly.
-  - **Secondary indexes**: If you need to narrow the scope of a query based on a field that is not part of the primary key, you can create secondary indexes to allow WHERE clause queries on those columns. However, using secondary indexes can negatively impact performance, so they should be used with caution.
-- **LIMIT clause**: Limits the number of rows returned. Using this clause is useful to prevent retrieving too much data, which could be inefficient and resource-intensive.
+- **SELECT clause:** Specifies the columns to be returned.
+- **FROM clause:** Specifies the table from which to retrieve the data.
+- **WHERE clause:** Defines the conditions for filtering the data. The logic of using this clause has some particularities:
+  - **Partition key:** Every query using a WHERE clause must include at least the partition key to ensure optimal performance. This allows Cassandra to quickly locate the node that holds the data using hash functions and hash tables.
+  - **Clustering keys:** In addition to the partition key, clustering keys can also be used to allow Cassandra to retrieve data more quickly.
+  - **Secondary indexes:** If you need to narrow the scope of a query based on a field that is not part of the primary key, you can create secondary indexes to allow WHERE clause queries on those columns. However, using secondary indexes can negatively impact performance, so they should be used with caution.
+- **LIMIT clause:** Limits the number of rows returned. Using this clause is useful to prevent retrieving too much data, which could be inefficient and resource-intensive.
 
 It is essential to design the data model with query requirements in mind to ensure high performance and efficient query execution.
 
 #### Other operations
-- **Materialized views**: they are pre-calculated views of the data present in tables, providing faster access to query results. Automatically updated by the system based on changes to the underlying data, they ensure data consistency between views and base tables. These views optimize query performance, offering flexibility in database design and supporting complex queries.
+- **Materialized views:** they are pre-calculated views of the data present in tables, providing faster access to query results. Automatically updated by the system based on changes to the underlying data, they ensure data consistency between views and base tables. These views optimize query performance, offering flexibility in database design and supporting complex queries.
 ```cql
 CREATE MATERIALIZED VIEW name_m_view AS
 QUERY
 PRIMARY KEY (name_key1, ...);
 ```
-- **Configurable consistency levels**: determine the number of replicas that must agree on the response before an operation is considered complete. Common consistency levels include ONE (completed when at least one replica responds), QUORUM (completed when a majority of replicas respond), ALL, EACH_QUORUM, etc.
-- **Batch statements**: they in Cassandra allow executing multiple write or modification operations in a single atomic transaction, ensuring that either all operations are executed or none. They can involve one or more tables and can be configured as "unlogged" (write operations are not logged in the commit log, posing higher risks in case of data loss) or "logged" (all write operations are logged in the commit log before being applied to the actual data on disk), with significant differences in performance and data durability. Batches are useful for reducing the number of network calls and improving overall system performance, but it's important to balance data consistency and scalability needs when deciding to use them.
+- **Configurable consistency levels:** determine the number of replicas that must agree on the response before an operation is considered complete. Common consistency levels include ONE (completed when at least one replica responds), QUORUM (completed when a majority of replicas respond), ALL, EACH_QUORUM, etc.
+- **Batch statements:** they in Cassandra allow executing multiple write or modification operations in a single atomic transaction, ensuring that either all operations are executed or none. They can involve one or more tables and can be configured as "unlogged" (write operations are not logged in the commit log, posing higher risks in case of data loss) or "logged" (all write operations are logged in the commit log before being applied to the actual data on disk), with significant differences in performance and data durability. Batches are useful for reducing the number of network calls and improving overall system performance, but it's important to balance data consistency and scalability needs when deciding to use them.
 ```cql
 BEGIN [UNLOGGED | LOGGED] BATCH
 [USING TIMESTAMP [epoch_microseconds]]
@@ -2549,7 +2545,7 @@ BEGIN [UNLOGGED | LOGGED] BATCH
   [dml_statement; ...]
 APPLY BATCH;
 ```
-- **LWT**: they can be used for operations that require strong consistency. You perform an LTW when using the IF command for conditionals and CAS (Compare and Set). These commands are primarily added to INSERT and SELECT operations. LWTs guarantee serializable isolation but can have a performance cost.
+- **LWT:** they can be used for operations that require strong consistency. You perform an LTW when using the IF command for conditionals and CAS (Compare and Set). These commands are primarily added to INSERT and SELECT operations. LWTs guarantee serializable isolation but can have a performance cost.
 
 Especially the last 2 structures/operations will be explored in depth in the specific chapter.
 
@@ -2756,11 +2752,11 @@ Cassandra, unlike MongoDB, does not require specific operations to optimize cert
 
 In Cassandra, the focus is on data denormalization and creating tables in such a way that the main queries can be executed with maximum efficiency. This approach translates into:
 
-1. **Table design**: Tables should be designed with the queries that will be executed in mind, rather than focusing on data normalization. This implies that related data is often stored together in the same table to minimize join operations.
+1. **Table design:** Tables should be designed with the queries that will be executed in mind, rather than focusing on data normalization. This implies that related data is often stored together in the same table to minimize join operations.
 
-2. **Partition keys and clustering**: The choice of partition keys is crucial for evenly distributing data across cluster nodes and ensuring that queries are efficient. Clustering keys are used to order the data within a partition, facilitating quick access to ordered data.
+2. **Partition keys and clustering:** The choice of partition keys is crucial for evenly distributing data across cluster nodes and ensuring that queries are efficient. Clustering keys are used to order the data within a partition, facilitating quick access to ordered data.
 
-3. **Scalability and replication**: Cassandra is designed to be highly scalable, with write and read capacity distributed across multiple nodes. Data is replicated on different nodes to ensure availability and fault tolerance. The configuration of replicas can affect query performance in terms of latency and throughput.
+3. **Scalability and replication:** Cassandra is designed to be highly scalable, with write and read capacity distributed across multiple nodes. Data is replicated on different nodes to ensure availability and fault tolerance. The configuration of replicas can affect query performance in terms of latency and throughput.
 
 Therefore, while MongoDB offers various query optimization techniques, such as the use of indexes and the optimization of aggregation pipelines, Cassandra relies on an initial data model design that considers query needs from the outset. This makes careful planning during the database design phase essential to achieve maximum performance in Cassandra. In practice, if a Cassandra data model needs optimization, it was likely poorly designed and needs to be redone.
 
@@ -3252,11 +3248,11 @@ documents. It starts by determining the size of the airport, which influences th
 
 The `generateFlights` method is called to create a list of flight documents for the airport. 
 This method generates random details for each flight, including:
-- **Destination Airport**: selected randomly from the list of all airports, ensuring it is different from the current airport.
-- **Flight Date and Time**: a random date within the next 10 days and a random time.
-- **Flight Duration**: a random duration between 1 and 14 hours.
-- **Operator**: randomly chosen from a predefined list of airline operators.
-- **Price per Person**: a random price between 39 and 499.
+- **Destination Airport:** selected randomly from the list of all airports, ensuring it is different from the current airport.
+- **Flight Date and Time:** a random date within the next 10 days and a random time.
+- **Flight Duration:** a random duration between 1 and 14 hours.
+- **Operator:** randomly chosen from a predefined list of airline operators.
+- **Price per Person:** a random price between 39 and 499.
 
 Each flight document includes an array of seat documents, generated by the `generateSeats` method. Each seat is 
 initialized with a status of "Vacant" and a unique seat ID. The total number of seats across all flights is calculated 
@@ -3345,15 +3341,15 @@ In the given example, each flight document contains a reference to a `Destinatio
 This allows the database to keep flight details separate from destination details, enabling more efficient data management 
 and scalability. What follows are some best practices that can be observed in the document:
 
-1. **Using Identification Fields**: each flight has an `ID` field, which is a reference to another document. This practice is crucial for maintaining normalization within the database and avoiding redundancy. By using IDs to link related documents, the database stays more manageable and less prone to inconsistencies.
+1. **Using Identification Fields:** each flight has an `ID` field, which is a reference to another document. This practice is crucial for maintaining normalization within the database and avoiding redundancy. By using IDs to link related documents, the database stays more manageable and less prone to inconsistencies.
 
-2. **Embedding Documents for Nested Data**: the `Seats` array within each `Flight` document is an example of embedding. Embedding is a MongoDB best practice for including related data directly within a document when it is expected that the embedded data will always be accessed along with the parent document. This is useful for performance reasons as it allows retrieving all related data in a single query.
+2. **Embedding Documents for Nested Data:** the `Seats` array within each `Flight` document is an example of embedding. Embedding is a MongoDB best practice for including related data directly within a document when it is expected that the embedded data will always be accessed along with the parent document. This is useful for performance reasons as it allows retrieving all related data in a single query.
 
-3. **Using Arrays for Related Entities**: the `Flights` field is an array that holds multiple flight objects. This is a practical approach in MongoDB for one-to-many relationships, where a single airport can have multiple flights. This structure allows efficient queries and updates, as all related flights are stored together.
+3. **Using Arrays for Related Entities:** the `Flights` field is an array that holds multiple flight objects. This is a practical approach in MongoDB for one-to-many relationships, where a single airport can have multiple flights. This structure allows efficient queries and updates, as all related flights are stored together.
 
-4. **Field Naming Conventions**: consistent and clear field names (such as `Geo_Point`, `Name_(en)`, and `IATA_code`) make the data easier to understand and work with. MongoDB documents should use meaningful names to ensure clarity and facilitate easier maintenance and querying.
+4. **Field Naming Conventions:** consistent and clear field names (such as `Geo_Point`, `Name_(en)`, and `IATA_code`) make the data easier to understand and work with. MongoDB documents should use meaningful names to ensure clarity and facilitate easier maintenance and querying.
 
-5. **Keeping Documents Lightweight**: by referring to other documents (such as `Destination`), the main document remains lightweight. This ensures faster read and write operations and more efficient use of memory. Storing only essential and relevant information in a document helps in maintaining optimal performance.
+5. **Keeping Documents Lightweight:** by referring to other documents (such as `Destination`), the main document remains lightweight. This ensures faster read and write operations and more efficient use of memory. Storing only essential and relevant information in a document helps in maintaining optimal performance.
 
 By implementing these practices, the database is kept as lightweight and efficient as possible while still maintaining 
 a structure that is easy for programmers to work with and understand.
@@ -3389,9 +3385,9 @@ The main queries identified from the model and the operational flow are, in pseu
 #### Create the table structure
 Designing the database tables effectively, considering the identified queries, data relationships, and access frequency, is fundamental. The table structure should optimize the read and write operations needed to satisfy common queries. Frequently accessed data together should be stored in a way that minimizes read operations.
 Crucial aspects for a good table structure are:
-- **Denormalization**: Evaluating data denormalization can significantly improve query performance. In many cases, a bit of redundancy can reduce the number of necessary joins, thus speeding up read operations.
-- **Primary keys**: Carefully defining the primary keys for each table is crucial, as they ensure not only the uniqueness of data but also its distribution among nodes. Composite keys can be used to support complex queries when necessary. Composite keys organize the data in a way that allows efficient query execution, reducing the number of read operations.
-- **Data type**: Choosing the most suitable data types to represent information in the database is essential for ensuring efficiency and speed. This means choosing data types that minimize storage space and maximize read and write operation speed. Native Cassandra data types can be used, as well as collection data types (such as sets, lists, and maps) for efficient modeling of complex data. These data types can greatly improve query performance by enabling normalization and eliminating joins between tables.
+- **Denormalization:** Evaluating data denormalization can significantly improve query performance. In many cases, a bit of redundancy can reduce the number of necessary joins, thus speeding up read operations.
+- **Primary keys:** Carefully defining the primary keys for each table is crucial, as they ensure not only the uniqueness of data but also its distribution among nodes. Composite keys can be used to support complex queries when necessary. Composite keys organize the data in a way that allows efficient query execution, reducing the number of read operations.
+- **Data type:** Choosing the most suitable data types to represent information in the database is essential for ensuring efficiency and speed. This means choosing data types that minimize storage space and maximize read and write operation speed. Native Cassandra data types can be used, as well as collection data types (such as sets, lists, and maps) for efficient modeling of complex data. These data types can greatly improve query performance by enabling normalization and eliminating joins between tables.
 
 In the context described at the beginning of the chapter and based on the operational flow and identified queries, three tables have been identified:
 
@@ -3852,15 +3848,15 @@ referred to as ACID compliance.
 To initiate a transaction in MongoDB using Java, we utilize the `WithTransaction()` method of a session object.
 Below are the steps involved in completing a multi-document transaction, followed by the corresponding code snippet:
 
-1. **Session Initialization and Transaction Start**: Begin by establishing a new session and starting a transaction
+1. **Session Initialization and Transaction Start:** Begin by establishing a new session and starting a transaction
 2. using the `WithTransaction()` method on the session object.
 
-2. **Transaction Operations**: Define the operations to be performed within the transaction. This typically includes
+2. **Transaction Operations:** Define the operations to be performed within the transaction. This typically includes
 3. fetching necessary data, performing updates, and inserting documents.
 
-3. **Transaction Commit**: After executing all operations successfully, commit the transaction to persist the changes.
+3. **Transaction Commit:** After executing all operations successfully, commit the transaction to persist the changes.
 
-4. **Handling Timeouts and Resource Closure**: MongoDB automatically cancels any multi-document transaction that
+4. **Handling Timeouts and Resource Closure:** MongoDB automatically cancels any multi-document transaction that
 5. exceeds 60 seconds. Additionally, ensure proper closure of resources utilized by the transaction.
 
 #### Example Code
@@ -4684,42 +4680,42 @@ receives a consistent view of the data as it was at the start of the read operat
 In MVCC, when a read operation begins, MongoDB provides a snapshot of the data at that moment. Any updates made by other
 clients after the read operation has started do not affect the snapshot seen by the reader. This approach provides several benefits:
 
-1. **Consistency**: readers always see a consistent view of the data, even if other clients are making concurrent writes.
-2. **Isolation**: MVCC ensures that readers are isolated from writers. Changes made by a writer are not visible to readers until the write is complete.
-3. **Performance**: by allowing multiple clients to read from the same data set concurrently, MongoDB can handle a high number of read requests efficiently.
+1. **Consistency:** readers always see a consistent view of the data, even if other clients are making concurrent writes.
+2. **Isolation:** MVCC ensures that readers are isolated from writers. Changes made by a writer are not visible to readers until the write is complete.
+3. **Performance:** by allowing multiple clients to read from the same data set concurrently, MongoDB can handle a high number of read requests efficiently.
 
 MongoDB employs snapshot reads for read operations within transactions. A snapshot read captures the state of the database
 at the start of the transaction, ensuring that all read operations within the transaction see a consistent view of the data.
 This is particularly useful in scenarios requiring strong consistency guarantees.
 MongoDB provides various read concern levels to control the consistency and isolation properties of read operations:
 
-- **"local"**: Returns the most recent data available, regardless of the acknowledgment of the write operations.
-- **"majority"**: Returns data that has been acknowledged by the majority of the replica set members, ensuring that the read data is durable.
-- **"snapshot"**: Provides a snapshot of the data as it was at the start of a transaction, ensuring a consistent view of the data during the transaction.
+- **"local":** Returns the most recent data available, regardless of the acknowledgment of the write operations.
+- **"majority":** Returns data that has been acknowledged by the majority of the replica set members, ensuring that the read data is durable.
+- **"snapshot":** Provides a snapshot of the data as it was at the start of a transaction, ensuring a consistent view of the data during the transaction.
 
 The `Transactions.java` class leverages MongoDB's ability to handle concurrent operations to ensure efficient and safe
 access to our dataset. Here is how the class handles concurrent reads and writes:
 
-1. **Retrieving Flights from an Airport**:
+1. **Retrieving Flights from an Airport:**
 - The `getFlightsFromAirport` method retrieves all flights departing from a specified airport. MongoDB handles the concurrent reads internally, ensuring that the data returned is consistent.
 
-2. **Checking Available Seats**:
+2. **Checking Available Seats:**
 - The `getAvailableSeats` method checks the availability of seats on a flight. This method involves reading the flight and seat information from the database. MongoDB's concurrent read capabilities ensure that multiple clients can check seat availability simultaneously without interference.
 
-3. **Booking a Flight**:
+3. **Booking a Flight:**
 - The `bookFlight` method handles concurrent write operations. This method is designed to be thread-safe, ensuring that only one thread can book a seat at a time using the `ReentrantLock`.
 
 The `ReentrantLock` in Java provides a way to ensure that only one thread can execute a block of code at a time.
 In the `bookFlight` method, the lock is used to ensure that the entire process of checking seat availability and
 updating the seat status is atomic. Here's how it works:
 
-1. **Acquire the Lock**: when a thread enters the `bookFlight` method, it calls `lock.lock()` to acquire the lock. This prevents other threads from entering the critical section of the code until the lock is released.
-2. **Check and Update**: inside the locked section, the code performs the following:
+1. **Acquire the Lock:** when a thread enters the `bookFlight` method, it calls `lock.lock()` to acquire the lock. This prevents other threads from entering the critical section of the code until the lock is released.
+2. **Check and Update:** inside the locked section, the code performs the following:
 - It checks if the flight and the seat are available.
 - It verifies that the person has sufficient balance.
 - It updates the seat status to "Booked" and deducts the price from the person's balance.
 - It performs an atomic update in the MongoDB collection using the `updateOne` method with array filters to ensure only the specified seat is updated.
-3. **Release the Lock**: after the update operation, the lock is released using `lock.unlock()`, allowing other threads to attempt booking operations.
+3. **Release the Lock:** after the update operation, the lock is released using `lock.unlock()`, allowing other threads to attempt booking operations.
 
 By using `ReentrantLock`, the code ensures that even if multiple threads try to book the same seat at the same time,
 *only one will succeed,* and the others will receive a failure response. This approach prevents race conditions and
@@ -5041,10 +5037,10 @@ DELETE FROM keyspace_name.table_name WHERE column1 = value1 IF EXISTS;
 LWTs are particularly useful for ensuring that write operations respect certain conditions, maintaining data consistency in concurrency scenarios. They are ideal for implementing conditional write operations, such as inserting a record only if it does not already exist (`IF NOT EXISTS`), or updating a record only if another condition is met (`IF column = value`).
 
 When a client sends an LWT to the coordinator node, a Paxos-based protocol is applied in four phases:
-- **Preparation Phase**: The coordinator sends a "Prepare" request to all replicas involved in the transaction. The participating nodes locally evaluate whether they can satisfy the condition specified in the `IF` clause before confirming their readiness to proceed. The replicas respond by indicating the highest proposal number they have accepted so far.
-- **Proposal Phase**: Based on the responses received during the preparation phase, the coordinator generates a new proposal with a unique number and the value to be written. This proposal is then sent to all involved replicas. The replicas compare the new proposal number with any previously accepted proposal numbers. If the new proposal number is higher, the replicas accept the proposal and respond to the coordinator.
-- **Commit Phase**: This phase verifies the consensus of the transaction. Once the coordinator has received acceptances from the majority of replicas, it decides to commit the transaction. The coordinator then sends a "Commit" request to all replicas, indicating that the proposal should be applied. The replicas receive this request and mark the proposal as committed. The `IF` clause is re-evaluated before the final commit to ensure that the condition is still met.
-- **Application Phase**: The replicas apply the committed value to their local data. Each replica confirms to the coordinator that the value has been correctly applied. Finally, once the coordinator has received confirmations from all replicas, it sends a confirmation to the client that the LWT has been successfully completed.
+- **Preparation Phase:** The coordinator sends a "Prepare" request to all replicas involved in the transaction. The participating nodes locally evaluate whether they can satisfy the condition specified in the `IF` clause before confirming their readiness to proceed. The replicas respond by indicating the highest proposal number they have accepted so far.
+- **Proposal Phase:** Based on the responses received during the preparation phase, the coordinator generates a new proposal with a unique number and the value to be written. This proposal is then sent to all involved replicas. The replicas compare the new proposal number with any previously accepted proposal numbers. If the new proposal number is higher, the replicas accept the proposal and respond to the coordinator.
+- **Commit Phase:** This phase verifies the consensus of the transaction. Once the coordinator has received acceptances from the majority of replicas, it decides to commit the transaction. The coordinator then sends a "Commit" request to all replicas, indicating that the proposal should be applied. The replicas receive this request and mark the proposal as committed. The `IF` clause is re-evaluated before the final commit to ensure that the condition is still met.
+- **Application Phase:** The replicas apply the committed value to their local data. Each replica confirms to the coordinator that the value has been correctly applied. Finally, once the coordinator has received confirmations from all replicas, it sends a confirmation to the client that the LWT has been successfully completed.
 
 In the context of transaction and concurrency management, LWTs offer a strong consistency mechanism. Through the use of the protocol, an LWT ensures that only one consistent version of the data is written and made visible to all nodes in the cluster. This is crucial in applications where data integrity must be ensured, such as in a user registration system where each username must be unique.
 
@@ -5522,15 +5518,15 @@ everything needed to run an application: code, runtime, system tools, libraries,
 virtual machines, containers share the host operating system kernel and are isolated processes, 
 making them efficient and fast. Docker provides several key components to facilitate container management:
 
-1. **Docker Engine**: the core of Docker, responsible for creating and managing containers on a single host. It includes a server and a command-line interface (CLI) tool (`docker`) for interacting with containers.
+1. **Docker Engine:** the core of Docker, responsible for creating and managing containers on a single host. It includes a server and a command-line interface (CLI) tool (`docker`) for interacting with containers.
 
-2. **Images**: docker images are read-only templates used to create containers. An image includes the application code, runtime, libraries, and dependencies needed for the application to run.
+2. **Images:** docker images are read-only templates used to create containers. An image includes the application code, runtime, libraries, and dependencies needed for the application to run.
 
-3. **Containers**: running instances of Docker images. Containers can be started, stopped, moved, and deleted using Docker's CLI commands. They encapsulate the application and its environment, ensuring consistency across different environments, from development to production.
+3. **Containers:** running instances of Docker images. Containers can be started, stopped, moved, and deleted using Docker's CLI commands. They encapsulate the application and its environment, ensuring consistency across different environments, from development to production.
 
-4. **Dockerfile**: a text document that contains instructions for building a Docker image. It defines the environment inside the container, including base image, dependencies, environment variables, and commands to run when the container starts.
+4. **Dockerfile:** a text document that contains instructions for building a Docker image. It defines the environment inside the container, including base image, dependencies, environment variables, and commands to run when the container starts.
 
-5. **Docker Compose**: a tool for defining and running multi-container Docker applications. It uses a YAML file (`docker-compose.yml`) to configure the application's services and their dependencies. Docker Compose simplifies the process of defining, managing, and scaling multi-container applications.
+5. **Docker Compose:** a tool for defining and running multi-container Docker applications. It uses a YAML file (`docker-compose.yml`) to configure the application's services and their dependencies. Docker Compose simplifies the process of defining, managing, and scaling multi-container applications.
 
 #### How Docker Works
 
@@ -5543,13 +5539,13 @@ pulled and pushed between different Docker installations.
 
 #### Benefits of Using Docker
 
-- **Portability**: docker containers can run on any machine that has Docker installed, regardless of the underlying operating system. This eliminates the "it works on my machine" problem and streamlines deployment across different environments.
+- **Portability:** docker containers can run on any machine that has Docker installed, regardless of the underlying operating system. This eliminates the "it works on my machine" problem and streamlines deployment across different environments.
 
-- **Isolation**: containers isolate applications from each other and from the underlying infrastructure, ensuring that changes or updates to one application do not affect others running on the same host.
+- **Isolation:** containers isolate applications from each other and from the underlying infrastructure, ensuring that changes or updates to one application do not affect others running on the same host.
 
-- **Efficiency**: containers share the host operating system kernel, making them lightweight and efficient compared to traditional virtual machines. Multiple containers can run on the same hardware without significant overhead.
+- **Efficiency:** containers share the host operating system kernel, making them lightweight and efficient compared to traditional virtual machines. Multiple containers can run on the same hardware without significant overhead.
 
-- **Scalability**: docker's architecture allows applications to be quickly deployed and scaled horizontally by adding or removing containers, making it ideal for microservices architectures and distributed applications.
+- **Scalability:** docker's architecture allows applications to be quickly deployed and scaled horizontally by adding or removing containers, making it ideal for microservices architectures and distributed applications.
 
 ### Large Volume Data Management in MongoDB
 
@@ -5683,11 +5679,11 @@ configurations, networks, and volumes required for them to interact with each ot
 This file sets up an environment for a distributed MongoDB database system in a clustered mode. It lists several 
 services (`services`), each representing a specific Docker container:
 
-- **Configuration Server (`configsvr`)**: a MongoDB configuration server (`mongod`) running in configuration server mode (`--configsvr`). It is part of a replica set named `rsConfig` and listens on port 27019. It has a dedicated volume (`configsvr`) for persistent storage.
+- **Configuration Server (`configsvr`):** a MongoDB configuration server (`mongod`) running in configuration server mode (`--configsvr`). It is part of a replica set named `rsConfig` and listens on port 27019. It has a dedicated volume (`configsvr`) for persistent storage.
 
-- **Shard Nodes (`shard1`, `shard2`, `shard3`, `shard4`)**: four MongoDB shard nodes (`mongod`), each configured as a shard server (`--shardsvr`) and part of their respective replica sets (`rsShard1`, `rsShard2`, `rsShard3`, `rsShard4`). They all listen on port 27018 internally, but are exposed on different host ports (27018, 27020, 27021, 27022). Each shard has a dedicated volume for data storage.
+- **Shard Nodes (`shard1`, `shard2`, `shard3`, `shard4`):** four MongoDB shard nodes (`mongod`), each configured as a shard server (`--shardsvr`) and part of their respective replica sets (`rsShard1`, `rsShard2`, `rsShard3`, `rsShard4`). They all listen on port 27018 internally, but are exposed on different host ports (27018, 27020, 27021, 27022). Each shard has a dedicated volume for data storage.
 
-- **Routing Server (`mongos`)**: a MongoDB routing server (`mongos`) that routes queries between clients and the shard nodes. It connects to the configuration server (`configsvr`) on port 27019 and listens on port 27017. It depends on the configuration server and all shard nodes to be up and running.
+- **Routing Server (`mongos`):** a MongoDB routing server (`mongos`) that routes queries between clients and the shard nodes. It connects to the configuration server (`configsvr`) on port 27019 and listens on port 27017. It depends on the configuration server and all shard nodes to be up and running.
 
 Additionally, the file defines several volumes (`volumes`) to ensure data persistence for each service, maintaining data 
 integrity even after container destruction or restart. To recap, this Docker-compose file orchestrates a distributed 
@@ -5765,10 +5761,10 @@ MongoDB processes, ensuring consistency across different environments. Using Doc
 management of services, which is crucial for maintaining a robust sharded cluster. Let's quickly recap the benefits 
 of using Docker in a scenario like the one we just mentioned:
 
-- **Isolation**: Each MongoDB instance runs in its own container, ensuring isolation.
-- **Portability**: Docker images can be easily moved across different environments without compatibility issues.
-- **Scalability**: Adding more shard nodes or configuration servers is straightforward with Docker.
-- **Consistency**: Docker ensures the same environment setup across different deployments.
+- **Isolation:** Each MongoDB instance runs in its own container, ensuring isolation.
+- **Portability:** Docker images can be easily moved across different environments without compatibility issues.
+- **Scalability:** Adding more shard nodes or configuration servers is straightforward with Docker.
+- **Consistency:** Docker ensures the same environment setup across different deployments.
 
 #### Handling Node Failure
 
@@ -5780,15 +5776,15 @@ If a node in a shard fails, the replica set protocol elects a new primary from t
 The system continues to operate with minimal disruption. The following mitigation strategies are suggested to lower
 the risk of failure when using sharding in a MongoDB database:
 
-1. **Replica Sets**: ensure each shard is a replica set with at least three members.
-2. **Regular Backups**: perform regular backups to recover data in case of catastrophic failures.
-3. **Monitoring**: use monitoring tools like MongoDB Atlas, which provides monitoring and alerts for cluster health and performance.
+1. **Replica Sets:** ensure each shard is a replica set with at least three members.
+2. **Regular Backups:** perform regular backups to recover data in case of catastrophic failures.
+3. **Monitoring:** use monitoring tools like MongoDB Atlas, which provides monitoring and alerts for cluster health and performance.
 
 Let's now analyze what would happen in the event of failure of one of the nodes. Suppose one of the nodes in `shard1` fails:
 
-1. **Detection**: MongoDB detects the failure and the replica set initiates an election.
-2. **Election**: a new primary is elected from the remaining nodes.
-3. **Recovery**: the failed node is either repaired or replaced and then re-added to the replica set.
+1. **Detection:** MongoDB detects the failure and the replica set initiates an election.
+2. **Election:** a new primary is elected from the remaining nodes.
+3. **Recovery:** the failed node is either repaired or replaced and then re-added to the replica set.
 
 After these considerations, we can deduce that Sharding is a powerful feature in MongoDB that allows for horizontal 
 scaling and efficient management of large datasets. By distributing the "airportCollection" across four nodes using a 
