@@ -3484,45 +3484,45 @@ SELECT status FROM seat WHERE flight = ‘v1’ AND id = ‘v2’;
 UPDATE seat SET status = 'Occupied', balance = ‘v1’, date_of_birth = ‘v2’, document_info = ‘v3’, name = ‘v4’, surname = ‘v5’ WHERE flight = ‘v6’ AND id = ‘v7’
 ```
 
-In conclusion, the Java script used to communicate with the database has been updated (the `UPDATE` operation will be covered in the relevant chapter). Specifically, in the main method, after establishing the connection, a query is executed to obtain the list of tables. Subsequently, the three previously described operations to create the tables are executed. Once the tables have been created, the initial query is executed again to obtain the updated list of tables. By comparing the results of the two queries, it is possible to determine which tables have been created. For each created table, the `INSERT` method is called to populate it. The `INSERT` method reads data from a `.txt` file having the same name as the table to be populated, where each row of the file corresponds to a row in the Cassandra table, and loads them into the database using the `INSERT` operation. Each row is a list of data that follows the order of fields as specified in the columns section of the `INSERT`. This method was designed to maintain consistency with the data created during the MongoDB phase; in fact, the Mongo database was previously exported to `JSON` files and processed to obtain the three distinct files (one for each table). The data is structured into classes: `Seat`, `Flight`, and `Airport`. Each class simply contains the various columns that define the respective table, getter and setter methods, and the toString method.
+In conclusion, the Javascript used to communicate with the database has been updated (the `UPDATE` operation will be covered in the relevant chapter). Specifically, in the main method, after establishing the connection, a query is executed to obtain the list of tables. Subsequently, the three previously described operations to create the tables are executed. Once the tables have been created, the initial query is executed again to obtain the updated list of tables. By comparing the results of the two queries, it is possible to determine which tables have been created. For each created table, the `INSERT` method is called to populate it. The `INSERT` method reads data from a `.txt` file having the same name as the table to be populated, where each row of the file corresponds to a row in the Cassandra table, and loads them into the database using the `INSERT` operation. Each row is a list of data that follows the order of fields as specified in the columns section of the `INSERT`. This method was designed to maintain consistency with the data created during the MongoDB phase; in fact, the Mongo database was previously exported to `JSON` files and processed to obtain the three distinct files (one for each table). The data is structured into classes: `Seat`, `Flight`, and `Airport`. Each class simply contains the various columns that define the respective table, getter and setter methods, and the toString method.
 
 Then, various query tests are performed. Specifically, the methods:
-- `getFlightsFromAirport`: This method retrieves a list of flights departing from a specific airport. It uses the airport code as a filter in the Cassandra query.
+- `getFlightsFromAirport`: this method retrieves a list of flights departing from a specific airport. It uses the airport code as a filter in the Cassandra query.
    - Creates a `SimpleStatement` query to select all flights from the `flight` table where the `departure` column is equal to the provided airport code.
    - Calls the `getFlights` method to execute the query and return the results as a list of `Flight` objects.
-- `getAirportFromIATA`: This method retrieves information about an airport given its IATA code.
+- `getAirportFromIATA`: this method retrieves information about an airport given its IATA code.
    - Creates a `SimpleStatement` query to select all airport details from the `airport` table where the `IATA_code` column is equal to the provided IATA code.
    - Executes the query and retrieves the first row of the results.
    - Extracts the airport details from the row and creates an `Airport` object.
    - Returns the `Airport` object.
-- `getFlightsFromDepartureAndDestination`: This method retrieves a list of flights departing from a specific airport and arriving at a specific airport.
+- `getFlightsFromDepartureAndDestination`: this method retrieves a list of flights departing from a specific airport and arriving at a specific airport.
    - Creates a `SimpleStatement` query to select all flights from the `flight` table where the `departure` and `destination` columns match the provided codes.
    - Calls the `getFlights` method to execute the query and return the results as a list of `Flight` objects.
-- `getFlights`: This method executes a Cassandra query to retrieve a list of flights and maps the results to `Flight` objects.
+- `getFlights`: this method executes a Cassandra query to retrieve a list of flights and maps the results to `Flight` objects.
    - Executes the query.
    - Iterates over the results and for each row, creates a `Flight` object with the flight details.
    - Adds the `Flight` object to the list of flights.
    - Returns the list of flights.
-- `getSeats`: This method retrieves a list of seats for a given flight.
+- `getSeats`: this method retrieves a list of seats for a given flight.
    - Creates a `SimpleStatement` query to select all seats from the `seat` table where the `flight` column is equal to the provided flight code.
    - Executes the query.
    - Iterates over the results and for each row, creates a `Seat` object with the seat details.
    - Adds the `Seat` object to the list of seats.
    - Returns the list of seats.
-- `getAvailableSeats`: This method retrieves a list of available seats for a given flight.
+- `getAvailableSeats`: this method retrieves a list of available seats for a given flight.
    - Calls the `getSeats` method to get all seats for the specified flight.
    - Filters the seats to include only those with the status `Vacant`.
    - Returns the list of available seats.
-- `getSeatStatus`: This method retrieves the status of a specific seat for a specific flight.
+- `getSeatStatus`: this method retrieves the status of a specific seat for a specific flight.
    - Creates a `SimpleStatement` query to select the seat status from the `seat` table where the `flight` and `id` columns match the provided values.
    - Executes the query and retrieves the first row of the results.
    - If the row exists, returns the seat status.
    - If the row does not exist, throws an exception.
-- `getFirstAvailableFlight`: This method retrieves the first available flight from a departure airport to a destination airport.
+- `getFirstAvailableFlight`: this method retrieves the first available flight from a departure airport to a destination airport.
    - Calls the `getFlightsFromDepartureAndDestination` method to get all matching flights.
    - If no flights are found, throws an exception.
    - Returns the first flight from the list of flights.
-- `getFirstAvailableSeat`: This method retrieves the first available seat for a given flight.
+- `getFirstAvailableSeat`: this method retrieves the first available seat for a given flight.
    - Calls the `getAvailableSeats` method to get all available seats for the specified flight.
    - If no seats are available, throws an exception.
    - Returns the first available seat from the list of seats.
