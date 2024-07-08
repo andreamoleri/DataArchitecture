@@ -1203,12 +1203,12 @@ public class Connection {
 ```
 
 ### Connecting to a Cassandra Database
-To make the most of the Cassandra database in this first phase of the relationship it was chosen to use Amazon Web Services as a hosting service. In the chapter relating to large volume management, Docker services will be used to better study the behavior of some nodes.
+To make the most of the Cassandra database in this first phase of the relation it was chosen to use Amazon Web Services as a hosting service. In the chapter relating to large volume management, Docker services will be used to better study the behavior of some nodes.
 
 #### Connection AWS
-Amazon Keyspaces requires the use of Transport Layer Security (TLS) to protect client connections. TLS is an encryption protocol that ensures the security and privacy of data exchanged between client and server applications. Here’s how to configure the connection:
+Cassandra requires the use of Transport Layer Security (TLS) to protect client connections. TLS is an encryption protocol that ensures the security and privacy of data exchanged between client and server applications. Here’s how to configure the connection:
 
-1. Download the Starfield digital certificate using the following command and save it as `sf-class2-root.crt` in your local directory or home directory:
+1. Download the Starfield digital certificate using the following command and save it as `sf-class2-root.crt` in your local directory or home directory.  These digital certificates are used to authenticate the identity of a website and to encrypt the communication between the website and its users, ensuring that the data transmitted is secure and protected from interception.
 
 ```sh
 curl https://certs.secureserver.net/repository/sf-class2-root.crt -O
@@ -1230,15 +1230,14 @@ During this step, you will need to create a password (e.g., `my_password`) for t
 -Djavax.net.ssl.trustStorePassword=my_password
 ```
 
-To establish the connection, we use the DataStax Java driver 3.x for Apache Cassandra along with the SigV4 authentication plugin.
-
-SigV4 (Signature Version 4) is an AWS authentication protocol that uses encrypted signatures to authenticate API requests. This protocol allows requests to be signed with access keys, providing a secure alternative to using a username and password.
-
-IAM (Identity and Access Management) credentials are a set of access keys and passwords associated with an IAM user or role on AWS. These credentials are used to authenticate and authorize requests to AWS resources, ensuring that only authorized users can access specified resources.
+To establish the connection, we use 
+- DataStax Java driver 3.x for Apache Cassandra.
+- SigV4 (Signature Version 4): an AWS authentication protocol that uses encrypted signatures to authenticate API requests. This protocol allows requests to be signed with access keys, providing a secure alternative to using a username and password.
+- IAM (Identity and Access Management) credentials: a set of access keys and passwords associated with an IAM user or role on AWS. These credentials are used to authenticate and authorize requests to AWS resources, ensuring that only authorized users can access specified resources.
 
 The SigV4 authentication plugin enables the use of IAM credentials for users and roles when connecting to Amazon Keyspaces, signing API requests with access keys instead of requiring a username and password. To run this code example, complete the following tasks:
 
-4. Create credentials for your IAM user or role: generate an access key and its password, and store them as environment variables.
+4. Create credentials for your IAM user or role: generate an access key and its password from AWS website, and store them as environment variables.
 
 5. Add the DataStax Java driver for Apache Cassandra to your Java project (in the `pom.xml` file for a Maven project):
 
@@ -1279,16 +1278,16 @@ Session session = Cluster.builder()
 ```
 
 where:
-- ```.addContactPoint("cassandra.<region>.amazonaws.com")```: Adds a contact point to the cluster. endPoint is the address of the coordinator node.
-- ```.withPort(portNumber)```: Specifies the port on which the node listens and on which the Cassandra server accepts connections.
-- ```.withAuthProvider(new SigV4AuthProvider("<region>"))```: Configure the authentication provider using AWS SigV4.
-- ```.withSSL()```: Enables SSL for the connection, ensuring that all data transmitted between the client and the Cassandra server is encrypted.
-- ```.build()```: Builds the cluster instance with all specified configurations.
-- ```.connect()```: Initiates a connection to the Cassandra cluster and returns a session through which database queries can be performed.
+- ```.addContactPoint("cassandra.<region>.amazonaws.com")```: adds a contact point to the cluster. endPoint is the address of the coordinator node.
+- ```.withPort(portNumber)```: specifies the port on which the node listens and on which the Cassandra server accepts connections.
+- ```.withAuthProvider(new SigV4AuthProvider("<region>"))```: configure the authentication provider using AWS SigV4.
+- ```.withSSL()```: enables SSL for the connection, ensuring that all data transmitted between the client and the Cassandra server is encrypted.
+- ```.build()```: builds the cluster instance with all specified configurations.
+- ```.connect()```: initiates a connection to the Cassandra cluster and returns a session through which database queries can be performed.
 
 This configuration ensures that connections to your Amazon Keyspaces keyspace are secure and authenticated using TLS and IAM credentials.
 
-In conclusion to this paragraph we report the App.java class which will contain the script used to work with the data model. For now the script only allows you to connect to the database.
+In conclusion to this paragraph we report the ```App.java``` class which will contain the script used to work with the data model. For now the script only allows you to connect to the database.
 
 ```java
 package com.example.cassandra;
@@ -1320,18 +1319,15 @@ public class App
 #### Connection with Docker
 To connect from Java to a Cassandra database using Docker, you can follow these steps:
 
-1. Docker Compose Configuration
-   Create a `docker-compose.yml` file to define the Cassandra containers.
+1. **Docker Compose Configuration:** create a `docker-compose.yml` file to define the Cassandra containers.
 
-2. Starting the Cassandra Cluster
-   Run Docker Compose to start the containers:
+2. **Starting the Cassandra Cluster:** run Docker Compose to start the containers:
 
 ```sh
 docker-compose up -d
 ```
 
-3. Java Dependencies
-   Add the necessary dependencies to your Java project. If you are using Maven, add the following to your `pom.xml`:
+3. **Java Dependencies:** add the necessary dependencies to your Java project. If you are using Maven, add the following to your `pom.xml`:
 
 ```xml
 <dependency>
@@ -1347,8 +1343,7 @@ If you are using Gradle:
 implementation 'com.datastax.oss:java-driver-core:4.13.0'
 ```
 
-4. Connecting to Cassandra from Java
-   Write the Java code to connect to the Cassandra cluster. An example is:
+4. **Connecting to Cassandra from Java:** write the Java code to connect to the Cassandra cluster. An example is:
 
 ```java
 package com.example.cassandra;
@@ -1374,8 +1369,7 @@ public class App {
 
 where `InetSocketAddress` is a class from the standard Java library, located in the `java.net` package, representing a combination of an IP address (which can be either IPv4 or IPv6) and a port to uniquely identify an endpoint. It is commonly used in network applications to specify a communication endpoint.
 
-5. Data Center Configuration
-   If necessary, you can verify and modify the Cassandra configuration, adding information such as the maximum response time for a query.
+5. **Data Center Configuration:** if necessary, you can verify and modify the Cassandra configuration, adding information such as the maximum response time for a query.
 
 ```java
 DriverConfigLoader loader = DriverConfigLoader.fromString("datastax-java-driver.basic.request.timeout = 10 seconds");
