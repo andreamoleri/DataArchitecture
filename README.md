@@ -221,7 +221,7 @@ Apache Cassandra is a distributed, open-source NoSQL database designed to handle
 A node in Cassandra represents any system running the Cassandra software. This system can be a physical host, a cloud instance, or a Docker container. Nodes work together to form a cluster, sharing the responsibility of storing and managing data, responding to queries, and ensuring the overall availability of the system.
 
 ##### Rack
-A rack is a group of closely located nodes, either on the same network or within the same cloud availability zone. Racks are used to physically organize nodes so that local failures, such as the loss of a single rack, do not compromise the entire cluster, thereby improving data availability.
+A rack is a group of closely located nodes, either on the same network or within the same cloud availability zone.
 
 ##### Data Center
 A data center is a collection of racks connected by a reliable network, corresponding to a physical building or a cloud region. Data centers allow physical and logical separation of nodes to ensure data remains accessible even in case of extensive failures. Cassandra stores replicas of data across different data centers to mitigate potential data loss from significant events like fires or earthquakes. This ensures that if a data center experiences issues, users might experience slower data reads, but data will not be lost.
@@ -267,16 +267,16 @@ Row caches are data structures that store frequently accessed rows to further im
 
 ###### Commit Logs
 Commit logs are files that ensure data durability and consistency. Every write operation is first recorded in the commit log before being applied to memory. These logs are crucial for data recovery in case of a failure. Key information stored in the commit log includes:
-- Timestamp: The date and time of the operation.
-- Keyspace: The database to which the write operation belongs.
-- Table: The affected table.
-- Partition Key: The partition key.
-- Row Key: The row key.
-- Column Values: The written or updated column values.
-- Operation Type: The type of operation (INSERT, UPDATE, DELETE).
-- TTL (Time to Live): The data's duration, if applicable.
-- Consistency Level: The required consistency level.
-- Checksum: To ensure data integrity.
+- **Timestamp:** the date and time of the operation.
+- **Keyspace:** the database to which the write operation belongs.
+- **Table:** the affected table.
+- **Partition Key:** the partition key.
+- **Row Key:** the row key.
+- **Column Values:** the written or updated column values.
+- **Operation Type:** the type of operation (INSERT, UPDATE, DELETE).
+- **TTL (Time to Live):** the data's duration, if applicable.
+- **Consistency Level:** the required consistency level.
+- **Checksum:** to ensure data integrity.
 
 ###### SSTables
 SSTables (Sorted Strings Tables) are immutable disk files where memtable data is periodically written for persistence. SSTables are structured to allow fast access to stored data, improving the performance of read and write operations. SSTables are created when data in the memtables reaches a certain size and must be transferred to disk for long-term storage.
@@ -296,22 +296,22 @@ Since, as previously mentioned, Cassandra redundantly stores data on multiple no
 
 The fundamental elements in the write-read process are partition keys and clustering keys, as these regulate which node the data is on and how data is grouped and organized within each partition. When the coordinator node receives a write request, it determines which nodes in the cluster are responsible for replicating the data for the specified key in the write request (based on configurations: not necessarily all nodes). The coordinator node determines the replica node by taking the partition key of the data, applying hash functions, also known as partition functions, from which it obtains a 64-bit token identifying the node where the data is stored (sharding). The coordinator node then forwards the write request to these replica nodes. The replica node then executes the following steps:
 
-1. **Commit Log**: When data is written to a node, it is initially stored in the commit log, ensuring recovery of the write in case of node failure.
-2. **Memtable**: A copy of the data is then stored in the memtable, making it accessible for future reads or updates without accessing the disk.
-3. **Row Cache**: If the row cache is active and contains an earlier version of the row, it is invalidated and replaced with the new data.
-4. **SSTables**: Cassandra monitors the size of the memtable. When it reaches a predefined threshold, the data is written to SSTables (on disk). When several columns of the same row are updated in separate write operations, multiple SSTable files are created.
-5. **Hinted Handoff**: If the coordinator detects that a node is unresponsive during a write, it sends hints to the nearest node of the destination node, which temporarily stores the data until the target node is back online.
+1. **Commit Logs:** when data is written to a node, it is initially stored in a commit log, ensuring recovery of the write in case of node failure.
+2. **Memtable:** a copy of the data is then stored in the memtable, making it accessible for future reads or updates without accessing the disk.
+3. **Row Cache:** if the row cache is active and contains an earlier version of the row, it is invalidated and replaced with the new data.
+4. **SSTables:** cassandra monitors the size of the memtable. When it reaches a predefined threshold, the data is written to SSTables (on disk). When several columns of the same row are updated in separate write operations, multiple SSTable files are created.
+5. **Hinted Handoff:** if the coordinator detects that a node is unresponsive during a write, it sends hints to the nearest node of the destination node, which temporarily stores the data until the target node is back online.
 
 #### Data Reading
 
 When the coordinator node receives a read request, it determines the replica nodes responsible for the specified partition key. The read request is then sent to the appropriate replica nodes. The coordinator node can use several consistency levels to determine how many replicas should respond before returning the data. The following steps outline the process:
 
-1. **Row Cache**: The read operation starts by checking the row cache if enabled. The cache is used to store frequently accessed rows and provides the fastest read option.
-2. **Memtable**: If the requested data is not in the row cache, the memtable is checked. The memtable contains recent write operations and ensures the latest data is accessible without disk access.
-3. **SSTables**: If the data is not in the memtable, Cassandra looks for it in the SSTables. SSTables are immutable and stored on disk, providing persistent storage for data.
-4. **Bloom Filter**: To avoid unnecessary disk access, a Bloom filter is used to determine the likelihood that the requested data is in a specific SSTable.
-5. **Key Cache**: The key cache is checked to locate the row within the SSTable quickly.
-6. **Merge Results**: The data is read from all relevant SSTables and merged to provide the final result. This process ensures that the most recent and consistent data is returned to the client.
+1. **Row Cache:** the read operation starts by checking the row cache if enabled. The cache is used to store frequently accessed rows and provides the fastest read option.
+2. **Memtable:** if the requested data is not in the row cache, the memtable is checked. The memtable contains recent write operations and ensures the latest data is accessible without disk access.
+3. **SSTables:** if the data is not in the memtable, Cassandra looks for it in the SSTables. SSTables are immutable and stored on disk, providing persistent storage for data.
+4. **Bloom Filter:** to avoid unnecessary disk access, a Bloom filter is used to determine the likelihood that the requested data is in a specific SSTable.
+5. **Key Cache:** the key cache is checked to locate the row within the SSTable quickly.
+6. **Merge Results:** the data is read from all relevant SSTables and merged to provide the final result. This process ensures that the most recent and consistent data is returned to the client.
 
 Cassandra's architecture ensures high availability, fault tolerance, and scalability through its distributed nature, replication strategies, and efficient data management protocols. It allows users to manage consistency and availability trade-offs, making it suitable for various use cases requiring fast and reliable data access.
 
