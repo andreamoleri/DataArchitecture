@@ -2736,8 +2736,8 @@ db.collection.dropIndexes([
 ])
 ```
 
-In conclusion, while indexes play a pivotal role in enhancing query performance in MongoDB, judicious
-management—including periodic review, deletion of redundant indexes, and careful consideration of operational
+In conclusion, while indexes play an important role in enhancing query performance in MongoDB, 
+periodic review processes, deletion of redundant indexes, and careful consideration of operational
 implications—is essential to maintain optimal database performance and efficiency.
 
 ### Cassandra Optimization
