@@ -4208,8 +4208,8 @@ static Session session = null;
 }
 ```
 
-## Transactions and Aggregations
-### MongoDB Transactions and Aggregations
+## Transactions 
+### MongoDB Transactions
 
 #### Transactions in the Data Model
 
