@@ -21,52 +21,29 @@ into their strengths and limitations in managing complex data systems.
 ## Architecture
 ### MongoDB Architecture
 
-#### Introducing Atlas, MongoDB's DBaaS
+#### Key Terminology
+_In the realm of MongoDB, several key terms are essential to comprehend its architecture and functionality._
 
-MongoDB is a NoSQL database management system renowned for its flexibility and scalability,
-including the ability to manage huge amounts of data. A crucial aspect of MongoDB's ecosystem is Atlas,
-MongoDB's Multi-Cloud Developer Data Platform. Understanding how MongoDB Atlas stores and hosts data through
-Atlas Clusters is fundamental to using its capabilities effectively.
+1. **Document:** the fundamental unit of data within MongoDB is referred to as a "Document".
+   Each document encapsulates a set of key-value pairs representing a single entity.
+   Unlike traditional relational databases, MongoDB's document model allows for flexible and dynamic schemas,
+   enabling developers to store heterogeneous data structures within a collection.
 
-Atlas serves as a comprehensive developer data platform, with its core offering being a Database as a Service (DBaaS).
-This implies that utilizing Atlas alleviates the burden of manual MongoDB management,
-as Atlas takes care of all lifecycle details. Deployments on Atlas benefit from built-in replication,
-referred to as Replica Sets by MongoDB, ensuring data redundancy and availability even in the event of server failures.
+2. **Collection:** a "Collection" in MongoDB is a grouping of documents.
+   Documents within a collection typically share a similar structure, although MongoDB's flexible schema model permits
+   variations in document structure within the same collection. Collections serve as logical containers for organizing
+   related documents and are analogous to tables in relational databases.
 
-Atlas offers two primary types of Database Deployments: Serverless and Clusters.
-Serverless instances scale on-demand, charging users only for the resources utilized, making them ideal
-for applications with highly variable workloads. On the other hand, Clusters consist of multiple MongoDB servers
-working together. Shared Clusters, suitable for initial exploration, include a free tier, while Dedicated Clusters
-offer enhanced resources and customization options tailored to specific project requirements, making them optimal
-for production workloads. Atlas allows deployment across major cloud providers such as AWS, Azure, and Google Cloud.
-
-Global deployment across multiple regions and clouds is facilitated by Atlas, ensuring flexibility to adapt
-to changing needs. Tier adjustments can be made seamlessly as products scale, without causing any downtime.
-Operational insights, backups with Point-In-Time Restoration, and features like built-in data tiering with online
-archiving contribute to Atlas's appeal across various stages of the development cycle. MongoDB serves as
-the underlying data engine powering Atlas's data management and analysis capabilities. Contrary to a common
-misconception, MongoDB is not simply the locally deployed version of Atlas.
-
-#### Creating and Deploying an Atlas Cluster
-
-To effectively utilize MongoDB Atlas, the initial step involves creating an account. Upon account creation,
-selecting the Database M0 free sandbox tier, which provides 512MB of Storage, Shared RAM, and vCPU,
-initiates the process. Subsequently, a Dashboard is presented, housing various functionalities.
-Within this interface, the Organizations feature facilitates the grouping and management of users and projects.
-Projects, in turn, enable the organization of resources such as Database Clustering, allowing for the creation
-of distinct projects tailored for Development, Testing, and Production Environments. Notably, by default,
-databases are generated devoid of users and external IP addresses with access privileges. Consequently, creating
-an Admin user and an Access Point for the designated IP Address becomes important. Navigating to the
-Security Quickstart section enables the authentication of connections through username and password protocols,
-thereby establishing a new administrative user. Given MongoDB's default restriction on IP access to all addresses
-except those designated by Atlas, configuring access from the local machine necessitates inclusion of the local IP
-address within the Access List. This can be achieved by selecting "Add My Current IP Address" and, if required,
-additional addresses can be incorporated via the menu before finalizing with the "Finish and Close" button.
+3. **Database:** a "Database" in MongoDB serves as a container for collections.
+   It provides a logical separation and management unit for organizing and accessing data.
+   Multiple collections, each containing distinct sets of documents, can reside within a single database.
+   MongoDB's architecture allows for the creation of multiple databases within a MongoDB deployment,
+   facilitating data segregation and management at scale.
 
 #### MongoDB and the Document Model
 
-After introducing Atlas, it is now time to dive into the Document Model of MongoDB. In essence,
-we aim to comprehend how MongoDB stores data, how it is utilized, and its behavior in relation to Atlas.
+We will start by explaining the Document Model of MongoDB, which will be explained in
+greater detail it the 'Data Representation' chapter. In essence, we aim to comprehend how MongoDB stores data, and data are utilized.
 MongoDB serves as a General Purpose Document Database, structuring data in the form of Documents, akin to JSON Objects.
 This is very different from Relational Databases, which organize data into rows and columns within tables.
 Documents offer a flexible and developer-friendly approach to working with data.
@@ -90,30 +67,7 @@ Furthermore, Documents can be utilized in a highly developer-friendly manner to 
 Key-Value Pairs, Text, Geospatial Data, Time-Series, Graph Data, and much more can be modeled using documents.
 The flexibility of documents allows us to employ a format for modeling and querying data for any application.
 MongoDB provides drivers in all major programming languages, facilitating the connection of a MongoDB Database 
-to our application, regardless of the programming language used. 
-
-#### Key Terminology
-_In the realm of MongoDB, several key terms are essential to comprehend its architecture and functionality._
-
-1. **Document:** the fundamental unit of data within MongoDB is referred to as a "Document."
-   Each document encapsulates a set of key-value pairs representing a single entity.
-   Unlike traditional relational databases, MongoDB's document model allows for flexible and dynamic schemas,
-   enabling developers to store heterogeneous data structures within a collection.
-
-2. **Collection:** a "Collection" in MongoDB is a grouping of documents.
-   Documents within a collection typically share a similar structure, although MongoDB's flexible schema model permits
-   variations in document structure within the same collection. Collections serve as logical containers for organizing
-   related documents and are analogous to tables in relational databases.
-
-3. **Database:** a "Database" in MongoDB serves as a container for collections.
-   It provides a logical separation and management unit for organizing and accessing data.
-   Multiple collections, each containing distinct sets of documents, can reside within a single database.
-   MongoDB's architecture allows for the creation of multiple databases within a MongoDB deployment,
-   facilitating data segregation and management at scale.
-
-#### The Document Model
-
-As anticipated, MongoDB stores data in structures known as documents which resemble JSON objects.
+to our application, regardless of the programming language used.
 Below is an example of a document used to store product data in a store. We can observe that the document has
 five fields, including a "colors" field containing an array of strings and an "available" field holding a boolean value.
 
@@ -140,7 +94,7 @@ This enables us to store documents with different structures in the same collect
 Documents can contain various fields, and the fields can hold different data types from one document to another.
 This is a significant distinction from relational databases, where declaring a table schema is necessary before
 inserting data. MongoDB's flexible schema allows us to iterate rapidly and evolve as our requirements change.
-Here's a practical example of this flexible schema. Suppose we have an online furniture store with a catalog of items.
+Here's a practical example of this flexible schema. Suppose we have an online tech store with a catalog of items.
 When we start developing our application, we decide to include an `"_id"`, a `"name"`, and a `"price"` for each item.
 
 ```bash
@@ -182,7 +136,7 @@ Nonetheless, the basic syntax of the Document Model remains as indicated in the 
 #### Nodes in MongoDB
 A MongoDB database is physically structured to support high availability, scalability, and resiliency. The physical 
 structure of MongoDB involves various components such as nodes, clusters, and datacenters. Below is an overview of how 
-these components interact and how the reading and writing processes occur. Let's start by saying that A running MongoDB 
+these components interact and how the reading and writing processes occur. Let's start by saying that a running MongoDB 
 instance is called a "node". There are two main types of nodes:
 
 - **Primary Nodes**: they are responsible for write operations. Each replica set has only one primary node at a time.
@@ -198,8 +152,8 @@ This architecture provides several key benefits:
 2. **High Availability**: by distributing data across multiple nodes, clusters ensure that the system remains operational even if one or more nodes fail.
 3. **Load Balancing**: tasks and queries are distributed across the nodes, balancing the load and improving performance.
 
-In MongoDB Atlas, clusters can be easily set up and managed through the Atlas user interface. Clusters can be deployed
-across multiple cloud providers and regions, allowing for global distribution of data and applications.
+Clusters can be easily set up and managed by the programmer, through the command line or by using Atlas user interface. 
+Clusters can be deployed across multiple cloud providers and regions, allowing for global distribution of data and applications.
 
 #### Sharding in MongoDB
 
@@ -215,8 +169,7 @@ datasets and high-throughput operations efficiently. Key concepts in MongoDB sha
 
 2. **Shard Keys**: a shard key is a field or a combination of fields that determines how data is distributed across shards. Choosing an appropriate shard key is crucial for balanced data distribution and query performance.
 
-In MongoDB Atlas, sharding can be enabled and configured through the Atlas console, 
-providing an easy-to-use interface for managing sharded clusters.
+In MongoDB, sharding can be enabled and configured through the console, providing an easy-to-use interface for managing sharded clusters.
 
 #### Replica Sets in MongoDB
 
@@ -233,15 +186,15 @@ A typical replica set consists of:
 - **Secondary Nodes**: maintain copies of the data from the primary node. They can be configured to handle read operations, providing load balancing and improved read performance.
 - **Arbiter Nodes**: participate in elections but do not store data. They are used to ensure a quorum in elections when there are an even number of data-bearing nodes.
 
-In MongoDB Atlas, deploying a replica set is straightforward, and the platform provides tools for managing and monitoring 
-the health of the replica set. Automatic backups, point-in-time recovery, and monitoring tools are available to ensure the 
-reliability and performance of the replica set. 
+In MongoDB Atlas and in the command line, deploying a replica set is straightforward, and the Atlas platform provides 
+tools for managing and monitoring the health of the replica set. Automatic backups, point-in-time recovery, and monitoring 
+tools are available to ensure the reliability and performance of the replica set. 
 
 #### Data Centers and Information Exchange
 
 In a distributed architecture, nodes can be distributed across multiple data centers to ensure geographic resilience 
 and fault tolerance. This configuration improves database availability in the event of natural disasters or regional outages.
-Let's now see an overview of how information exchange works in MongoDB
+Let's now see an overview of how information exchange works in MongoDB:
 
 - **Replica Set**: secondary nodes continuously synchronize data from the primary node over a network connection. They use the oplog (operation log) based replication protocol, a log of operations applied to the primary database.
 - **Sharded Clusters**: query routers (mongos) receive requests from the client, consult config servers to determine which shard contains the requested data, and then forward the requests to the appropriate shard.
@@ -829,6 +782,48 @@ To facilitate efficient data storage and transmission, Cassandra uses a flexible
 
 ## Database Connection
 ### Connecting to a MongoDB Database
+
+#### Introducing Atlas, MongoDB's DBaaS
+
+MongoDB is a NoSQL database management system renowned for its flexibility and scalability,
+including the ability to manage huge amounts of data. A crucial aspect of MongoDB's ecosystem is Atlas,
+MongoDB's Multi-Cloud Developer Data Platform. Understanding how MongoDB Atlas stores and hosts data through
+Atlas Clusters is fundamental to using its capabilities effectively.
+
+Atlas serves as a comprehensive developer data platform, with its core offering being a Database as a Service (DBaaS).
+This implies that utilizing Atlas alleviates the burden of manual MongoDB management,
+as Atlas takes care of all lifecycle details. Deployments on Atlas benefit from built-in replication,
+referred to as Replica Sets by MongoDB, ensuring data redundancy and availability even in the event of server failures.
+
+Atlas offers two primary types of Database Deployments: Serverless and Clusters.
+Serverless instances scale on-demand, charging users only for the resources utilized, making them ideal
+for applications with highly variable workloads. On the other hand, Clusters consist of multiple MongoDB servers
+working together. Shared Clusters, suitable for initial exploration, include a free tier, while Dedicated Clusters
+offer enhanced resources and customization options tailored to specific project requirements, making them optimal
+for production workloads. Atlas allows deployment across major cloud providers such as AWS, Azure, and Google Cloud.
+
+Global deployment across multiple regions and clouds is facilitated by Atlas, ensuring flexibility to adapt
+to changing needs. Tier adjustments can be made seamlessly as products scale, without causing any downtime.
+Operational insights, backups with Point-In-Time Restoration, and features like built-in data tiering with online
+archiving contribute to Atlas's appeal across various stages of the development cycle. MongoDB serves as
+the underlying data engine powering Atlas's data management and analysis capabilities. Contrary to a common
+misconception, MongoDB is not simply the locally deployed version of Atlas.
+
+#### Creating and Deploying an Atlas Cluster
+
+To effectively utilize MongoDB Atlas, the initial step involves creating an account. Upon account creation,
+selecting the Database M0 free sandbox tier, which provides 512MB of Storage, Shared RAM, and vCPU,
+initiates the process. Subsequently, a Dashboard is presented, housing various functionalities.
+Within this interface, the Organizations feature facilitates the grouping and management of users and projects.
+Projects, in turn, enable the organization of resources such as Database Clustering, allowing for the creation
+of distinct projects tailored for Development, Testing, and Production Environments. Notably, by default,
+databases are generated devoid of users and external IP addresses with access privileges. Consequently, creating
+an Admin user and an Access Point for the designated IP Address becomes important. Navigating to the
+Security Quickstart section enables the authentication of connections through username and password protocols,
+thereby establishing a new administrative user. Given MongoDB's default restriction on IP access to all addresses
+except those designated by Atlas, configuring access from the local machine necessitates inclusion of the local IP
+address within the Access List. This can be achieved by selecting "Add My Current IP Address" and, if required,
+additional addresses can be incorporated via the menu before finalizing with the "Finish and Close" button.
 
 The MongoDB Connection String allows us to connect to the cluster and work with the data. It describes the host we will
 use and the options for connecting to a MongoDB database. For example, the Connection String can be used to connect
