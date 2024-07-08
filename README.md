@@ -1929,7 +1929,7 @@ To ensure that documents are returned in a consistent order, a field containing 
 sort. A simple way to achieve this is by including the `_id` field in the sort as demonstrated above. The `sort`
 method can be applied to virtually any type of field.
 
-### Limiting the Number of Results
+#### Limiting the Number of Results
 
 Limiting the number of returned results can improve application performance by avoiding unnecessary data processing.
 The `Limit Cursor Method` achieves this by using `cursor.limit()` to specify the maximum number of documents that
@@ -2315,11 +2315,10 @@ In the following subparagraphs the main possible operations of the CQL language 
 #### Creating a Keyspace
 
 In Cassandra, a keyspace is the highest level of abstraction for organizing data. It is, basically, a top-level namespace. When creating a keyspace, two parameters must be specified:
-- the replication factor: the number of copies of the data maintained within the cluster;
-- the strategy of replication: how the data are replicated. The choice of strategy depends on specific performance, fault tolerance, and data compaction needs. The main options are:
-
-  - "SimpleStrategy": used only for a single datacenter and one rack. It places the first replica on a node determined by the partitioner. Additional replicas are placed on the next nodes clockwise in the ring without considering topology.
-  - "NetworkTopologyStrategy": used when you have multiple data centers available. This strategy specifies how many replicas you want in each data center.
+- **Replication Factor:** the number of copies of the data maintained within the cluster;
+- **Strategy of Replication:** how the data are replicated. The choice of strategy depends on specific performance, fault tolerance, and data compaction needs. The main options are:
+  - **SimpleStrategy:** used only for a single datacenter and one rack. It places the first replica on a node determined by the partitioner. Additional replicas are placed on the next nodes clockwise in the ring without considering topology.
+  - **NetworkTopologyStrategy:** used when you have multiple data centers available. This strategy specifies how many replicas you want in each data center.
     NetworkTopologyStrategy places replicas in the same data center by traveling the ring clockwise until it reaches the first node in another rack. NetworkTopologyStrategy tries to place replicas on distinct racks because nodes in the same rack often fail at the same time.
 
 Less important alternatives include the "LeveledCompactionStrategy" for efficient data compaction, and the "DateTieredCompactionStrategy," ideal for long-term storage of time-based data.
@@ -2362,7 +2361,7 @@ The WITH CLUSTERING ORDER BY clause specifies the order in which rows with the s
 #### Data Types
 The main data types in Cassandra are:
 
-- Primitive Data Types:
+- **Primitive Data Types:**
   - `tinyint` (8-bit integers), `smallint` (16-bit integers), `int` (32-bit integers), `bigint` (64-bit integers),
   - `varint` (variable-length integers),
   - `float` (7 decimal digits of precision for a number), `double`, (15 decimal digits of precision for a number)
@@ -2370,16 +2369,16 @@ The main data types in Cassandra are:
   - `text`,
   - `blob` (intended for storing large data in binary format not directly interpretable by the database)
   - ...
-- Collection Data Types:
+- **Collection Data Types:**
   - `list`: Ordered list of values of the same type (e.g., `list<int>`).
   - `set`: Unordered set of unique values of the same type (e.g., `set<int>`).
   - `map`: Map of key-value pairs with arbitrary types (e.g., `map<int, text>`).
-- Temporal Data Types:
+- **Temporal Data Types:**
   - `timestamp`: Timestamp, represented as the number of milliseconds since `1970-01-01`.
   - `date`: Date without timezone, in the format `YYYY-MM-DD`.
   - `time`: Time of day, represented as the number of milliseconds since midnight.
   - `datetime`: Combination of date and time.
-- Special Data Types:
+- **Special Data Types:**
   - `uuid`: Universally unique identifier (UUID), used to generate unique primary keys.
   - `timeuuid`: Version 1 UUID, incorporating a timestamp, useful for ordering events based on generation time.
 
@@ -2414,43 +2413,43 @@ WHERE condition;
 
 In the `WHERE` clause, the condition can be expressed using mathematical operators (`+`, `-`, `*`, `/`), comparison operators (`<`, `>`, `<=`, `>=`, `=`, `!=`, `<>`), specific functions like `MOD()`, and logical operators:
 
-- `AND`: Returns results that satisfy both conditions.
+- `AND`: returns results that satisfy both conditions.
 
   ```cql
   SELECT * FROM table_name WHERE condition1 AND condition2;
   ```
 
-- `OR`: Returns results that satisfy at least one condition.
+- `OR`: returns results that satisfy at least one condition.
 
   ```cql
   SELECT * FROM table_name WHERE condition1 OR condition2;
   ```
 
-- `NOT`: Returns results that do not meet the specified condition.
+- `NOT`: returns results that do not meet the specified condition.
 
   ```cql
   SELECT * FROM table_name WHERE NOT condition;
   ```
 
-- `IN`: Checks if a value is present in a specified list of values.
+- `IN`: checks if a value is present in a specified list of values.
 
   ```cql
   SELECT * FROM table_name WHERE column IN (value1, value2, value3);
   ```
 
-- `CONTAINS`: Checks if a set contains a specific value (used primarily with `set` or `map` columns).
+- `CONTAINS`: checks if a set contains a specific value (used primarily with `set` or `map` columns).
 
   ```cql
   SELECT * FROM table_name WHERE column CONTAINS value;
   ```
 
-- `CONTAINS KEY`: Checks if a map contains a specific key (used with `map` columns).
+- `CONTAINS KEY`: checks if a map contains a specific key (used with `map` columns).
 
   ```cql
   SELECT * FROM table_name WHERE column CONTAINS KEY key;
   ```
 
-- `CONTAINS ENTRY`: Checks if a map contains a specific key/value pair (used with `map` columns).
+- `CONTAINS ENTRY`: checks if a map contains a specific key/value pair (used with `map` columns).
 
   ```cql
   SELECT * FROM table_name WHERE column CONTAINS ENTRY (key, value);
@@ -2513,25 +2512,25 @@ WHERE conditions
 ```
 
 Where:
-- **SELECT clause:** Specifies the columns to be returned.
-- **FROM clause:** Specifies the table from which to retrieve the data.
-- **WHERE clause:** Defines the conditions for filtering the data. The logic of using this clause has some particularities:
-  - **Partition key:** Every query using a WHERE clause must include at least the partition key to ensure optimal performance. This allows Cassandra to quickly locate the node that holds the data using hash functions and hash tables.
-  - **Clustering keys:** In addition to the partition key, clustering keys can also be used to allow Cassandra to retrieve data more quickly.
-  - **Secondary indexes:** If you need to narrow the scope of a query based on a field that is not part of the primary key, you can create secondary indexes to allow WHERE clause queries on those columns. However, using secondary indexes can negatively impact performance, so they should be used with caution.
-- **LIMIT clause:** Limits the number of rows returned. Using this clause is useful to prevent retrieving too much data, which could be inefficient and resource-intensive.
+- **SELECT Clause:** specifies the columns to be returned.
+- **FROM Clause:** specifies the table from which to retrieve the data.
+- **WHERE Clause:** defines the conditions for filtering the data. The logic of using this clause has some particularities:
+  - **Partition Key:** every query using a WHERE clause must include at least the partition key to ensure optimal performance. This allows Cassandra to quickly locate the node that holds the data using hash functions and hash tables.
+  - **Clustering Keys:** in addition to the partition key, clustering keys can also be used to allow Cassandra to retrieve data more quickly.
+  - **Secondary Indexes:** if you need to narrow the scope of a query based on a field that is not part of the primary key, you can create secondary indexes to allow WHERE clause queries on those columns. However, using secondary indexes can negatively impact performance, so they should be used with caution.
+- **LIMIT Clause:** limits the number of rows returned. Using this clause is useful to prevent retrieving too much data, which could be inefficient and resource-intensive.
 
 It is essential to design the data model with query requirements in mind to ensure high performance and efficient query execution.
 
 #### Other operations
-- **Materialized views:** they are pre-calculated views of the data present in tables, providing faster access to query results. Automatically updated by the system based on changes to the underlying data, they ensure data consistency between views and base tables. These views optimize query performance, offering flexibility in database design and supporting complex queries.
+- **Materialized Views:** they are pre-calculated views of the data present in tables, providing faster access to query results. Automatically updated by the system based on changes to the underlying data, they ensure data consistency between views and base tables. These views optimize query performance, offering flexibility in database design and supporting complex queries.
 ```cql
 CREATE MATERIALIZED VIEW name_m_view AS
 QUERY
 PRIMARY KEY (name_key1, ...);
 ```
-- **Configurable consistency levels:** determine the number of replicas that must agree on the response before an operation is considered complete. Common consistency levels include ONE (completed when at least one replica responds), QUORUM (completed when a majority of replicas respond), ALL, EACH_QUORUM, etc.
-- **Batch statements:** they in Cassandra allow executing multiple write or modification operations in a single atomic transaction, ensuring that either all operations are executed or none. They can involve one or more tables and can be configured as "unlogged" (write operations are not logged in the commit log, posing higher risks in case of data loss) or "logged" (all write operations are logged in the commit log before being applied to the actual data on disk), with significant differences in performance and data durability. Batches are useful for reducing the number of network calls and improving overall system performance, but it's important to balance data consistency and scalability needs when deciding to use them.
+- **Configurable Consistency Levels:** determine the number of replicas that must agree on the response before an operation is considered complete. Common consistency levels include ONE (completed when at least one replica responds), QUORUM (completed when a majority of replicas respond), ALL, EACH_QUORUM, etc.
+- **Batch Statements:** they in Cassandra allow executing multiple write or modification operations in a single atomic transaction, ensuring that either all operations are executed or none. They can involve one or more tables and can be configured as "unlogged" (write operations are not logged in the commit log, posing higher risks in case of data loss) or "logged" (all write operations are logged in the commit log before being applied to the actual data on disk), with significant differences in performance and data durability. Batches are useful for reducing the number of network calls and improving overall system performance, but it's important to balance data consistency and scalability needs when deciding to use them.
 ```cql
 BEGIN [UNLOGGED | LOGGED] BATCH
 [USING TIMESTAMP [epoch_microseconds]]
