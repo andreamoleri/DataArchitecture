@@ -4422,7 +4422,7 @@ but they can be added again by editing the body of the main class above.
 ```
 
 Various test cases are listed within the log file just shown as described by the objectives of our model. In particular,
-flight retrieval, seats retrieval, concurrent and non-concurrent transactions and testing of insufficient funds behavior
+flight retrieval, seats retrieval, concurrent and non-concurrent transactions and testing of insufficient funds behaviour
 are tested. It should be specified that it would have been possible to add a test case called "TESTING ALREADY BOOKED
 TRANSACTION", in which the behavior of a user who would have tried to book an already occupied seat would have been
 tested. However, this test was omitted as it was already logically incorporated by the locking mechanism of the test
@@ -4946,7 +4946,8 @@ import java.util.List;
 /**
  * The NameSurnamePool class provides static lists of common Italian names and surnames.
  * These lists can be used for generating sample data or for any other purpose requiring 
- * a set of predefined names and surnames.
+ * a set of predefined names and surnames. In the code, this class is used to provide names
+ * and surnames that are used in the PeopleGenerator.java Class, that was explained previously
  *
  * @version 1.0
  * @since 2024-07-02
