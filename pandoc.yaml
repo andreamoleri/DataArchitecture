@@ -1,0 +1,3 @@
+pdf-engine: pdflatex
+include-in-header: header.tex
+toc: true

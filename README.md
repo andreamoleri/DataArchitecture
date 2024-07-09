@@ -1,4 +1,7 @@
-# Air Travel Reservation Modeling Using MongoDB and Cassandra
+---
+title: "Air Travel Reservation Modeling Using MongoDB and Cassandra"
+author: ""
+---
 
 ## Team Members
 - 902011, Moleri Andrea, a.moleri@campus.unimib.it
@@ -22,7 +25,8 @@ into their strengths and limitations in managing complex data systems.
 ### MongoDB Architecture
 
 #### Key Terminology
-_In the realm of MongoDB, several key terms are essential to comprehend its architecture and functionality._
+
+In the realm of MongoDB, several key terms are essential to comprehend its architecture and functionality.
 
 1. **Document:** the fundamental unit of data within MongoDB is referred to as a "Document".
    Each document encapsulates a set of key-value pairs representing a single entity.
@@ -139,8 +143,8 @@ structure of MongoDB involves various components such as nodes, clusters, and da
 these components interact and how the reading and writing processes occur. Let's start by saying that a running MongoDB 
 instance is called a "node". There are two main types of nodes:
 
-- **Primary Nodes:** they are responsible for write operations. Each replica set has only one primary node at a time.
-- **Secondary Nodes:** receive copies of data from the primary node and can serve read operations if configured to do so.
+1. **Primary Nodes:** they are responsible for write operations. Each replica set has only one primary node at a time.
+2. **Secondary Nodes:** receive copies of data from the primary node and can serve read operations if configured to do so.
 
 #### Clusters in MongoDB
 
@@ -182,6 +186,7 @@ Key features and benefits of replica sets include:
 3. **Read Scalability:** read operations can be distributed across multiple nodes, improving read performance and balancing the load.
 
 A typical replica set consists of:
+
 - **Primary Node:** handles all write operations and coordinates replication to secondary nodes.
 - **Secondary Nodes:** maintain copies of the data from the primary node. They can be configured to handle read operations, providing load balancing and improved read performance.
 - **Arbiter Nodes:** participate in elections but do not store data. They are used to ensure a quorum in elections when there are an even number of data-bearing nodes.
@@ -254,19 +259,20 @@ The architecture of a Cassandra node is structured according to the following hi
 ##### Cassandra Daemon (JVM)
 Cassandra is written in Java, so each node runs a JVM that interprets Java code. The JVM manages the execution of the Cassandra software, including all read, write, and data management processes. The JVM also provides an optimized runtime environment for performance, enabling Cassandra to handle high workloads and scale efficiently.
 
-###### Memtables
+##### Memtables
 Memtables are in-memory data structures used to temporarily store write operations before they are written to disk. Memtables provide a fast storage area for written data, allowing Cassandra to respond quickly to write requests and temporarily store data before transferring it to disk for persistence.
 
-###### Key Caches
+##### Key Caches
 The key cache stores the locations of row keys within the SSTables. This allows Cassandra to quickly locate data on disk without having to read index files for each read operation. The key cache improves read performance by reducing the time required to find the requested data on disk.
 
-###### Row Caches
+##### Row Caches
 Row caches are data structures that store frequently accessed rows to further improve read performance. The row cache allows Cassandra to quickly respond to repetitive read requests for the same data, reducing the need to access the disk and improving the overall performance of the system.
 
 ##### Disk
 
-###### Commit Logs
+##### Commit Logs
 Commit logs are files that ensure data durability and consistency. Every write operation is first recorded in the commit log before being applied to memory. These logs are crucial for data recovery in case of a failure. Key information stored in the commit log includes:
+
 - **Timestamp:** the date and time of the operation.
 - **Keyspace:** the database to which the write operation belongs.
 - **Table:** the affected table.
@@ -278,10 +284,10 @@ Commit logs are files that ensure data durability and consistency. Every write o
 - **Consistency Level:** the required consistency level.
 - **Checksum:** to ensure data integrity.
 
-###### SSTables
+##### SSTables
 SSTables (Sorted Strings Tables) are immutable disk files where memtable data is periodically written for persistence. SSTables are structured to allow fast access to stored data, improving the performance of read and write operations. SSTables are created when data in the memtables reaches a certain size and must be transferred to disk for long-term storage.
 
-###### Hints
+##### Hints
 Hints are a mechanism used to improve data availability and fault tolerance. When a destination node is unavailable to receive a write, Cassandra records a hint on the source node. This hint contains information similar to that in the commit log, necessary to apply the write once the destination node becomes available. The most important information is the identifier of the node that could not receive the write and the data to be written. Hints are crucial to ensure that data is correctly written as soon as the destination node comes back online.
 
 #### Consistency
@@ -290,7 +296,7 @@ Hints are a mechanism used to improve data availability and fault tolerance. Whe
 When a user connects to the database, they are assigned a coordinator node. This node is responsible for coordinating interactions with other nodes, sending requests, gathering results, and returning the query result to the client. The coordinator also ensures, through the sharding process, that requests are correctly distributed among nodes containing copies of data, avoiding the interrogation of the same set of nodes, and that query results are accurate and complete.
 
 ##### Consistency Levels
-Since, as previously mentioned, Cassandra redundantly stores data on multiple nodes known as replica nodes, based on a replication factor defined during database configuration, ensuring total consistency among the various copies can take time due to many write operations. However, this might not always be necessary. Cassandra offers a feature that allows users to manage the balance between data consistency and time. Consistency can be managed globally or selectively for individual read and write operations. Users can set data consistency preferences using the CONSISTENCY command or through client drivers. Consistency refers to the number of replicas that must be involved. The parameter can be specified as a numerical value or with keywords like ALL, ANY, and QUORUM ($|replica nodes|/2 + 1$). These options provide application developers with the flexibility to balance data availability, consistency, and application performance.
+Since, as previously mentioned, Cassandra redundantly stores data on multiple nodes known as replica nodes, based on a replication factor defined during database configuration, ensuring total consistency among the various copies can take time due to many write operations. However, this might not always be necessary. Cassandra offers a feature that allows users to manage the balance between data consistency and time. Consistency can be managed globally or selectively for individual read and write operations. Users can set data consistency preferences using the CONSISTENCY command or through client drivers. Consistency refers to the number of replicas that must be involved. The parameter can be specified as a numerical value or with keywords like ALL, ANY, and QUORUM $\left(\frac{|replica\_nodes|}{2} + 1\right)$. These options provide application developers with the flexibility to balance data availability, consistency, and application performance.
 
 #### Data Writing
 
@@ -346,7 +352,7 @@ As a consequence, documents may exhibit diverse structures, thanks to a concept 
 {
 	"name": "Filippo"
 	"major": "CS"
-	"course": "Qualità del Software"
+	"course": "Qualita del Software"
 	"year": 2024
 }
 ```
@@ -522,7 +528,7 @@ Course Name are added within the Student Document.
 	"emergency_contact_relation": "Friend",
 	"courses": [
 		{"course_id": "2324-1-F1801Q159", "course_name": "Architetture Dati"},
-		{"course_id": "2324-1-F1801Q115", "course_name": "Qualità del Software"}
+		{"course_id": "2324-1-F1801Q115", "course_name": "Qualita del Software"}
 	]
 }
 ```
@@ -553,7 +559,7 @@ the Course Collection when and if needed.
 	
 	{
 		"course_id": "2324-1-F1801Q115",
-		"course_name": "Qualità del Software",
+		"course_name": "Qualita del Software",
 		"professors": "Giovanni Denaro, Luca Guglielmo, Elson Kurian",
 		"offered": "Fall, Spring"
 	}
@@ -641,7 +647,7 @@ documents. However, this approach may necessitate querying multiple documents, p
    "emergency_contact_relation": "Friend",
    "courses": [
       {"course_id": "2324-1-F1801Q159", "course_name": "Architetture Dati"},
-      {"course_id": "2324-1-F1801Q115", "course_name": "Qualità del Software"}
+      {"course_id": "2324-1-F1801Q115", "course_name": "Qualita del Software"}
    ]
 }
 ```
@@ -764,7 +770,7 @@ field as a reference between the two collections.
 ```
 
 ### Cassandra Data Representation
-In Apache Cassandra, data is organized using a unique combination of column-based and row-based structures, which significantly differ from the traditional conventions of relational databases. Unlike relational databases where the schema is rigid and predefined, Cassandra’s data model is designed for flexibility and scalability. The primary data storage unit in Cassandra is the Column Family, which can be likened to a table in a relational database, albeit with a distinctive twist: each row in a Column Family can contain a variable number of columns, allowing for a highly flexible schema design.
+In Apache Cassandra, data is organized using a unique combination of column-based and row-based structures, which significantly differ from the traditional conventions of relational databases. Unlike relational databases where the schema is rigid and predefined, Cassandra's data model is designed for flexibility and scalability. The primary data storage unit in Cassandra is the Column Family, which can be likened to a table in a relational database, albeit with a distinctive twist: each row in a Column Family can contain a variable number of columns, allowing for a highly flexible schema design.
 
 A Column Family in Cassandra is essentially a set of key-value pairs. In this context, the key is utilized for identifying columns and for distributing and partitioning data among the cluster nodes, while the value comprises a set of columns. Conceptually, each key-value pair in a Column Family corresponds to a table row in a relational database, with the key value serving as the identifier for the row.
 
@@ -774,7 +780,7 @@ In this model, rows are collections of columns, where each column is characteriz
 
 Within a Column Family, Cassandra also supports a more advanced data structure known as SuperColumns. Essentially, a SuperColumn is a collection of columns grouped under a single key. Each column within a SuperColumn has its own name, value, and timestamp, much like regular columns. This hierarchical data structure allows for more complex data models and relationships to be represented. For instance, a SuperColumn can be used to model nested data, such as a blog post with multiple comments where each comment has attributes like author, timestamp, and content. Despite their utility, SuperColumns have become less favored in newer versions of Cassandra, which now prefer the use of collections such as maps, lists, and sets. These collections offer a more straightforward and efficient approach to data modeling, simplifying the representation of complex relationships like one-to-many and many-to-many associations.
 
-One of Cassandra's key strengths is its support for wide-row tables, where a single row key can have an exceptionally large number of columns. This feature is particularly useful for applications like social media platforms, event logging, or time-series data where it is common to have many related records associated with a single key. For instance, in a social media application, a user’s timeline can be stored as a wide row, with each column representing an individual post or activity. This capability allows Cassandra to handle large volumes of related data efficiently under a single key, making it an excellent choice for managing data that grows over time.
+One of Cassandra's key strengths is its support for wide-row tables, where a single row key can have an exceptionally large number of columns. This feature is particularly useful for applications like social media platforms, event logging, or time-series data where it is common to have many related records associated with a single key. For instance, in a social media application, a user's timeline can be stored as a wide row, with each column representing an individual post or activity. This capability allows Cassandra to handle large volumes of related data efficiently under a single key, making it an excellent choice for managing data that grows over time.
 
 Cassandra, unlike relational models and MongoDB, strongly discourages the use of relationships between data/tables, instead favoring data duplication. Instead of using complex joins as in relational databases, data is designed to be read together in the same row or partition, reducing the need for costly joins. This denormalization approach is particularly advantageous in distributed environments, where data retrieval from multiple nodes can be slow. By storing related data together, Cassandra optimizes read and write performance. In fact, from a computational cost point of view, it is much more efficient for Cassandra to perform multiple write operations to keep the data consistent, compared to performing join operations based on the queries.
 
@@ -846,7 +852,8 @@ You will be given a Connection String to copy and paste, which you will use to c
 The connection string begins with the required prefix `mongodb+srv` which identifies it as a MongoDB Connection String.
 
 ```sh
-mongodb+srv://<username>:<password>@cluster0.usqsf.mongodb.net/?retryWrites=true&w=majority
+mongodb+srv://
+    <username>:<password>@cluster0.usqsf.mongodb.net/?retryWrites=true&w=majority
 ```
 
 - **srv:** automatically sets the TLS Security Options to true and instructs MongoDB to use the DNS Seedlist.
@@ -961,7 +968,8 @@ First, open the Java Maven project and locate the `pom.xml` file, that should lo
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation=
+                 "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
@@ -1001,6 +1009,7 @@ at hand. To summarize, we made the following updates:
 
 2. **Additional Dependencies for Project Functionality:**
    alongside the MongoDB driver, we also incorporated other dependencies:
+
    - **OpenCSV (`com.opencsv:opencsv:5.5.2`):** used for handling CSV input and output.
    - **SLF4J API (`org.slf4j:slf4j-api:1.7.32`):** provides a simple facade for various logging frameworks.
    - **Logback Classic (`ch.qos.logback:logback-classic:1.2.6`):** offers robust logging capabilities for the application.
@@ -1012,7 +1021,8 @@ These dependencies collectively enhance the functionality and logging capabiliti
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation=
+                 "http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
    <modelVersion>4.0.0</modelVersion>
 
    <groupId>org.example</groupId>
@@ -1134,7 +1144,8 @@ username and password will be set to `admin`. This is just a toy example, and fo
 database password should be more complex to ensure safety
 
 ```bash
-mvn compile exec:java -Dexec.mainClass="com.mongodb.quickstart.Connection" -Dmongodb.uri="mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB"
+mvn compile exec:java -Dexec.mainClass="com.mongodb.quickstart.Connection" 
+-Dmongodb.uri="mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net" + "/?retryWrites=true&w=majority&appName=LearningMongoDB"
 ```
 
 If the command executes successfully, it will return a list of databases contained within the Atlas cluster.
@@ -1206,7 +1217,7 @@ public class Connection {
 To make the most of the Cassandra database in this first phase of the relation it was chosen to use Amazon Web Services as a hosting service. In the chapter relating to large volume management, Docker services will be used to better study the behavior of some nodes.
 
 #### Connection AWS
-Cassandra requires the use of Transport Layer Security (TLS) to protect client connections. TLS is an encryption protocol that ensures the security and privacy of data exchanged between client and server applications. Here’s how to configure the connection:
+Cassandra requires the use of Transport Layer Security (TLS) to protect client connections. TLS is an encryption protocol that ensures the security and privacy of data exchanged between client and server applications. Here's how to configure the connection:
 
 1. Download the Starfield digital certificate using the following command and save it as `sf-class2-root.crt` in your local directory or home directory.  These digital certificates are used to authenticate the identity of a website and to encrypt the communication between the website and its users, ensuring that the data transmitted is secure and protected from interception.
 
@@ -1261,7 +1272,7 @@ The SigV4 authentication plugin enables the use of IAM credentials for users and
 
 7. Identify the endpoint of the keyspace you want to connect to. A keyspace endpoint has the following format:
 
-```plaintext
+```sh
 cassandra.<region>.amazonaws.com:portNumber
 ```
 
@@ -1905,7 +1916,7 @@ points to the documents matching the query. There are also Cursor Methods that c
 perform actions on the resulting set, such as sorting or limiting the search results, before returning the data to the client.
 To begin with, results can be returned in a specified order using the `cursor.sort()` method, which has the following syntax:
 
-```plaintext
+```sh
 db.collection.find(<query>).sort(<sort>)
 ```
 
@@ -1935,7 +1946,7 @@ Limiting the number of returned results can improve application performance by a
 The `Limit Cursor Method` achieves this by using `cursor.limit()` to specify the maximum number of documents that
 the cursor will return. The syntax is as follows:
 
-```plaintext
+```sh
 db.collection.find(<query>).limit(<number>)
 ```
 
@@ -1960,7 +1971,7 @@ By default, queries in MongoDB return all fields in the matching document. Howev
 to use data only from a subset of these fields. In this case, the amount of data returned by MongoDB can be limited
 by selecting specific fields to return. This process, known as projection, can be used in most find queries. The syntax is:
 
-```plaintext
+```sh
 db.collection.find(<query>, <projection>)
 ```
 
@@ -1995,7 +2006,7 @@ db.inspections.find(
 The `db.collection.countDocuments()` method can be used to count the number of documents matching a query. This method
 takes two parameters: a query document and an options document. The syntax is:
 
-```plaintext
+```sh
 db.collection.countDocuments(<query>, <options>)
 ```
 
@@ -2059,7 +2070,7 @@ Document inspection = new Document("_id", new ObjectId())
 
 To insert a single document into a collection, use the `getCollection()` method to access the `MongoCollection` object,
 which represents the specified collection. Then, append the `insertOne()` method to the collection object. Within the
-parentheses of `insertOne()`, include an object that contains the document data and print the inserted document’s ID,
+parentheses of `insertOne()`, include an object that contains the document data and print the inserted document's ID,
 as shown in the following example, which also contains a sub-document in the `address` field.
 
 ```java
@@ -2443,7 +2454,7 @@ can be accomplished using MongoDB CLI or MongoDB Language Drivers. Below is an e
 CLI, starting with `db.collection.aggregate` followed by stage names and their contained expressions. Each stage
 represents a discrete data operation, commonly including `$match` for filtering data, `$group` for grouping documents,
 and `$sort` for ordering documents based on specified criteria. The use of `$` prefix signifies a field path,
-referencing the value in that field, useful for operations like concatenation (`$concat: ["$first_name", "$last_name"]`).
+referencing the value in that field, useful for operations like concatenation (`$concat: ['$first_name', '$last_name']`).
 
 ```bash
 db.collection.aggregate([
@@ -2464,7 +2475,7 @@ db.collection.aggregate([
 The `$match` stage filters documents that match specified conditions, as illustrated in the example below. The `$group`
 stage groups documents based on a specified group key. These stages are commonly used together in an aggregation
 pipeline. In the example, the aggregation pipeline identifies documents with a `"state"` field matching `"CA"` and then
-groups these documents by the "$city" group key to count the total number of zip codes in California. Placing `$match`
+groups these documents by the `$city` group key to count the total number of zip codes in California. Placing `$match`
 early in the pipeline optimizes performance by utilizing indexes to reduce the number of documents processed.
 Conversely, the output of `$group` is a document for each unique value of the group key. Note that `$group` includes
 `_id` as the group key and an accumulator field, specifying how to aggregate information for each group. For instance,
@@ -2702,8 +2713,10 @@ In the following subparagraphs the main possible operations of the CQL language 
 #### Creating a Keyspace
 
 In Cassandra, a keyspace is the highest level of abstraction for organizing data. It is, basically, a top-level namespace. When creating a keyspace, two parameters must be specified:
+
 - **Replication Factor:** the number of copies of the data maintained within the cluster;
 - **Strategy of Replication:** how the data are replicated. The choice of strategy depends on specific performance, fault tolerance, and data compaction needs. The main options are:
+  
   - **SimpleStrategy:** used only for a single datacenter and one rack. It places the first replica on a node determined by the partitioner. Additional replicas are placed on the next nodes clockwise in the ring without considering topology.
   - **NetworkTopologyStrategy:** used when you have multiple data centers available. This strategy specifies how many replicas you want in each data center.
     NetworkTopologyStrategy places replicas in the same data center by traveling the ring clockwise until it reaches the first node in another rack. NetworkTopologyStrategy tries to place replicas on distinct racks because nodes in the same rack often fail at the same time.
@@ -2899,6 +2912,7 @@ WHERE conditions
 ```
 
 Where:
+
 - **SELECT Clause:** specifies the columns to be returned.
 - **FROM Clause:** specifies the table from which to retrieve the data.
 - **WHERE Clause:** defines the conditions for filtering the data. The logic of using this clause has some particularities:
@@ -2910,12 +2924,14 @@ Where:
 It is essential to design the data model with query requirements in mind to ensure high performance and efficient query execution.
 
 #### Other operations
+
 - **Materialized Views:** they are pre-calculated views of the data present in tables, providing faster access to query results. Automatically updated by the system based on changes to the underlying data, they ensure data consistency between views and base tables. These views optimize query performance, offering flexibility in database design and supporting complex queries.
 ```cql
 CREATE MATERIALIZED VIEW name_m_view AS
 QUERY
 PRIMARY KEY (name_key1, ...);
 ```
+
 - **Configurable Consistency Levels:** determine the number of replicas that must agree on the response before an operation is considered complete. Common consistency levels include ONE (completed when at least one replica responds), QUORUM (completed when a majority of replicas respond), ALL, EACH_QUORUM, etc.
 - **Batch Statements:** they in Cassandra allow executing multiple write or modification operations in a single atomic transaction, ensuring that either all operations are executed or none. They can involve one or more tables and can be configured as "unlogged" (write operations are not logged in the commit log, posing higher risks in case of data loss) or "logged" (all write operations are logged in the commit log before being applied to the actual data on disk), with significant differences in performance and data durability. Batches are useful for reducing the number of network calls and improving overall system performance, but it's important to balance data consistency and scalability needs when deciding to use them.
 ```cql
@@ -2925,6 +2941,7 @@ BEGIN [UNLOGGED | LOGGED] BATCH
   [dml_statement; ...]
 APPLY BATCH;
 ```
+
 - **LWT:** they can be used for operations that require strong consistency. You perform an LTW when using the IF command for conditionals and CAS (Compare and Set). These commands are primarily added to INSERT and SELECT operations. LWTs guarantee serializable isolation but can have a performance cost.
 
 Especially the last 2 structures/operations will be explored in depth in the specific chapter.
@@ -3128,7 +3145,7 @@ periodic review processes, deletion of redundant indexes, and careful considerat
 implications—is essential to maintain optimal database performance and efficiency.
 
 ### Cassandra Optimization
-Cassandra, unlike MongoDB, does not require specific operations to optimize certain queries. This is because Cassandra assumes that the data model has already been designed optimally to ensure maximum performance. As explained in previous chapters, Cassandra’s architecture is based on the distribution of data across multiple nodes and on a data model that favors rapid writes and scalable reads. In this context, performance optimization mainly depends on the initial design of the data model.
+Cassandra, unlike MongoDB, does not require specific operations to optimize certain queries. This is because Cassandra assumes that the data model has already been designed optimally to ensure maximum performance. As explained in previous chapters, Cassandra's architecture is based on the distribution of data across multiple nodes and on a data model that favors rapid writes and scalable reads. In this context, performance optimization mainly depends on the initial design of the data model.
 
 In Cassandra, the focus is on data de-normalization and creating tables in such a way that the main queries can be executed with maximum efficiency. This approach translates into:
 
@@ -3142,7 +3159,7 @@ Therefore, while MongoDB offers various query optimization techniques, such as t
 
 ## Data Modeling
 
-#### Data Ingestion and Processing
+### Data Ingestion and Processing
 After having talked in length about MongoDB and Cassandra technologies, we can finally move on to presenting the case
 study. In particular, our project concerns the construction of an airline reservation system. To do this, we started
 by searching for an appropriate dataset, and in this regard we found the OSM World Airports database
@@ -3205,6 +3222,7 @@ To mitigate potential parsing complications in CSV files, certain columns (`'Geo
 data consistency and facilitating seamless parsing.
 
 The cleaned DataFrame (`df`) represents structured airport data, where:
+
 - **IATA code** refers to the unique three-letter code assigned by the International Air Transport Association to identify airports.
 - **ICAO code** denotes the four-letter code designated by the International Civil Aviation Organization for individual airports and airspace globally.
 - **Country** signifies the country in which each airport is located.
@@ -3215,7 +3233,7 @@ The cleaned DataFrame (`df`) represents structured airport data, where:
 The final processed DataFrame (`df`) can be displayed for examination or utilized for subsequent analytical tasks
 as per specific project requirements.
 
-#### Assumptions
+### Assumptions
 At this point, it is good to make some assumptions about what our system must be able to perform.
 The system will simulate a website where, without needing to log in, people can connect to book an airline flight.
 The operations that users will carry out on the website will be simulated by the Main method of the Java code, which
@@ -3236,7 +3254,7 @@ have enough money to be able to get on a flight, and therefore a test will be do
 Not only this, the logs will also return the balance of people before and after booking, to show that everything is
 happening correctly.
 
-#### Creating the Data Model and Transactions in MongoDB
+### Creating the Data Model and Transactions in MongoDB
 
 Let's now move on to the creation of the Data Model, which is configured through the use of various Java Classes, 
 which interact with our Database. The class from which it all begins is the `Connection.java` class, whose code is 
@@ -3371,7 +3389,7 @@ public class Modeling {
         String dbName = "Airports"; // MongoDB database name
         String collectionName = "airportCollection"; // MongoDB collection name
 
-        String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
+        String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net" + "/?retryWrites=true&w=majority&appName=LearningMongoDB";
 
         try {
             // Obtain MongoClient and MongoDB/MongoCollection
@@ -3563,7 +3581,8 @@ public class Modeling {
             }
             int index = random.nextInt(airports.size());
             destinationAirport = airports.get(index);
-            if (!destinationAirport.getObjectId("_id").equals(currentAirport.getObjectId("_id"))) {
+            String id_current = currentAirport.getObjectId("_id");
+            if (!destinationAirport.getObjectId("_id").equals(id_current)) {
                 break;
             }
         }
@@ -3627,6 +3646,7 @@ documents. It starts by determining the size of the airport, which influences th
 
 The `generateFlights` method is called to create a list of flight documents for the airport. 
 This method generates random details for each flight, including:
+
 - **Destination Airport:** selected randomly from the list of all airports, ensuring it is different from the current airport.
 - **Flight Date and Time:** a random date within the next 10 days and a random time.
 - **Flight Duration:** a random duration between 1 and 14 hours.
@@ -3663,12 +3683,12 @@ of the structure of a single document within the collection, converted to a JSON
       "$oid": "6677f94b7acf35542d8ee8b2"
    },
    "Geo_Point": "51.1075552; 16.8756697",
-   "Name": "Port Lotniczy Wrocław",
+   "Name": "Port Lotniczy Wroclaw",
    "Name_(en)": "Wroclaw Airport",
-   "Name_(fr)": "Aéroport de Wrocław-Nicolas Copernic",
+   "Name_(fr)": "Aeroport de Wroclaw-Nicolas Copernic",
    "IATA_code": "WRO",
    "ICAO_code": "EPWR",
-   "Operator": "Port Lotniczy Wrocław SA",
+   "Operator": "Port Lotniczy Wroclaw SA",
    "Country": "Poland",
    "Country_code": "PL",
    "Size": 372,
@@ -3764,6 +3784,7 @@ The main queries identified from the model and the operational flow are, in pseu
 #### Create the table structure
 Designing the database tables effectively, considering the identified queries, data relationships, and access frequency, is fundamental. The table structure should optimize the read and write operations needed to satisfy common queries. Frequently accessed data together should be stored in a way that minimizes read operations.
 Crucial aspects for a good table structure are:
+
 - **Denormalization:** evaluating data denormalization can significantly improve query performance. In many cases, a bit of redundancy can reduce the number of necessary joins, thus speeding up read operations.
 - **Primary Keys:** carefully defining the primary keys for each table is crucial, as they ensure not only the uniqueness of data but also its distribution among nodes. Composite keys can be used to support complex queries when necessary. Composite keys organize the data in a way that allows efficient query execution, reducing the number of read operations.
 - **Data Type:** choosing the most suitable data types to represent information in the database is essential for ensuring efficiency and speed. This means choosing data types that minimize storage space and maximize read and write operation speed. Native Cassandra data types can be used, as well as collection data types (such as sets, lists, and maps) for efficient modeling of complex data. These data types can greatly improve query performance by enabling normalization and eliminating joins between tables.
@@ -3795,7 +3816,7 @@ This favors the search for the airport only through its unique IATA code. The ma
 - “Given the IATA code of an airport, return all information about that airport.”
 
 ```cql
-SELECT * FROM airport WHERE IATA_code = ‘v’;
+SELECT * FROM airport WHERE IATA_code = 'v';
 ```
 
 ##### Flight
@@ -3820,23 +3841,23 @@ Any variation in the fields that make up the primary key identifies a distinct f
 - “Given the IATA code of an airport, return a list of all flights departing from that airport.”
 
 ```cql
-SELECT * FROM flight WHERE departure = ‘v’;
+SELECT * FROM flight WHERE departure = 'v';
 ```
 
 - “Given two IATA codes of airports, respectively the departure and arrival airport, return a list of all flights on that route.”
 
 ```cql
-SELECT * FROM flight WHERE departure = ‘v1’ AND destination = ‘v2’;
+SELECT * FROM flight WHERE departure = 'v1' AND destination = 'v2';
 ```
 - “Given two IATA codes of airports, respectively the departure and arrival airport, and the day, return a list of all flights on that route during that time period.”
 
 ```cql
-SELECT * FROM flight WHERE departure = ‘v1’ AND destination = ‘v2’ AND day = ‘v3’;
+SELECT * FROM flight WHERE departure = 'v1' AND destination = 'v2' AND day = 'v3';
 ```
 - “Given two IATA codes of airports, respectively the departure and arrival airport, the day and the hour, return a list of all flights on that route during that time period.”
 
 ```cql
-SELECT * FROM flight WHERE departure = ‘v1’ AND destination = ‘v2’ AND day = ‘v3’ AND hour = ‘v4’;
+SELECT * FROM flight WHERE departure = 'v1' AND destination = 'v2' AND day = 'v3' AND hour = 'v4';
 ```
 
 ##### Seat
@@ -3858,17 +3879,17 @@ By including only the flight code in the partition key, it is possible to quickl
 - “Given the code of a flight, return a list of all seats on that flight.”
 
 ```cql
-SELECT * FROM seat WHERE flight = ‘v’;
+SELECT * FROM seat WHERE flight = 'v';
 ```
 - “Given two codes, respectively the flight code and the seat code, return the status of the seat on that flight.”
 
 ```cql
-SELECT status FROM seat WHERE flight = ‘v1’ AND id = ‘v2’;
+SELECT status FROM seat WHERE flight = 'v1' AND id = 'v2';
 ```
 - “Given two codes, respectively the flight code and the seat code, and the user information, insert the user data and change the seat status from 'Vacant' to 'Occupied.'”
 
 ```cql
-UPDATE seat SET status = 'Occupied', balance = ‘v1’, date_of_birth = ‘v2’, document_info = ‘v3’, name = ‘v4’, surname = ‘v5’ WHERE flight = ‘v6’ AND id = ‘v7’
+UPDATE seat SET status = 'Occupied', balance = 'v1', date_of_birth = 'v2', document_info = 'v3', name = 'v4', surname = 'v5' WHERE flight = 'v6' AND id = 'v7'
 ```
 
 In conclusion, the Javascript used to communicate with the database has been updated (the `UPDATE` operation will be covered in the relevant chapter). Specifically, in the main method, after establishing the connection, a query is executed to obtain the list of tables. Subsequently, the three previously described operations to create the tables are executed. Once the tables have been created, the initial query is executed again to obtain the updated list of tables. By comparing the results of the two queries, it is possible to determine which tables have been created. For each created table, the `INSERT` method is called to populate it. The `INSERT` method reads data from a `.txt` file having the same name as the table to be populated, where each row of the file corresponds to a row in the Cassandra table, and loads them into the database using the `INSERT` operation. Each row is a list of data that follows the order of fields as specified in the columns section of the `INSERT`. This method was designed to maintain consistency with the data created during the MongoDB phase; in fact, the Mongo database was previously exported to `JSON` files and processed to obtain the three distinct files (one for each table). The data is structured into classes: `Seat`, `Flight`, and `Airport`. Each class simply contains the various columns that define the respective table, getter and setter methods, and the toString method.
@@ -4259,7 +4280,7 @@ public class Main {
             logger.addHandler(fileHandler);
 
             // MongoDB connection details
-            String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/?retryWrites=true&w=majority&appName=LearningMongoDB";
+            String connectionString = "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net" + "/?retryWrites=true&w=majority&appName=LearningMongoDB";
             String dbName = "Airports";
             String collectionName = "airportCollection";
 
@@ -4273,12 +4294,12 @@ public class Main {
 
             Map<String, Map<String, String>> flightsFromBGY = transactions.getFlightsFromAirport(departureAirportCode);
 
-            logger.info("├─ TESTING FLIGHT RETRIEVAL");
-            logger.info("│---├─ Retrieving flights departing from the specified airport (" + departureAirportCode + ")");
+            logger.info("|-- TESTING FLIGHT RETRIEVAL");
+            logger.info("|---|-- Retrieving flights departing from the specified airport (" + departureAirportCode + ")");
             for (Map.Entry<String, Map<String, String>> entry : flightsFromBGY.entrySet()) {
                 String iataCode = entry.getKey();
                 Map<String, String> flightDetails = entry.getValue();
-                logger.info("│---├─ Flight to " + iataCode + ": " + flightDetails);
+                logger.info("|---|-- Flight to " + iataCode + ": " + flightDetails);
             }
             logger.info("");
 
@@ -4288,12 +4309,12 @@ public class Main {
             if (flightsFromBGY.containsKey(arrivalAirportCode)) {
                 flightID = flightsFromBGY.get(arrivalAirportCode).get("ID");
 
-                logger.info("├─ TESTING SEATS RETRIEVAL");
-                logger.info("│---├─ The user chose to depart from " + departureAirportCode + " to " + arrivalAirportCode);
-                logger.info("│---├─ Retrieving available seats for the specified flight (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                logger.info("|-- TESTING SEATS RETRIEVAL");
+                logger.info("|---|-- The user chose to depart from " + departureAirportCode + " to " + arrivalAirportCode);
+                logger.info("|---|-- Retrieving available seats for the specified flight (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
                 availableSeatsDetails = transactions.getAvailableSeats(departureAirportCode, arrivalAirportCode);
-                logger.info("│---├─ Number of available seats: " + availableSeatsDetails.size());
-                logger.info("│---├─ Available seats are: " + availableSeatsDetails);
+                logger.info("|---|-- Number of available seats: " + availableSeatsDetails.size());
+                logger.info("|---|-- Available seats are: " + availableSeatsDetails);
                 logger.info("");
 
                 if (!availableSeatsDetails.isEmpty()) {
@@ -4307,12 +4328,12 @@ public class Main {
                     PeopleGenerator.Person person1 = people.get(0);
                     PeopleGenerator.Person person2 = people.get(1);
 
-                    logger.info("├─ TESTING CONCURRENT TRANSACTIONS");
-                    logger.info("│---├─ Testing concurrent booking for the same seat (" + seatID + ") on flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
-                    logger.info("│---├─ Booking result for person 1: " + transactions.bookFlight(flightID, seatID, person1));
-                    logger.info("│---├─ Booking result for person 2: " + transactions.bookFlight(flightID, seatID, person2));
-                    logger.info("│---├─ Person 1 booked the seat first and successfully: " + person1);
-                    logger.info("│---├─ Person 2 consequently failed to book the same seat: " + person2);
+                    logger.info("|-- TESTING CONCURRENT TRANSACTIONS");
+                    logger.info("|---|-- Testing concurrent booking for the same seat (" + seatID + ") on flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                    logger.info("|---|-- Booking result for person 1: " + transactions.bookFlight(flightID, seatID, person1));
+                    logger.info("|---|-- Booking result for person 2: " + transactions.bookFlight(flightID, seatID, person2));
+                    logger.info("|---|-- Person 1 booked the seat first and successfully: " + person1);
+                    logger.info("|---|-- Person 2 consequently failed to book the same seat: " + person2);
                     logBalanceChange(logger, person1);
                     logger.info("");
 
@@ -4320,17 +4341,17 @@ public class Main {
                     String newSeatID = availableSeatsDetails.get(1);
                     PeopleGenerator.Person newPerson = generator.generatePeople(1).get(0);
 
-                    logger.info("├─ TESTING NON-CONCURRENT TRANSACTION");
-                    logger.info("│---├─ A new user chose to book the " + newSeatID + " seat, without any concurrency from other users");
-                    logger.info("│---├─ Booking result for new person: " + transactions.bookFlight(flightID, newSeatID, newPerson));
-                    logger.info("│---├─ New person booked the seat successfully: " + newPerson);
+                    logger.info("|-- TESTING NON-CONCURRENT TRANSACTION");
+                    logger.info("|---|-- A new user chose to book the " + newSeatID + " seat, without any concurrency from other users");
+                    logger.info("|---|-- Booking result for new person: " + transactions.bookFlight(flightID, newSeatID, newPerson));
+                    logger.info("|---|-- New person booked the seat successfully: " + newPerson);
                     logBalanceChange(logger, newPerson);
                     logger.info("");
                 } else {
-                    logger.info("│---├─ No available seats found for the flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
+                    logger.info("|---|-- No available seats found for the flight " + flightID + " (" + departureAirportCode + " -> " + arrivalAirportCode + ")");
                 }
             } else {
-                logger.info("│---├─ No flights found departing from " + departureAirportCode);
+                logger.info("|---|-- No flights found departing from " + departureAirportCode);
             }
 
             // Testing for the "poor" person attempting to book an available seat
@@ -4338,10 +4359,10 @@ public class Main {
             PeopleGenerator.Person poorPerson = generator.generatePoorPerson();
             String poorPersonSeatID = availableSeatsDetails.get(1);
 
-            logger.info("├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR");
-            logger.info("│---├─ " + poorPerson.getName() + " " + poorPerson.getSurname() + " with balance " + poorPerson.getBalance() + "$ is attempting to book seat " + poorPersonSeatID);
-            logger.info("│---├─ Booking result for person with insufficient funds: " + transactions.bookFlight(flightID, poorPersonSeatID, poorPerson));
-            logger.info("│---├─ The booking failed due to insufficient balance to complete the transaction");
+            logger.info("|-- TESTING INSUFFICIENT FUNDS BEHAVIOUR");
+            logger.info("|---|-- " + poorPerson.getName() + " " + poorPerson.getSurname() + " with balance " + poorPerson.getBalance() + "$ is attempting to book seat " + poorPersonSeatID);
+            logger.info("|---|-- Booking result for person with insufficient funds: " + transactions.bookFlight(flightID, poorPersonSeatID, poorPerson));
+            logger.info("|---|-- The booking failed due to insufficient balance to complete the transaction");
             logger.info("");
 
             // Close the MongoDB client
@@ -4351,7 +4372,7 @@ public class Main {
             fileHandler.close();
 
         } catch (IOException e) {
-            logger.severe("│---├─ Error during logger configuration: " + e.getMessage());
+            logger.severe("|---|-- Error during logger configuration: " + e.getMessage());
         }
     }
 
@@ -4372,53 +4393,53 @@ public class Main {
      * @param person The person whose balance change is being logged.
      */
     private static void logBalanceChange(Logger logger, PeopleGenerator.Person person) {
-        logger.info(String.format("│---├─ The balance of %s %s before booking the flight was %.2f$",
+        logger.info(String.format("|---|-- The balance of %s %s before booking the flight was %.2f$",
                 person.getName(), person.getSurname(), person.getOldBalance()));
-        logger.info(String.format("│---├─ The cost of the flight was %.2f$", person.getDifference()));
-        logger.info(String.format("│---├─ This means the new balance of %s %s is %.2f$",
+        logger.info(String.format("|---|-- The cost of the flight was %.2f$", person.getDifference()));
+        logger.info(String.format("|---|-- This means the new balance of %s %s is %.2f$",
                 person.getName(), person.getSurname(), person.getBalance()));
     }
 }
 ```
 
-When executed, this class returns a log file called `app.log`, an example of the plaintext content of which is shown below:
+When executed, this class returns a log file called `app.log`, an example of the sh content of which is shown below:
 For visual simplicity, some of the flight parameters available in the testing flight retrieval section have been removed,
 but they can be added again by editing the body of the main class above.
 
-```plaintext
-├─ TESTING FLIGHT RETRIEVAL
-│---├─ Retrieving flights departing from the specified airport (MXP)
-│---├─ Flight to CDG: {IATA_code=CDG, Country=France, ID=6677f9907acf35542d8ef21b, Name=Aéroport de Paris-Charles-de-Gaulle}
-│---├─ Flight to PMV: {IATA_code=PMV, Country=Venezuela, ID=6677f9907acf35542d8ef21c, Name=Aeropuerto Internacional del Caribe Santiago Mariño}
+```sh
+|-- TESTING FLIGHT RETRIEVAL
+|---|-- Retrieving flights departing from the specified airport (MXP)
+|---|-- Flight to CDG: {IATA_code=CDG, Country=France, ID=6677f9907acf35542d8ef21b, Name=Aeroport de Paris-Charles-de-Gaulle}
+|---|-- Flight to PMV: {IATA_code=PMV, Country=Venezuela, ID=6677f9907acf35542d8ef21c, Name=Aeropuerto Internacional del Caribe Santiago Marino}
 
-├─ TESTING SEATS RETRIEVAL
-│---├─ The user chose to depart from MXP to PMV
-│---├─ Retrieving available seats for the specified flight (MXP -> PMV)
-│---├─ Number of available seats: 13
-│---├─ Available seats are: [1F, 2C, 3A, 4F, 5A, 5B, 5D, 9A, 9C, 10B, 11C, 13B, 13F]
+|-- TESTING SEATS RETRIEVAL
+|---|-- The user chose to depart from MXP to PMV
+|---|-- Retrieving available seats for the specified flight (MXP -> PMV)
+|---|-- Number of available seats: 13
+|---|-- Available seats are: [1F, 2C, 3A, 4F, 5A, 5B, 5D, 9A, 9C, 10B, 11C, 13B, 13F]
 
-├─ TESTING CONCURRENT TRANSACTIONS
-│---├─ Testing concurrent booking for the same seat (11C) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
-│---├─ Booking result for person 1: true
-│---├─ Booking result for person 2: false
-│---├─ Person 1 booked the seat first and successfully: Person{name='Salvatore', surname='Montanari', documentInfo='M4J601O', dateOfBirth='1933-08-27', balance=43988.87}
-│---├─ Person 2 consequently failed to book the same seat: Person{name='Enrico', surname='Pellegrini', documentInfo='PGUJ8Q0', dateOfBirth='1938-06-12', balance=39196.33}
-│---├─ The balance of Salvatore Montanari before booking the flight was 44350.87$
-│---├─ The cost of the flight was 362.00$
-│---├─ This means the new balance of Salvatore Montanari is 43988.87$
+|-- TESTING CONCURRENT TRANSACTIONS
+|---|-- Testing concurrent booking for the same seat (11C) on flight 6677f9907acf35542d8ef21c (MXP -> PMV)
+|---|-- Booking result for person 1: true
+|---|-- Booking result for person 2: false
+|---|-- Person 1 booked the seat first and successfully: Person{name='Salvatore', surname='Montanari', documentInfo='M4J601O', dateOfBirth='1933-08-27', balance=43988.87}
+|---|-- Person 2 consequently failed to book the same seat: Person{name='Enrico', surname='Pellegrini', documentInfo='PGUJ8Q0', dateOfBirth='1938-06-12', balance=39196.33}
+|---|-- The balance of Salvatore Montanari before booking the flight was 44350.87$
+|---|-- The cost of the flight was 362.00$
+|---|-- This means the new balance of Salvatore Montanari is 43988.87$
 
-├─ TESTING NON-CONCURRENT TRANSACTION
-│---├─ A new user chose to book the 3A seat, without any concurrency from other users
-│---├─ Booking result for new person: true
-│---├─ New person booked the seat successfully: Person{name='Marcella', surname='D'Agostino', documentInfo='YUW4PE3', dateOfBirth='2005-08-05', balance=92079.26}
-│---├─ The balance of Marcella D'Agostino before booking the flight was 92441.26$
-│---├─ The cost of the flight was 362.00$
-│---├─ This means the new balance of Marcella D'Agostino is 92079.26$
+|-- TESTING NON-CONCURRENT TRANSACTION
+|---|-- A new user chose to book the 3A seat, without any concurrency from other users
+|---|-- Booking result for new person: true
+|---|-- New person booked the seat successfully: Person{name='Marcella', surname='D'Agostino', documentInfo='YUW4PE3', dateOfBirth='2005-08-05', balance=92079.26}
+|---|-- The balance of Marcella D'Agostino before booking the flight was 92441.26$
+|---|-- The cost of the flight was 362.00$
+|---|-- This means the new balance of Marcella D'Agostino is 92079.26$
 
-├─ TESTING INSUFFICIENT FUNDS BEHAVIOUR
-│---├─ Angela Sanna with balance 10.0$ is attempting to book seat 2C
-│---├─ Booking result for person with insufficient funds: false
-│---├─ The booking failed to to having insufficient balance to complete the transaction
+|-- TESTING INSUFFICIENT FUNDS BEHAVIOUR
+|---|-- Angela Sanna with balance 10.0$ is attempting to book seat 2C
+|---|-- Booking result for person with insufficient funds: false
+|---|-- The booking failed to to having insufficient balance to complete the transaction
 ```
 
 Various test cases are listed within the log file just shown as described by the objectives of our model. In particular,
@@ -4752,8 +4773,10 @@ public class PeopleGenerator {
         Set<String> documentNumbers = new HashSet<>(count);
 
         for (int i = 0; i < count; i++) {
-            String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
-            String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
+            String name = NameSurnamePool.NAMES
+                    .get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
+            String surname = NameSurnamePool.SURNAMES
+                    .get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
             String documentInfo;
 
             // Generate a unique document number
@@ -4807,8 +4830,10 @@ public class PeopleGenerator {
      * @return A generated "poor" Person object.
      */
     public Person generatePoorPerson() {
-        String name = NameSurnamePool.NAMES.get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
-        String surname = NameSurnamePool.SURNAMES.get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
+        String name = NameSurnamePool.NAMES
+                .get(RANDOM.nextInt(NameSurnamePool.NAMES.size()));
+        String surname = NameSurnamePool.SURNAMES
+                .get(RANDOM.nextInt(NameSurnamePool.SURNAMES.size()));
         String documentInfo = generateDocumentInfo();
         String dateOfBirth = generateDateOfBirth();
         double balance = 10.0; // Balance limited to 10$
@@ -5027,6 +5052,7 @@ DELETE FROM keyspace_name.table_name WHERE column1 = value1 IF EXISTS;
 LWTs are particularly useful for ensuring that write operations respect certain conditions, maintaining data consistency in concurrency scenarios. They are ideal for implementing conditional write operations, such as inserting a record only if it does not already exist (`IF NOT EXISTS`), or updating a record only if another condition is met (`IF column = value`).
 
 When a client sends an LWT to the coordinator node, a Paxos-based protocol is applied in four phases:
+
 - **Preparation Phase:** the coordinator sends a "Prepare" request to all replicas involved in the transaction. The participating nodes locally evaluate whether they can satisfy the condition specified in the `IF` clause before confirming their readiness to proceed. The replicas respond by indicating the highest proposal number they have accepted so far.
 - **Proposal Phase:** based on the responses received during the preparation phase, the coordinator generates a new proposal with a unique number and the value to be written. This proposal is then sent to all involved replicas. The replicas compare the new proposal number with any previously accepted proposal numbers. If the new proposal number is higher, the replicas accept the proposal and respond to the coordinator.
 - **Commit Phase:** this phase verifies the consensus of the transaction. Once the coordinator has received acceptances from the majority of replicas, it decides to commit the transaction. The coordinator then sends a "Commit" request to all replicas, indicating that the proposal should be applied. The replicas receive this request and mark the proposal as committed. The `IF` clause is re-evaluated before the final commit to ensure that the condition is still met.
@@ -5432,7 +5458,7 @@ static Session session = null;
 
 An example of query execution with concurrent LWTs can be:
 
-```plaintext
+```sh
 Trace ID: c1512810-3a2f-11ef-9bb1-0f67a87d0426
 /2 Preparing c1587b12-3a2f-11ef-da45-6843ca902dd1 47694ms
 /2 Promising ballot c1587b12-3a2f-11ef-da45-6843ca902dd1 65716ms
@@ -5457,7 +5483,7 @@ Row: id=11E | balance=74, date_of_birth=2001-11-14, document_info=CA11111XT, nam
 /2 CAS applied successfully 110613ms
 ```
 
-```plaintext
+```sh
 Trace ID: c151281a-3a2f-11ef-9bb1-0f67a87d0426
 /2 Preparing c156f472-3a2f-11ef-c9d4-a4b8589ef39a 41340ms
 /2 Promising ballot c156f472-3a2f-11ef-c9d4-a4b8589ef39a 54533ms
@@ -5489,11 +5515,6 @@ Row[info=[ts=1720115220302524] ]: id=11E | [balance=74 ts=1720116225345000], [da
 /2 Adding to paxos memtable 131646ms
 /2 CAS did not apply 138740ms
 ```
-
-------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------
 
 ## Large Volume Data Management
 
@@ -5765,7 +5786,7 @@ of using Docker in a scenario like the one we just mentioned:
 
 After having analyzed and implemented the functioning of Docker in favor of the sharding process, it is good to spend a 
 few moments to talk about the error management on large volumes that MongoDB performs by design.
-MongoDB’s sharding architecture is designed to be fault-tolerant. Each shard is a replica set, which means data is 
+MongoDB's sharding architecture is designed to be fault-tolerant. Each shard is a replica set, which means data is 
 replicated across multiple servers within the shard. This replication ensures data availability even if a node fails.
 If a node in a shard fails, the replica set protocol elects a new primary from the remaining members. 
 The system continues to operate with minimal disruption. The following mitigation strategies are suggested to lower
@@ -5794,7 +5815,8 @@ commands. In particular, the entire operation just detailed can be summarized th
 simple commands:
 
 ```bash
-mongosh "mongodb+srv://admin:admin@learningmongodb.hikoksa.mongodb.net/Airports?retryWrites=true&w=majority"
+mongosh "mongodb+srv://
+        admin:admin@learningmongodb.hikoksa.mongodb.net/" + "Airports?retryWrites=true&w=majority"
 use Airports
 sh.enableSharding("Airports")
 sh.shardCollection("Airports.airportCollection", { "Country_code": 1 })
@@ -5990,7 +6012,7 @@ Consider `shard1` having one primary node (PRIMARY) and two secondary nodes (SEC
 }
 ```
 
-If the primary node (`mongod1`) were to malfunction or become unreachable for any reason, MongoDB automatically elects a new node as primary. This election process is managed internally by the replica set.
+If the primary node (`mongod11`) were to malfunction or become unreachable for any reason, MongoDB automatically elects a new node as primary. This election process is managed internally by the replica set.
 
 After the primary node malfunctions, running `rs.status()` again might show output similar to this:
 
@@ -6020,7 +6042,7 @@ After the primary node malfunctions, running `rs.status()` again might show outp
 }
 ```
 
-In the above example, `mongod2:27018` has been elected as the new primary node (PRIMARY) of the `rsShard1` replica set, since the originally primary node (`mongod1`) is now in a DOWN state.
+In the above example, `mongod12:27018` has been elected as the new primary node (PRIMARY) of the `rsShard1` replica set, since the originally primary node (`mongod11`) is now in a DOWN state.
 
 ### Large Volume Data Management in Cassandra
 
@@ -6145,7 +6167,7 @@ nodetool describecluster
 ```
 to obtain the current status of the nodes:
 
-```plaintext
+```sh
 root@a619f2004d70:/# nodetool describecluster
 Cluster Information:
         Name: Test Cluster
@@ -6315,7 +6337,7 @@ nodetool describecluster
 ```
 to get the current status of the nodes:
 
-```plaintext
+```sh
 root@a619f2004d70:/# nodetool describecluster
 Cluster Information:
         Name: Test Cluster
@@ -6366,7 +6388,7 @@ UPDATE seat
 
 Finally, restart the ```cassandra-node2``` node.
 After a couple of minutes the following statistics and the log file were analyzed, obtaining in particular:
-```plaintext
+```sh
 Pool Name                    Active Pending Completed Blocked All time blocked
 RequestResponseStage         0      0       200       0       0
 MutationStage                0      0       172726    0       0
@@ -6389,7 +6411,7 @@ CacheCleanupExecutor         0      0       0         0       0
 Native-Transport-Requests    0      0       283       0       0
 ```
 
-```plaintext
+```sh
 (base) PS C:\Users\Filippo> docker logs cassandra-node1
 OpenJDK 64-Bit Server VM warning: Option UseConcMarkSweepGC was deprecated in version 9.0 and will likely be removed in a future release.
 ...
@@ -6407,7 +6429,9 @@ INFO  [HintsDispatcher:1] 2024-07-07 14:10:12,852 HintsDispatchExecutor.java:301
 ```
 
 where the information
+
 ```HintsDispatcher              0      0       1         0       0```
+
 and the last lines of the log file highlight the use of the gossip protocol, to identify the moment when the node came back online, and hinted handoff to transmit the data to it.
 
 ## Conclusions
